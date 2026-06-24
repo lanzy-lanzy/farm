@@ -1,0 +1,48 @@
+{% extends "partials/modal.html" %}
+{% block modal_title %}{% if supplier %}Edit Supplier{% else %}Add Supplier{% endif %}{% endblock %}
+{% block modal_content %}
+<form hx-post="{% if supplier %}{% url 'suppliers:supplier_update' supplier.pk %}{% else %}{% url 'suppliers:supplier_create' %}{% endif %}" 
+      hx-target="#modal-container" hx-swap="innerHTML" hx-target-4*="#modal-container" class="space-y-4">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Supplier Name</label>
+            <input type="text" name="name" value="{{ form.name.value|default:'' }}" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all" required>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Person</label>
+            <input type="text" name="contact_person" value="{{ form.contact_person.value|default:'' }}" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+            <input type="text" name="phone" value="{{ form.phone.value|default:'' }}" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+            <input type="email" name="email" value="{{ form.email.value|default:'' }}" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Supplies</label>
+            <input type="text" name="supplies" value="{{ form.supplies.value|default:'' }}" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Active</label>
+            <div class="flex items-center pt-2">
+                <input type="checkbox" name="is_active" {% if form.is_active.value %}checked{% endif %} class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500">
+            </div>
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+            <textarea name="address" rows="2" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all">{{ form.address.value|default:'' }}</textarea>
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+            <textarea name="notes" rows="2" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all">{{ form.notes.value|default:'' }}</textarea>
+        </div>
+    </div>
+    <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <button type="button" onclick="this.closest('#modal-overlay').remove()" class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors cursor-pointer">Cancel</button>
+        <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-xl shadow-lg shadow-green-900/30 hover:shadow-xl transition-all duration-200 cursor-pointer">Save</button>
+    </div>
+</form>
+{% endblock %}

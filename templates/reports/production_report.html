@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Production Report{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Production Report</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Last 30 days egg production summary</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'reports:export_production_excel' %}" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 inline-flex items-center space-x-1 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span>Export Excel</span>
+            </a>
+            <a href="{% url 'reports:reports_index' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 inline-flex items-center space-x-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                <span>Back</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Total Eggs</p>
+            <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ total_eggs }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Good Eggs</p>
+            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ total_good }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Cracked Eggs</p>
+            <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ total_cracked }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Rejected Eggs</p>
+            <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ total_rejected }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="font-semibold text-gray-800 dark:text-white">Daily Production Records</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 dark:bg-gray-700/50">
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Flock</th>
+                        <th class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
+                        <th class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Good</th>
+                        <th class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cracked</th>
+                        <th class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rejected</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    {% for record in records %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                        <td class="px-5 py-4 text-gray-800 dark:text-white">{{ record.production_date }}</td>
+                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">{{ record.flock.batch_number }}</td>
+                        <td class="px-5 py-4 text-right text-gray-800 dark:text-white font-medium">{{ record.total_eggs }}</td>
+                        <td class="px-5 py-4 text-right text-green-600 dark:text-green-400">{{ record.good_eggs }}</td>
+                        <td class="px-5 py-4 text-right text-yellow-600 dark:text-yellow-400">{{ record.cracked_eggs }}</td>
+                        <td class="px-5 py-4 text-right text-red-600 dark:text-red-400">{{ record.rejected_eggs }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-5 py-12 text-center">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
+                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            </div>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm">No production records found for this period</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

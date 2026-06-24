@@ -1,0 +1,63 @@
+{% extends "partials/modal.html" %}
+{% block modal_title %}{% if record %}Edit Record{% else %}Add Medicine Record{% endif %}{% endblock %}
+{% block modal_content %}
+<form hx-post="{% if record %}{% url 'medicine:medicine_update' record.pk %}{% else %}{% url 'medicine:medicine_create' %}{% endif %}" 
+      hx-target="#modal-container" hx-swap="innerHTML" hx-target-4*="#modal-container" class="space-y-4">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Flock</label>
+            <select name="flock" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all" required>
+                {% for flock in flocks %}
+                <option value="{{ flock.pk }}" {% if form.flock.value|stringformat:'s' == flock.pk|stringformat:'s' %}selected{% endif %}>{{ flock.batch_number }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+            <select name="medicine_type" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all" required>
+                <option value="medicine" {% if form.medicine_type.value == 'medicine' %}selected{% endif %}>Medicine</option>
+                <option value="vaccine" {% if form.medicine_type.value == 'vaccine' %}selected{% endif %}>Vaccine</option>
+                <option value="vitamin" {% if form.medicine_type.value == 'vitamin' %}selected{% endif %}>Vitamin</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Medicine Name</label>
+            <input type="text" name="medicine_name" value="{{ form.medicine_name.value|default:'' }}" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all" required>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dosage</label>
+            <input type="text" name="dosage" value="{{ form.dosage.value|default:'' }}" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all" required>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date Administered</label>
+            <input type="date" name="date_administered" value="{{ form.date_administered.value|date:'Y-m-d'|default:'' }}" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all" required>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Route</label>
+            <select name="administration_route" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all">
+                <option value="oral" {% if form.administration_route.value == 'oral' %}selected{% endif %}>Oral</option>
+                <option value="injection" {% if form.administration_route.value == 'injection' %}selected{% endif %}>Injection</option>
+                <option value="spray" {% if form.administration_route.value == 'spray' %}selected{% endif %}>Spray</option>
+                <option value="water" {% if form.administration_route.value == 'water' %}selected{% endif %}>In Water</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity Used</label>
+            <input type="number" name="quantity_used" value="{{ form.quantity_used.value|default:'1' }}" step="0.01" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Next Schedule</label>
+            <input type="date" name="next_schedule" value="{{ form.next_schedule.value|date:'Y-m-d'|default:'' }}" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all">
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Remarks</label>
+            <textarea name="remarks" rows="3" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all">{{ form.remarks.value|default:'' }}</textarea>
+        </div>
+    </div>
+    <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <button type="button" onclick="this.closest('#modal-overlay').remove()" class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors cursor-pointer">Cancel</button>
+        <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-xl shadow-lg shadow-green-900/30 hover:shadow-xl transition-all duration-200 cursor-pointer">Save</button>
+    </div>
+</form>
+{% endblock %}

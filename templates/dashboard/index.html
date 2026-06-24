@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 bg-emerald-100 dark:bg-emerald-900 rounded-full">
+                    <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total Chickens</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ total_chickens }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-full">
+                    <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Low Stock Items</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ low_stock_items }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
+                    <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Today's Eggs</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ today_eggs }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 bg-red-100 dark:bg-red-900 rounded-full">
+                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Mortality (30 days)</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ total_mortality }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales & Expenses -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Sales Summary</h3>
+            <div class="space-y-2">
+                <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">This Week</span><span class="font-medium text-gray-800 dark:text-white">₱{{ week_sales|floatformat:2 }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">This Month</span><span class="font-medium text-gray-800 dark:text-white">₱{{ month_sales|floatformat:2 }}</span></div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Expenses Summary</h3>
+            <div class="space-y-2">
+                <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">This Week</span><span class="font-medium text-gray-800 dark:text-white">₱{{ week_expenses|floatformat:2 }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">This Month</span><span class="font-medium text-gray-800 dark:text-white">₱{{ month_expenses|floatformat:2 }}</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Egg Production Chart -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Egg Production (Last 7 Days)</h3>
+        <canvas id="eggChart" height="100"></canvas>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Recent Activities</h3>
+        <div class="space-y-3">
+            {% for activity in recent_activities %}
+            <div class="flex items-center text-sm">
+                <span class="text-gray-500 dark:text-gray-400">{{ activity.created_at|timesince }} ago</span>
+                <span class="mx-2 text-gray-400">-</span>
+                <span class="text-gray-700 dark:text-gray-300">{{ activity.user }} {{ activity.get_action_display }} {{ activity.model_name }}</span>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 dark:text-gray-400">No recent activities</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('eggChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [{% for item in egg_chart_data %}'{{ item.date }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Eggs',
+                    data: [{% for item in egg_chart_data %}{{ item.eggs }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

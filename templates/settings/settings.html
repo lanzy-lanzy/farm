@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Settings</h1>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <a href="{% url 'settings_app:farm_settings' %}" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition">
+            <h3 class="font-semibold text-gray-800 dark:text-white">Farm Profile</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Manage your farm information</p>
+        </a>
+        <a href="{% url 'accounts:user_list' %}" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition">
+            <h3 class="font-semibold text-gray-800 dark:text-white">User Management</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Manage user accounts and roles</p>
+        </a>
+    </div>
+</div>
+{% endblock %}

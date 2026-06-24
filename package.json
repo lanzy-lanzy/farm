@@ -1,0 +1,16 @@
+{
+  "name": "farm",
+  "version": "1.0.0",
+  "description": "Poultry Farm Management System",
+  "scripts": {
+    "build": "npx @tailwindcss/cli -i src/input.css -o static/css/styles.css --minify",
+    "watch": "npx @tailwindcss/cli -i src/input.css -o static/css/styles.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "gsap": "^3.15.0",
+    "three": "^0.184.0"
+  }
+}
