@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sequence Diagram</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        @page { size: A4 portrait; margin: 12mm; }
+        * { margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: white; padding: 8mm; max-width: 190mm; margin: 0 auto; }
+        h1 { text-align: center; font-size: 11pt; margin-bottom: 1px; }
+        .sub { text-align: center; font-size: 7pt; color: #444; margin-bottom: 4px; }
+        .mermaid svg { max-width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>SEQUENCE DIAGRAM</h1>
+    <p class="sub">WEB-BASED POULTRY FARM RECORD AND INVENTORY MANAGEMENT SYSTEM</p>
+    <div class="mermaid">
+sequenceDiagram
+    actor U as User
+    participant S as System
+    participant D as Database
+
+    U->>S: Open System
+    S-->>U: Login Page
+    U->>S: Enter credentials
+    S->>D: Verify
+    alt Invalid
+        S-->>U: Error message
+    else Valid
+        S-->>U: Dashboard
+    end
+
+    U->>S: Select function
+
+    rect rgb(245,245,245)
+    U->>S: Manage Flock Records
+    S->>D: Save flock data
+    S-->>U: Flock updated
+    end
+
+    rect rgb(245,245,245)
+    U->>S: Manage Farm Inputs
+    S->>D: Update stock
+    S-->>U: Stock updated
+    end
+
+    rect rgb(245,245,245)
+    U->>S: Record Production
+    S->>D: Save production data
+    S-->>U: Production recorded
+    end
+
+    rect rgb(245,245,245)
+    U->>S: Record Sales & Expenses
+    S->>D: Save transaction
+    S-->>U: Transaction saved
+    end
+
+    rect rgb(245,245,245)
+    U->>S: Manage People & Settings
+    S->>D: Save account data
+    S-->>U: Settings updated
+    end
+
+    rect rgb(245,245,245)
+    U->>S: Generate Reports
+    S->>D: Pull data
+    S-->>U: Report displayed
+    end
+
+    U->>S: Continue?
+    alt Yes
+        S-->>U: Dashboard
+    else No
+        U->>S: Logout
+        S->>D: End session
+        S-->>U: Login Page
+    end
+    </div>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            sequence: {
+                actorMargin: 20,
+                messageMargin: 15,
+                boxMargin: 2,
+                noteMargin: 2,
+                mirrorActors: false,
+                actorFontSize: 9,
+                noteFontSize: 8,
+                messageFontSize: 8,
+                width: 100
+            },
+            themeVariables: {
+                actorBkg: 'white',
+                actorBorder: 'black',
+                actorTextColor: 'black',
+                signalColor: 'black',
+                signalTextColor: 'black',
+                noteBkgColor: 'white',
+                noteTextColor: 'black',
+                noteBorderColor: 'black'
+            }
+        });
+    </script>
+</body>
+</html>

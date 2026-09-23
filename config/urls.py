@@ -11,6 +11,7 @@ def root_redirect(request):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/", include("api.urls")),
     path("", root_redirect, name="root"),
     path("", include("accounts.urls")),
     path("dashboard/", include("dashboard.urls")),

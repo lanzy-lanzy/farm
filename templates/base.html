@@ -9,8 +9,79 @@
     <script src="{% static 'js/htmx-ext-response-targets.min.js' %}"></script>
     <script defer src="{% static 'js/alpine.min.js' %}"></script>
     <script src="{% static 'js/chart.min.js' %}"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    <style>[x-cloak] { display: none !important; }</style>
+    <style>
+        [x-cloak] { display: none !important; }
+
+        /* ---------- Forest-glass sidebar ---------- */
+        .side {
+            background:
+                radial-gradient(130% 55% at 0% 0%, rgba(16, 185, 129, .14), transparent 62%),
+                radial-gradient(120% 40% at 100% 100%, rgba(163, 230, 53, .08), transparent 60%),
+                linear-gradient(180deg, #072a1b 0%, #04170e 55%, #030f0a 100%);
+            border-right: 1px solid rgba(255, 255, 255, .08);
+            color: #dcefe3;
+        }
+        .side-brand {
+            height: 4.5rem; flex-shrink: 0;
+            display: flex; align-items: center; gap: .7rem;
+            padding: 0 1.35rem;
+            border-bottom: 1px solid rgba(255, 255, 255, .07);
+        }
+        .side-brand .mark {
+            width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+            display: grid; place-items: center; color: #a3e635;
+            background: linear-gradient(140deg, rgba(163, 230, 53, .22), rgba(52, 211, 153, .14));
+            border: 1px solid rgba(163, 230, 53, .3);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
+        }
+        .side-brand .txt { display: flex; flex-direction: column; line-height: 1.1; }
+        .side-brand .name { font-family: 'Sora', system-ui, sans-serif; font-weight: 700; font-size: 1.04rem; letter-spacing: -.01em; color: #f2faf5; }
+        .side-brand .sub { font-size: .58rem; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: rgba(206, 236, 220, .5); }
+
+        .side-nav { flex: 1; overflow-y: auto; padding: .5rem 0 1rem; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .14) transparent; }
+        .side-nav::-webkit-scrollbar { width: 8px; }
+        .side-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .12); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+        .side-nav::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .22); background-clip: padding-box; }
+
+        .side-label { font-size: .6rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: rgba(206, 236, 220, .38); padding: .95rem 1.4rem .4rem; }
+        .side-link {
+            position: relative; display: flex; align-items: center; gap: .8rem;
+            margin: 2px .65rem; padding: .62rem .85rem; border-radius: 12px;
+            border: 0; background: transparent; text-align: left;
+            font-family: 'Inter', system-ui, sans-serif; font-size: .9rem; font-weight: 500;
+            color: rgba(220, 242, 230, .7); text-decoration: none; cursor: pointer;
+            transition: color .2s ease, background .2s ease, transform .2s ease;
+        }
+        .side-link svg { width: 20px; height: 20px; flex-shrink: 0; color: rgba(206, 236, 220, .5); transition: color .2s ease; }
+        .side-link:hover { color: #f2faf5; background: rgba(255, 255, 255, .05); transform: translateX(3px); }
+        .side-link:hover svg { color: #6ee7b7; }
+        .side-link.is-active {
+            color: #eafff3;
+            background: linear-gradient(100deg, rgba(52, 211, 153, .2), rgba(163, 230, 53, .09));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+        }
+        .side-link.is-active svg { color: #a3e635; }
+        .side-link.is-active::before {
+            content: ''; position: absolute; left: -.65rem; top: 50%; transform: translateY(-50%);
+            width: 3px; height: 58%; border-radius: 0 3px 3px 0;
+            background: linear-gradient(#a3e635, #34d399); box-shadow: 0 0 12px rgba(163, 230, 53, .55);
+        }
+        .side-div { height: 1px; margin: .8rem 1.4rem; border: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .12), transparent); }
+
+        .side-foot { flex-shrink: 0; padding: .85rem; border-top: 1px solid rgba(255, 255, 255, .07); }
+        .side-foot .side-link { margin: 0; width: 100%; }
+        .side-logout:hover { color: #ffe4e6 !important; background: rgba(244, 63, 94, .16) !important; }
+        .side-logout:hover svg { color: #fb7185 !important; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .side-link, .side-link svg { transition: none; }
+            .side-link:hover { transform: none; }
+        }
+    </style>
 </head>
 <body class="bg-green-50 dark:bg-gray-900 min-h-screen" hx-ext="response-targets">
     <div x-data="{ sidebarOpen: false }" class="flex">
@@ -18,83 +89,88 @@
         <div x-show="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 bg-black/50 z-40 lg:hidden"></div>
 
         <!-- Sidebar -->
-        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'" 
-               class="fixed lg:static inset-y-0 left-0 z-50 w-64 bg-green-800 dark:bg-green-950 transform transition-transform duration-300 ease-in-out flex flex-col rounded-r-2xl lg:rounded-r-none shadow-xl">
-            <div class="flex items-center justify-center h-16 bg-green-900 dark:bg-green-950 rounded-tr-2xl lg:rounded-tr-none">
-                <div class="flex items-center space-x-2">
-                    <svg class="w-7 h-7 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                    <span class="text-white text-lg font-bold tracking-wide">Poultry Farm</span>
-                </div>
+        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+               class="side fixed lg:static inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out flex flex-col shadow-2xl">
+            <div class="side-brand">
+                <span class="mark" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5C8.8 2.5 6 7.3 6 11.4a6 6 0 0 0 12 0c0-4.1-2.8-8.9-6-8.9z"/><path d="M9.8 13.2c.6-2.2 2-3.6 4.4-4.2-.2 2.3-1.4 3.9-3.2 4.6l-1.2.4z"/></svg>
+                </span>
+                <span class="txt">
+                    <span class="name">Tambulig</span>
+                    <span class="sub">Poultry Farm</span>
+                </span>
             </div>
-            <nav class="flex-1 overflow-y-auto py-3 space-y-1 px-2">
+            <nav class="side-nav">
                 {% with url=request.path %}
-                <a href="{% url 'dashboard:index' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if url == '/dashboard/' %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <div class="side-label">Overview</div>
+                <a href="{% url 'dashboard:index' %}" class="side-link {% if url == '/dashboard/' %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                     <span>Dashboard</span>
                 </a>
-                <a href="{% url 'flocks:flock_list' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if '/flocks/' in url %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <div class="side-label">Farm Operations</div>
+                <a href="{% url 'flocks:flock_list' %}" class="side-link {% if '/flocks/' in url %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                     <span>Flocks</span>
                 </a>
-                <a href="{% url 'inventory:inventory_list' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if '/inventory/' in url %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                <a href="{% url 'inventory:inventory_list' %}" class="side-link {% if '/inventory/' in url %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                     <span>Inventory</span>
                 </a>
-                <a href="{% url 'feeding:feeding_list' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if '/feeding/' in url %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                <a href="{% url 'feeding:feeding_list' %}" class="side-link {% if '/feeding/' in url %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                     <span>Feeding</span>
                 </a>
-                <a href="{% url 'medicine:medicine_list' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if '/medicine/' in url %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                <a href="{% url 'medicine:medicine_list' %}" class="side-link {% if '/medicine/' in url %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
                     <span>Medicine</span>
                 </a>
-                <a href="{% url 'eggs:egg_list' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if '/eggs/' in url %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <a href="{% url 'eggs:egg_list' %}" class="side-link {% if '/eggs/' in url %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                     <span>Eggs</span>
                 </a>
-                <a href="{% url 'mortality:mortality_list' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if '/mortality/' in url %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <a href="{% url 'mortality:mortality_list' %}" class="side-link {% if '/mortality/' in url %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                     <span>Mortality</span>
                 </a>
-                <a href="{% url 'sales:sales_list' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if '/sales/' in url %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <a href="{% url 'sales:sales_list' %}" class="side-link {% if '/sales/' in url %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <span>Sales</span>
                 </a>
-                <a href="{% url 'expenses:expense_list' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if '/expenses/' in url %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"></path></svg>
+                <a href="{% url 'expenses:expense_list' %}" class="side-link {% if '/expenses/' in url %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"></path></svg>
                     <span>Expenses</span>
                 </a>
-                <hr class="border-green-700/30 my-2">
-                <a href="{% url 'suppliers:supplier_list' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if '/suppliers/' in url %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <div class="side-label">Records</div>
+                <a href="{% url 'suppliers:supplier_list' %}" class="side-link {% if '/suppliers/' in url %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                     <span>Suppliers</span>
                 </a>
-                <a href="{% url 'buyers:buyer_list' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if '/buyers/' in url %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                <a href="{% url 'buyers:buyer_list' %}" class="side-link {% if '/buyers/' in url %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                     <span>Buyers</span>
                 </a>
-                <a href="{% url 'reports:reports_index' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if '/reports/' in url %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <a href="{% url 'reports:reports_index' %}" class="side-link {% if '/reports/' in url %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     <span>Reports</span>
                 </a>
                 {% if user.is_admin_user or user.is_owner %}
-                <hr class="border-green-700/30 my-2">
-                <a href="{% url 'accounts:user_list' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if '/users/' in url %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path></svg>
+                <div class="side-label">Administration</div>
+                <a href="{% url 'accounts:user_list' %}" class="side-link {% if '/users/' in url %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path></svg>
                     <span>Users</span>
                 </a>
-                <a href="{% url 'settings_app:settings' %}" class="flex items-center px-4 py-2.5 rounded-xl {% if '/settings/' in url %}bg-green-700 text-white shadow-lg shadow-green-900/30{% else %}text-green-100 hover:bg-green-700/60 hover:text-white{% endif %} transition-all duration-200 cursor-pointer">
-                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <a href="{% url 'settings_app:settings' %}" class="side-link {% if '/settings/' in url %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     <span>Settings</span>
                 </a>
                 {% endif %}
                 {% endwith %}
             </nav>
-            <div class="p-3 border-t border-green-700/30">
+            <div class="side-foot">
                 <form method="post" action="{% url 'accounts:logout' %}">
                     {% csrf_token %}
-                    <button type="submit" class="w-full flex items-center px-4 py-2.5 rounded-xl text-green-200 hover:bg-red-600/40 hover:text-white transition-all duration-200 cursor-pointer">
-                        <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <button type="submit" class="side-link side-logout">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                         <span>Logout</span>
                     </button>
                 </form>

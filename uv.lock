@@ -158,6 +158,12 @@ wheels = [
 ]
 
 [[package]]
+name = "django-shortcuts"
+version = "1.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/26/91/b4b7785279269559028e62831ca98bc45a5086236194314b43e39c227917/django-shortcuts-1.6.tar.gz", hash = "sha256:eac6f9e2f4acdba3856046405c21382d36b66414bcd14c390f6027ac15f28ca8", size = 3105, upload-time = "2018-07-11T07:39:10.339Z" }
+
+[[package]]
 name = "djangorestframework"
 version = "3.17.1"
 source = { registry = "https://pypi.org/simple" }
@@ -186,6 +192,7 @@ dependencies = [
     { name = "crispy-tailwind" },
     { name = "django" },
     { name = "django-crispy-forms" },
+    { name = "django-shortcuts" },
     { name = "djangorestframework" },
     { name = "openpyxl" },
     { name = "pillow" },
@@ -197,6 +204,7 @@ requires-dist = [
     { name = "crispy-tailwind", specifier = ">=1.0.3" },
     { name = "django", specifier = ">=6.0.6" },
     { name = "django-crispy-forms", specifier = ">=2.6" },
+    { name = "django-shortcuts", specifier = ">=1.6" },
     { name = "djangorestframework", specifier = ">=3.17.1" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pillow", specifier = ">=12.2.0" },

@@ -1,0 +1,262 @@
+sequenceDiagram
+    autonumber
+    actor User as User (Admin/Owner/Staff)
+    participant Browser as Browser
+    participant Django as Django Server
+    participant Auth as accounts app
+    participant Dash as dashboard app
+    participant Flocks as flocks app
+    participant Inv as inventory app
+    participant Feed as feeding app
+    participant Med as medicine app
+    participant Eggs as eggs app
+    participant Mort as mortality app
+    participant Sales as sales app
+    participant Exp as expenses app
+    participant Notif as notifications app
+    participant DB as SQLite DB
+
+    %% === AUTHENTICATION FLOW ===
+    rect rgb(230, 245, 255)
+        Note over User, DB: Authentication Flow
+        User->>Browser: Visit / (landing page)
+        Browser->>Django: GET /
+        Django->>DB: Check if authenticated
+        DB-->>Django: Anonymous user
+        Django-->>Browser: Render landing page (Three.js 3D scene)
+        User->>Browser: Click "Sign In"
+        Browser->>Django: GET /login/
+        Django-->>Browser: Render login form
+        User->>Browser: Enter credentials + Submit
+        Browser->>Django: POST /login/
+        Django->>Auth: authenticate(username, password)
+        Auth->>DB: Query User table
+        DB-->>Auth: User record
+        Auth-->>Django: Authenticated user
+        Django->>DB: Create session
+        Django-->>Browser: 302 Redirect → /dashboard/
+        Browser->>Django: GET /dashboard/
+    end
+
+    %% === DASHBOARD FLOW ===
+    rect rgb(255, 245, 230)
+        Note over User, DB: Dashboard Overview
+        Django->>DB: Query FlockBatch (total chickens)
+        Django->>DB: Query InventoryItem (low stock, expired)
+        Django->>DB: Query EggProduction (today/week/month)
+        Django->>DB: Query MortalityRecord (30-day)
+        Django->>DB: Query SalesRecord (week/month)
+        Django->>DB: Query ExpenseRecord (week/month)
+        Django->>DB: Query ActivityLog (last 10)
+        DB-->>Django: Aggregated data
+        Django->>Notif: Inject unread_notifications count
+        Notif->>DB: Query Notification (unread)
+        DB-->>Notif: Unread count
+        Notif-->>Django: Context with notification count
+        Django-->>Browser: Render dashboard (cards, charts, activity log)
+    end
+
+    %% === FLOCK MANAGEMENT (HTMX) ===
+    rect rgb(230, 255, 230)
+        Note over User, DB: Flock Management (CRUD via HTMX)
+        User->>Browser: Click "Flocks" in sidebar
+        Browser->>Django: GET /flocks/
+        Django->>DB: Query all FlockBatch records
+        DB-->>Django: Flock list
+        Django-->>Browser: Render flock_list.html
+
+        User->>Browser: Click "Add Flock" button
+        Browser->>Django: GET /flocks/create/ (HX-Request: true)
+        Django-->>Browser: Return _form.html partial (modal)
+
+        User->>Browser: Fill form + Submit
+        Browser->>Django: POST /flocks/create/ (HX-Request: true)
+        Django->>DB: INSERT INTO flocks_flockbatch (...)
+        Django->>Notif: log_activity("Created Flock Batch #X")
+        Notif->>DB: INSERT INTO notifications_activitylog (...)
+        Django-->>Browser: <script> close modal + reload
+        Browser->>Django: GET /flocks/
+        Django-->>Browser: Updated flock list
+    end
+
+    %% === INVENTORY + FEEDING (AUTO DEDUCTION) ===
+    rect rgb(255, 230, 230)
+        Note over User, DB: Feeding Record with Auto Inventory Deduction
+        User->>Browser: Navigate to /feeding/create/
+        Browser->>Django: GET /feeding/create/
+        Django->>DB: Query active FlockBatch + Feed InventoryItems
+        DB-->>Django: Flocks + feed items
+        Django-->>Browser: Render feeding form
+
+        User->>Browser: Select flock + feed item + quantity + Submit
+        Browser->>Django: POST /feeding/create/
+        Django->>DB: INSERT INTO feeding_feedingrecord (...)
+        Django->>Inv: Create InventoryTransaction (stock out)
+        Inv->>DB: INSERT INTO inventory_inventorytransaction (type=out, qty=...)
+        Inv->>DB: UPDATE inventory_inventoryitem SET quantity = quantity - qty
+        DB-->>Inv: Updated inventory
+        Inv-->>Django: Transaction saved
+
+        alt Feed below reorder level
+            Inv->>Notif: notify_low_stock(item)
+            Notif->>DB: INSERT INTO notifications_notification (type=low_stock) FOR ALL active users
+        end
+
+        Django->>Notif: log_activity("Recorded feeding for Flock #X")
+        Notif->>DB: INSERT INTO notifications_activitylog (...)
+        Django-->>Browser: Success → close modal + reload
+    end
+
+    %% === MORTALITY RECORDING (AUTO FLOCK UPDATE) ===
+    rect rgb(255, 255, 220)
+        Note over User, DB: Mortality Recording with Flock Quantity Update
+        User->>Browser: Navigate to /mortality/create/
+        Browser->>Django: GET /mortality/create/
+        Django->>DB: Query active FlockBatch records
+        DB-->>Django: Flock list
+        Django-->>Browser: Render mortality form
+
+        User->>Browser: Select flock + cause + quantity + Submit
+        Browser->>Django: POST /mortality/create/
+        Django->>DB: INSERT INTO mortality_mortalityrecord (...)
+        Django->>DB: Recalculate total deaths for flock
+        Django->>DB: UPDATE flocks_flockbatch SET current_quantity = original - total_mortality
+        Django->>Notif: log_activity("Recorded mortality for Flock #X")
+        Notif->>DB: INSERT INTO notifications_activitylog (...)
+        Django-->>Browser: Success → close modal + reload
+    end
+
+    %% === EGG PRODUCTION ===
+    rect rgb(245, 230, 255)
+        Note over User, DB: Egg Production Recording
+        User->>Browser: Navigate to /eggs/create/
+        Browser->>Django: GET /eggs/create/
+        Django->>DB: Query active FlockBatch records
+        DB-->>Django: Flock list
+        Django-->>Browser: Render egg production form
+
+        User->>Browser: Select flock + good/cracked/rejected counts + Submit
+        Browser->>Django: POST /eggs/create/
+        Django->>DB: INSERT INTO eggs_eggproduction (...)
+        Note over Django: Auto-calculates total_eggs = good + cracked + rejected
+        Django->>Notif: log_activity("Recorded egg production for Flock #X")
+        Notif->>DB: INSERT INTO notifications_activitylog (...)
+        Django-->>Browser: Success → close modal + reload
+    end
+
+    %% === MEDICINE/VACCINATION ===
+    rect rgb(230, 230, 255)
+        Note over User, DB: Medicine/Vaccination with Optional Inventory Deduction
+        User->>Browser: Navigate to /medicine/create/
+        Browser->>Django: GET /medicine/create/
+        Django->>DB: Query FlockBatch + InventoryItems (medicine/vaccine/vitamin)
+        DB-->>Django: Data
+        Django-->>Browser: Render medicine form
+
+        User->>Browser: Select flock + type + optional medicine item + schedule + Submit
+        Browser->>Django: POST /medicine/create/
+        Django->>DB: INSERT INTO medicine_medicinerecord (...)
+        
+        alt Medicine item selected
+            Django->>Inv: Create InventoryTransaction (stock out)
+            Inv->>DB: INSERT INTO inventory_inventorytransaction (type=out)
+            Inv->>DB: UPDATE inventory_inventoryitem SET quantity = quantity - qty
+        end
+
+        alt Type = vaccine AND next_schedule set
+            Django->>Notif: notify_vaccination_due(record)
+            Notif->>DB: INSERT INTO notifications_notification (type=vaccination) FOR ALL active users
+        end
+
+        Django->>Notif: log_activity("Recorded medicine for Flock #X")
+        Notif->>DB: INSERT INTO notifications_activitylog (...)
+        Django-->>Browser: Success → close modal + reload
+    end
+
+    %% === SALES RECORDING ===
+    rect rgb(255, 240, 230)
+        Note over User, DB: Sales Recording
+        User->>Browser: Navigate to /sales/create/
+        Browser->>Django: GET /sales/create/
+        Django->>DB: Query Buyer list + FlockBatch
+        DB-->>Django: Buyers + flocks
+        Django-->>Browser: Render sales form
+
+        User->>Browser: Select product type + buyer + qty + unit price + Submit
+        Browser->>Django: POST /sales/create/
+        Django->>DB: INSERT INTO sales_salesrecord (...)
+        Note over Django: Auto-calculates total_amount = quantity × unit_price
+        Django->>Notif: log_activity("Recorded sale to Buyer #X")
+        Notif->>DB: INSERT INTO notifications_activitylog (...)
+        Django-->>Browser: Success → close modal + reload
+    end
+
+    %% === EXPENSE RECORDING ===
+    rect rgb(240, 240, 230)
+        Note over User, DB: Expense Recording
+        User->>Browser: Navigate to /expenses/create/
+        Browser->>Django: GET /expenses/create/
+        Django->>DB: Query ExpenseCategory list
+        DB-->>Django: Categories
+        Django-->>Browser: Render expense form
+
+        User->>Browser: Select category + amount + description + Submit
+        Browser->>Django: POST /expenses/create/
+        Django->>DB: INSERT INTO expenses_expenserecord (...)
+        Django->>Notif: log_activity("Recorded expense: [description]")
+        Notif->>DB: INSERT INTO notifications_activitylog (...)
+        Django-->>Browser: Success → close modal + reload
+    end
+
+    %% === REPORT GENERATION + EXCEL EXPORT ===
+    rect rgb(230, 255, 245)
+        Note over User, DB: Report Generation & Excel Export
+        User->>Browser: Click "Reports" in sidebar
+        Browser->>Django: GET /reports/
+        Django-->>Browser: Render reports hub page
+
+        User->>Browser: Click "Production Report"
+        Browser->>Django: GET /reports/production/
+        Django->>DB: Query EggProduction (last 30 days) + FlockBatch
+        DB-->>Django: Report data
+        Django-->>Browser: Render production report table
+
+        User->>Browser: Click "Export to Excel"
+        Browser->>Django: GET /reports/production/export-excel/
+        Django->>DB: Query production data
+        DB-->>Django: Raw data
+        Note over Django: openpyxl creates .xlsx workbook
+        Django-->>Browser: HttpResponse (Content-Type: application/vnd.openxmlformats...)
+        Browser-->>User: Download .xlsx file
+    end
+
+    %% === NOTIFICATION FLOW ===
+    rect rgb(255, 235, 245)
+        Note over User, DB: Notification System
+        Note over Notif, DB: Context processor runs on EVERY request
+        Django->>Notif: context_processor(request)
+        Notif->>DB: SELECT COUNT(*) FROM notifications_notification WHERE user=X AND is_read=False
+        DB-->>Notif: unread_count
+        Notif-->>Django: {'unread_notifications': count}
+        Note over Django: Injected into base.html top bar bell icon
+
+        User->>Browser: Click bell icon
+        Browser->>Django: GET /notifications/
+        Django->>DB: Query Notification (unread for user)
+        DB-->>Django: Notification list
+        Django-->>Browser: Render notification list
+
+        User->>Browser: Click "Mark as read"
+        Browser->>Django: GET /notifications/<pk>/read/
+        Django->>DB: UPDATE notifications_notification SET is_read=True
+        Django-->>Browser: Redirect → /notifications/
+    end
+
+    %% === LOGOUT ===
+    rect rgb(240, 230, 240)
+        Note over User, DB: Logout
+        User->>Browser: Click "Logout"
+        Browser->>Django: POST /logout/
+        Django->>DB: Delete session
+        Django-->>Browser: 302 Redirect → /login/
+    end

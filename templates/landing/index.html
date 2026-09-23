@@ -4,529 +4,1738 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambulig Poultry Farm - Management System</title>
+    <title>Tambulig Poultry Farm — Management System</title>
+    <meta name="description" content="The all-in-one management system for sustainable poultry farming in Tambulig, Zamboanga del Sur. Track flocks, inventory, egg production, sales, and reports in one modern dashboard.">
+    <meta name="theme-color" content="#04170e">
+    <meta property="og:title" content="Tambulig Poultry Farm — Management System">
+    <meta property="og:description" content="Modern record and inventory management for sustainable poultry farming.">
+    <meta property="og:type" content="website">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "{% static 'js/three.min.js' %}",
+            "three/addons/": "{% static 'js/addons/' %}"
+        }
+    }
+    </script>
+
     <style>
-        body { margin: 0; overflow-x: hidden; font-family: 'Inter', system-ui, sans-serif; }
-        #three-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; pointer-events: none; }
-        .hero-section { position: relative; z-index: 1; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .content-section { position: relative; z-index: 1; }
-        .glass-card { background: rgba(5, 46, 22, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.10); }
-        .scroll-indicator { animation: bounce 2s infinite; }
-        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-        .stat-number { font-size: 3.5rem; line-height: 1; }
-        @media (max-width: 640px) { .stat-number { font-size: 2.5rem; } }
+    /* ================= DESIGN TOKENS ================= */
+    :root {
+        --bg: #04170e;
+        --bg-deep: #030f0a;
+        --ink: #f2faf5;
+        --ink-soft: rgba(220, 242, 230, .78);
+        --ink-faint: rgba(206, 236, 220, .55);
+        --line: rgba(255, 255, 255, .12);
+        --line-soft: rgba(255, 255, 255, .07);
+        --spring: #a3e635;
+        --emerald: #34d399;
+        --emerald-soft: #6ee7b7;
+        --amber: #fcd34d;
+        --font-display: 'Sora', 'Inter', system-ui, sans-serif;
+        --font-body: 'Inter', system-ui, sans-serif;
+        --container: 1180px;
+        --radius-lg: 1.5rem;
+        --radius-md: 1rem;
+        --ease-out: cubic-bezier(.22, 1, .36, 1);
+    }
+
+    html {
+        scroll-padding-top: 96px;
+        -webkit-text-size-adjust: 100%;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+        html { scroll-behavior: smooth; }
+    }
+
+    body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink-soft);
+        font-family: var(--font-body);
+        font-size: 1rem;
+        line-height: 1.65;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+    }
+    body.menu-open { overflow: hidden; }
+
+    ::selection { background: var(--spring); color: var(--bg); }
+    :focus-visible { outline: 2px solid var(--emerald-soft); outline-offset: 3px; border-radius: 4px; }
+
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: var(--bg-deep); }
+    ::-webkit-scrollbar-thumb { background: #14532d; border-radius: 8px; border: 2px solid var(--bg-deep); }
+    ::-webkit-scrollbar-thumb:hover { background: #166534; }
+
+    .container { width: min(var(--container), calc(100% - 2.5rem)); margin-inline: auto; }
+    @media (min-width: 720px) {
+        .container { width: min(var(--container), calc(100% - 4rem)); }
+    }
+
+    .sr-only {
+        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+    }
+
+    .skip-link {
+        position: fixed; top: -100px; left: 16px; z-index: 200;
+        background: var(--emerald); color: var(--bg-deep);
+        font-weight: 600; font-size: .9rem;
+        padding: .7rem 1.2rem; border-radius: 10px;
+        transition: top .25s var(--ease-out);
+    }
+    .skip-link:focus { top: 14px; }
+
+    /* ================= BACKGROUND LAYERS ================= */
+    .aurora {
+        position: fixed; inset: 0; z-index: 0; pointer-events: none;
+        background:
+            radial-gradient(55% 45% at 12% 8%, rgba(16, 185, 129, .16), transparent 70%),
+            radial-gradient(50% 40% at 88% 12%, rgba(132, 204, 22, .10), transparent 70%),
+            radial-gradient(60% 50% at 50% 108%, rgba(45, 212, 191, .12), transparent 70%),
+            radial-gradient(35% 30% at 78% 62%, rgba(251, 191, 36, .06), transparent 70%),
+            linear-gradient(180deg, #04170e 0%, #030f0a 100%);
+    }
+    .aurora::after {
+        content: ''; position: absolute; inset: 0;
+        background:
+            radial-gradient(40% 32% at 18% 30%, rgba(52, 211, 153, .10), transparent 65%),
+            radial-gradient(36% 30% at 82% 70%, rgba(163, 230, 53, .07), transparent 65%);
+        animation: aurora-drift 26s ease-in-out infinite alternate;
+    }
+    @keyframes aurora-drift {
+        from { transform: translate3d(-2%, -1.5%, 0) scale(1); }
+        to   { transform: translate3d(2%, 2%, 0) scale(1.06); }
+    }
+
+    #scene-wrap {
+        position: fixed; inset: 0; z-index: 1;
+        pointer-events: none; opacity: 0;
+    }
+    #scene-wrap canvas { display: block; width: 100%; height: 100%; }
+    body.no-webgl #scene-wrap { display: none; }
+
+    .grain {
+        position: fixed; inset: -50%; z-index: 70; pointer-events: none;
+        opacity: .05; mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        animation: grain-shift 9s steps(6) infinite;
+    }
+    @keyframes grain-shift {
+        0% { transform: translate(0, 0); }
+        20% { transform: translate(-3%, 2%); }
+        40% { transform: translate(2%, -3%); }
+        60% { transform: translate(-2%, -2%); }
+        80% { transform: translate(3%, 3%); }
+        100% { transform: translate(0, 0); }
+    }
+
+    .scroll-progress {
+        position: fixed; top: 0; left: 0; right: 0; height: 3px;
+        z-index: 90; background: transparent; pointer-events: none;
+    }
+    .scroll-progress-bar {
+        display: block; height: 100%; width: 100%;
+        background: linear-gradient(90deg, var(--spring), var(--emerald));
+        transform-origin: 0 50%; transform: scaleX(0);
+        border-radius: 0 3px 3px 0;
+    }
+
+    main { position: relative; z-index: 2; }
+
+    /* ================= GLASS ================= */
+    .glass {
+        position: relative;
+        background: linear-gradient(160deg, rgba(255, 255, 255, .085), rgba(255, 255, 255, .02) 40%, rgba(6, 40, 25, .32));
+        -webkit-backdrop-filter: blur(18px) saturate(1.5);
+        backdrop-filter: blur(18px) saturate(1.5);
+        border: 1px solid var(--line);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, .10),
+            0 24px 60px -28px rgba(0, 0, 0, .65);
+    }
+
+    .glass-spot { overflow: hidden; }
+    .glass-spot::before {
+        content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+        border-radius: inherit;
+        background: radial-gradient(340px circle at var(--mx, 50%) var(--my, 50%),
+            rgba(110, 231, 183, .14), rgba(163, 230, 53, .05) 45%, transparent 65%);
+        opacity: 0; transition: opacity .45s ease;
+    }
+    .glass-spot:hover::before { opacity: 1; }
+    .glass-spot > * { position: relative; z-index: 1; }
+
+    /* ================= NAV ================= */
+    .site-nav {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 80;
+        transition: background .4s ease, border-color .4s ease, box-shadow .4s ease;
+        border-bottom: 1px solid transparent;
+    }
+    .site-nav.scrolled {
+        background: rgba(4, 23, 14, .72);
+        -webkit-backdrop-filter: blur(16px) saturate(1.4);
+        backdrop-filter: blur(16px) saturate(1.4);
+        border-bottom-color: var(--line-soft);
+        box-shadow: 0 12px 40px -18px rgba(0, 0, 0, .7);
+    }
+    .nav-inner {
+        display: flex; align-items: center; justify-content: space-between;
+        height: 78px; transition: height .4s var(--ease-out);
+    }
+    .site-nav.scrolled .nav-inner { height: 64px; }
+
+    .brand {
+        display: inline-flex; align-items: center; gap: .7rem;
+        color: var(--ink); text-decoration: none;
+    }
+    .brand-mark {
+        width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+        display: grid; place-items: center;
+        background: linear-gradient(140deg, rgba(163, 230, 53, .22), rgba(52, 211, 153, .14));
+        border: 1px solid rgba(163, 230, 53, .3);
+        color: var(--spring);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+    }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .brand-name { font-family: var(--font-display); font-weight: 700; font-size: 1.02rem; letter-spacing: -.01em; color: var(--ink); }
+    .brand-sub { font-size: .64rem; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--ink-faint); }
+
+    .nav-links { display: flex; align-items: center; gap: .35rem; list-style: none; margin: 0; padding: 0; }
+    .nav-links a {
+        position: relative; display: inline-block;
+        color: var(--ink-soft); text-decoration: none;
+        font-size: .92rem; font-weight: 500;
+        padding: .55rem .95rem; border-radius: 10px;
+        transition: color .25s ease, background .25s ease;
+    }
+    .nav-links a:hover { color: var(--ink); background: rgba(255, 255, 255, .07); }
+
+    .nav-cta-group { display: flex; align-items: center; gap: 1rem; }
+
+    .nav-toggle {
+        display: none; position: relative; z-index: 95;
+        width: 46px; height: 46px; border-radius: 12px;
+        background: rgba(255, 255, 255, .06); border: 1px solid var(--line);
+        cursor: pointer; padding: 0;
+    }
+    .nav-toggle .bar {
+        position: absolute; left: 13px; width: 20px; height: 2px;
+        background: var(--ink); border-radius: 2px;
+        transition: transform .35s var(--ease-out), opacity .25s ease, top .35s var(--ease-out);
+    }
+    .nav-toggle .bar:nth-child(1) { top: 16px; }
+    .nav-toggle .bar:nth-child(2) { top: 22px; }
+    .nav-toggle .bar:nth-child(3) { top: 28px; }
+    .nav-toggle[aria-expanded="true"] .bar:nth-child(1) { top: 22px; transform: rotate(45deg); }
+    .nav-toggle[aria-expanded="true"] .bar:nth-child(2) { opacity: 0; }
+    .nav-toggle[aria-expanded="true"] .bar:nth-child(3) { top: 22px; transform: rotate(-45deg); }
+
+    .mobile-menu {
+        position: fixed; inset: 0; z-index: 85;
+        display: flex; flex-direction: column; justify-content: center; gap: .5rem;
+        padding: 6rem 2rem 3rem;
+        background: rgba(3, 15, 10, .92);
+        -webkit-backdrop-filter: blur(22px) saturate(1.3);
+        backdrop-filter: blur(22px) saturate(1.3);
+        opacity: 0; visibility: hidden;
+        transition: opacity .4s ease, visibility .4s ease;
+    }
+    .mobile-menu.open { opacity: 1; visibility: visible; }
+    .mobile-menu a {
+        font-family: var(--font-display); font-weight: 700;
+        font-size: clamp(1.8rem, 7vw, 2.6rem);
+        color: var(--ink); text-decoration: none;
+        padding: .55rem 0; display: flex; align-items: baseline; gap: 1rem;
+        border-bottom: 1px solid var(--line-soft);
+    }
+    .mobile-menu a .num {
+        font-family: var(--font-body); font-size: .8rem; font-weight: 600;
+        color: var(--emerald); letter-spacing: .1em;
+    }
+    .mobile-menu .btn { margin-top: 2rem; align-self: flex-start; }
+    .mobile-menu .mobile-menu-foot {
+        margin-top: 3rem; font-size: .8rem; color: var(--ink-faint); letter-spacing: .05em;
+    }
+
+    /* ================= BUTTONS ================= */
+    .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: .6rem;
+        font-family: var(--font-body); font-weight: 600; font-size: 1rem;
+        padding: .95rem 1.9rem; border-radius: 14px;
+        text-decoration: none; cursor: pointer; border: 1px solid transparent;
+        transition: transform .3s var(--ease-out), box-shadow .3s ease, background .3s ease, border-color .3s ease;
+        will-change: transform;
+    }
+    .btn svg { flex-shrink: 0; }
+
+    .btn-primary {
+        position: relative; overflow: hidden;
+        background: linear-gradient(135deg, #bef264 0%, #4ade80 45%, #10b981 100%);
+        color: #052e1b;
+        box-shadow:
+            0 10px 34px -10px rgba(52, 211, 153, .55),
+            inset 0 1px 0 rgba(255, 255, 255, .55);
+    }
+    .btn-primary::after {
+        content: ''; position: absolute; top: -45%; bottom: -45%; left: 0; width: 36%;
+        background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .5), transparent);
+        transform: translateX(-220%) skewX(-18deg);
+        transition: transform .75s var(--ease-out);
+        pointer-events: none;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 44px -12px rgba(52, 211, 153, .7), inset 0 1px 0 rgba(255, 255, 255, .55); }
+    .btn-primary:hover::after { transform: translateX(340%) skewX(-18deg); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-ghost {
+        background: rgba(255, 255, 255, .05);
+        border-color: var(--line);
+        color: var(--ink);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+    }
+    .btn-ghost:hover { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .22); transform: translateY(-2px); }
+    .btn-ghost svg { transition: transform .3s var(--ease-out); }
+    .btn-ghost:hover svg { transform: translateY(3px); }
+
+    .btn-sm { padding: .6rem 1.25rem; font-size: .92rem; border-radius: 11px; }
+
+    /* ================= HERO ================= */
+    .hero {
+        position: relative; z-index: 2;
+        min-height: 100vh; min-height: 100svh;
+        display: flex; align-items: center; justify-content: center;
+        padding: 130px 1.5rem 90px;
+        text-align: center;
+    }
+    .hero::before {
+        content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+        background: radial-gradient(58% 50% at 50% 52%, rgba(3, 15, 10, .52), transparent 72%);
+    }
+
+    .hero-inner { position: relative; max-width: 900px; }
+
+    .badge {
+        display: inline-flex; align-items: center; gap: .6rem;
+        font-size: .85rem; font-weight: 500; color: var(--emerald-soft);
+        padding: .55rem 1.15rem; border-radius: 999px;
+        margin-bottom: 2rem;
+    }
+    .badge .dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: var(--spring);
+        box-shadow: 0 0 0 0 rgba(163, 230, 53, .55);
+        animation: dot-pulse 2.4s ease-out infinite;
+    }
+    @keyframes dot-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(163, 230, 53, .5); }
+        70% { box-shadow: 0 0 0 11px rgba(163, 230, 53, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(163, 230, 53, 0); }
+    }
+
+    .hero-title {
+        font-family: var(--font-display); font-weight: 800;
+        font-size: clamp(3.1rem, 9.5vw, 6.9rem);
+        line-height: 1.0; letter-spacing: -.035em;
+        margin: 0 0 1.6rem; color: var(--ink);
+        text-wrap: balance;
+    }
+    .hero-title .line { display: block; }
+    .hero-title .grad .word {
+        background: linear-gradient(115deg, #d9f99d 5%, #86efac 38%, #34d399 62%, #6ee7b7 95%);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent; color: transparent;
+    }
+    .word-mask { display: inline-block; overflow: hidden; vertical-align: bottom; padding-block: .12em; margin-block: -.12em; }
+    .word { display: inline-block; will-change: transform; }
+
+    .hero-sub {
+        font-size: clamp(1.05rem, 2vw, 1.22rem);
+        color: var(--ink-soft); max-width: 40rem;
+        margin: 0 auto 2.6rem; text-wrap: balance;
+    }
+    .hero-sub strong { color: var(--ink); font-weight: 600; }
+
+    .hero-cta { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
+
+    .hero-chips { position: absolute; inset: 0; pointer-events: none; }
+    .hero-chip {
+        display: flex; align-items: center; gap: .8rem;
+        padding: .9rem 1.15rem; border-radius: 16px;
+        text-align: left; white-space: nowrap;
+        opacity: 0;
+    }
+    .hero-chip .chip-icon {
+        width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+        display: grid; place-items: center;
+        background: rgba(52, 211, 153, .16);
+        color: var(--emerald-soft);
+    }
+    .hero-chip .chip-icon.warm { background: rgba(252, 211, 77, .14); color: var(--amber); }
+    .hero-chip strong { display: block; font-family: var(--font-display); font-size: .95rem; font-weight: 700; color: var(--ink); line-height: 1.2; }
+    .hero-chip span { font-size: .76rem; color: var(--ink-faint); }
+    .chip-a { position: absolute; left: -140px; top: 12%; }
+    .chip-b { position: absolute; right: -150px; bottom: 16%; }
+    @media (max-width: 1380px) {
+        .chip-a { left: 10px; }
+        .chip-b { right: 10px; }
+    }
+    @media (max-width: 1080px) {
+        .hero-chips { display: none; }
+    }
+
+    .scroll-cue {
+        position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+        display: flex; flex-direction: column; align-items: center; gap: .6rem;
+        color: var(--ink-faint); font-size: .72rem; font-weight: 600;
+        letter-spacing: .28em; text-transform: uppercase;
+    }
+    .cue-mouse {
+        width: 25px; height: 40px; border-radius: 14px;
+        border: 1.5px solid rgba(255, 255, 255, .28);
+        display: flex; justify-content: center; padding-top: 7px;
+    }
+    .cue-wheel {
+        width: 3px; height: 8px; border-radius: 3px;
+        background: var(--emerald-soft);
+        animation: cue-scroll 2.1s var(--ease-out) infinite;
+    }
+    @keyframes cue-scroll {
+        0% { transform: translateY(0); opacity: 1; }
+        65% { transform: translateY(14px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 0; }
+    }
+
+    /* ================= MARQUEE ================= */
+    .marquee {
+        position: relative; z-index: 2;
+        padding: 1.15rem 0; overflow: hidden;
+        border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft);
+        background: rgba(3, 15, 10, .45);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+        mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    }
+    .marquee-track {
+        display: flex; width: max-content;
+        animation: marquee 46s linear infinite;
+    }
+    .marquee:hover .marquee-track { animation-play-state: paused; }
+    @keyframes marquee { to { transform: translateX(-50%); } }
+    .marquee-group { display: flex; align-items: center; flex-shrink: 0; }
+    .marquee-item {
+        display: inline-flex; align-items: center; gap: 2.2rem; padding-right: 2.2rem;
+        font-family: var(--font-display); font-weight: 600; font-size: .82rem;
+        letter-spacing: .22em; text-transform: uppercase;
+        color: rgba(214, 240, 226, .5); white-space: nowrap;
+    }
+    .marquee-item::after { content: '✦'; font-size: .6rem; color: var(--emerald); }
+
+    /* ================= SECTIONS ================= */
+    .section {
+        position: relative; z-index: 2;
+        padding-block: clamp(4.5rem, 11vw, 8.5rem);
+    }
+    .section-head { max-width: 44rem; margin-bottom: clamp(2.5rem, 6vw, 4.5rem); }
+    .section-head.center { margin-inline: auto; text-align: center; }
+    .eyebrow {
+        display: inline-flex; align-items: center; gap: .7rem;
+        font-family: var(--font-display); font-size: .72rem; font-weight: 700;
+        letter-spacing: .32em; text-transform: uppercase;
+        color: var(--emerald-soft); margin-bottom: 1.1rem;
+    }
+    .eyebrow::before {
+        content: ''; width: 26px; height: 1.5px; border-radius: 2px;
+        background: linear-gradient(90deg, var(--spring), transparent);
+    }
+    .section-head.center .eyebrow::after {
+        content: ''; width: 26px; height: 1.5px; border-radius: 2px;
+        background: linear-gradient(270deg, var(--spring), transparent);
+    }
+    .section-title {
+        font-family: var(--font-display); font-weight: 700;
+        font-size: clamp(1.9rem, 4.6vw, 3.3rem);
+        line-height: 1.12; letter-spacing: -.025em;
+        color: var(--ink); margin: 0 0 1rem; text-wrap: balance;
+    }
+    .section-sub { font-size: 1.05rem; color: var(--ink-faint); margin: 0; text-wrap: balance; }
+
+    /* ================= STATS ================= */
+    .stats-grid {
+        display: grid; gap: 1.15rem;
+        grid-template-columns: repeat(auto-fit, minmax(225px, 1fr));
+    }
+    .stat-card {
+        border-radius: var(--radius-lg);
+        padding: 1.9rem 1.7rem 1.7rem;
+        transition: transform .45s var(--ease-out), border-color .45s ease, box-shadow .45s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-6px);
+        border-color: rgba(110, 231, 183, .32);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 30px 70px -30px rgba(0,0,0,.8), 0 0 44px -18px rgba(52,211,153,.4);
+    }
+    .stat-icon {
+        width: 44px; height: 44px; border-radius: 13px;
+        display: grid; place-items: center; margin-bottom: 1.3rem;
+        background: rgba(52, 211, 153, .13);
+        border: 1px solid rgba(52, 211, 153, .22);
+        color: var(--emerald-soft);
+    }
+    .stat-value {
+        font-family: var(--font-display); font-weight: 800;
+        font-size: clamp(2.6rem, 5vw, 3.4rem); line-height: 1;
+        letter-spacing: -.03em; color: var(--ink);
+        font-variant-numeric: tabular-nums;
+    }
+    .stat-value .suffix { background: linear-gradient(120deg, var(--spring), var(--emerald)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .stat-label {
+        font-family: var(--font-display); font-weight: 600; font-size: .98rem;
+        color: var(--ink); margin-top: .5rem;
+    }
+    .stat-desc { font-size: .85rem; color: var(--ink-faint); margin-top: .25rem; }
+
+    /* ================= FEATURES ================= */
+    .features-grid {
+        display: grid; gap: 1.15rem;
+        grid-template-columns: 1fr;
+    }
+    @media (min-width: 640px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1080px) { .features-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .feature-card {
+        border-radius: var(--radius-lg);
+        padding: 1.9rem 1.75rem 2rem;
+        transform-style: preserve-3d;
+        transition: border-color .4s ease, box-shadow .4s ease;
+    }
+    .feature-card:hover {
+        border-color: rgba(163, 230, 53, .3);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 34px 80px -34px rgba(0,0,0,.85), 0 0 50px -22px rgba(163,230,53,.35);
+    }
+    .feature-icon {
+        width: 52px; height: 52px; border-radius: 15px;
+        display: grid; place-items: center; margin-bottom: 1.4rem;
+        background: linear-gradient(145deg, rgba(163, 230, 53, .2), rgba(52, 211, 153, .08));
+        border: 1px solid rgba(163, 230, 53, .25);
+        color: var(--spring);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
+        transform: translateZ(24px);
+    }
+    .feature-card:nth-child(even) .feature-icon {
+        background: linear-gradient(145deg, rgba(52, 211, 153, .2), rgba(45, 212, 191, .08));
+        border-color: rgba(52, 211, 153, .25);
+        color: var(--emerald-soft);
+    }
+    .feature-card h3 {
+        font-family: var(--font-display); font-weight: 700; font-size: 1.18rem;
+        color: var(--ink); margin: 0 0 .55rem; letter-spacing: -.01em;
+        transform: translateZ(18px);
+    }
+    .feature-card p { margin: 0; font-size: .93rem; color: var(--ink-faint); transform: translateZ(12px); }
+
+    /* ================= WORKFLOW ================= */
+    .steps { position: relative; display: grid; gap: 2.2rem; padding-left: 2.4rem; }
+    .steps-track { position: absolute; left: 17px; top: 8px; bottom: 8px; width: 2px; background: rgba(255, 255, 255, .1); border-radius: 2px; }
+    .steps-line {
+        position: absolute; inset: 0; border-radius: 2px;
+        background: linear-gradient(180deg, var(--spring), var(--emerald));
+        transform: scaleY(var(--line-p, 0)); transform-origin: 0 0;
+    }
+    .step { position: relative; }
+    .step-node {
+        position: absolute; left: calc(-2.4rem - 17px + 1px); top: 2px;
+        width: 34px; height: 34px; border-radius: 50%;
+        display: grid; place-items: center;
+        font-family: var(--font-display); font-size: .72rem; font-weight: 700;
+        color: var(--emerald-soft);
+        background: var(--bg-deep);
+        border: 1.5px solid rgba(52, 211, 153, .35);
+        transition: background .5s ease, color .5s ease, border-color .5s ease, box-shadow .5s ease;
+    }
+    .step.active .step-node {
+        background: linear-gradient(140deg, var(--spring), var(--emerald));
+        color: var(--bg-deep); border-color: transparent;
+        box-shadow: 0 0 24px -4px rgba(52, 211, 153, .55);
+    }
+    .step h3 {
+        font-family: var(--font-display); font-weight: 700; font-size: 1.2rem;
+        color: var(--ink); margin: .2rem 0 .45rem;
+    }
+    .step p { margin: 0; font-size: .95rem; color: var(--ink-faint); max-width: 34rem; }
+
+    @media (min-width: 900px) {
+        .steps {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.6rem; padding-left: 0; padding-top: 4.4rem;
+        }
+        .steps-track {
+            left: 17px; right: 17px; top: 17px; bottom: auto;
+            width: auto; height: 2px;
+        }
+        .steps-line { transform: scaleX(var(--line-p, 0)); transform-origin: 0 50%; }
+        .step-node { left: 0; top: -4.4rem; }
+    }
+
+    /* ================= CTA ================= */
+    .cta-section { padding-top: clamp(2rem, 6vw, 4rem); }
+    .cta-panel {
+        position: relative; border-radius: calc(var(--radius-lg) + 6px);
+        padding: clamp(2.8rem, 7vw, 5rem) clamp(1.5rem, 5vw, 4rem);
+        text-align: center; overflow: hidden;
+    }
+    .cta-panel::before {
+        content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px;
+        background: conic-gradient(from var(--ang, 210deg),
+            transparent 0 8%, rgba(163, 230, 53, .9) 15%,
+            rgba(52, 211, 153, .95) 24%, transparent 36% 55%,
+            rgba(110, 231, 183, .7) 66%, transparent 78% 100%);
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        mask-composite: exclude;
+        animation: spin-border 7s linear infinite;
+        pointer-events: none;
+    }
+    @property --ang { syntax: '<angle>'; initial-value: 210deg; inherits: false; }
+    @keyframes spin-border { to { --ang: 570deg; } }
+
+    .cta-panel h2 {
+        font-family: var(--font-display); font-weight: 800;
+        font-size: clamp(2rem, 5.2vw, 3.6rem); line-height: 1.08;
+        letter-spacing: -.03em; color: var(--ink);
+        margin: 0 0 1.1rem; text-wrap: balance;
+    }
+    .cta-panel p { font-size: 1.08rem; color: var(--ink-soft); max-width: 36rem; margin: 0 auto 2.4rem; text-wrap: balance; }
+    .cta-note {
+        display: block; margin-top: 1.6rem;
+        font-size: .8rem; letter-spacing: .14em; text-transform: uppercase;
+        color: var(--ink-faint);
+    }
+
+    /* ================= FOOTER ================= */
+    .site-footer {
+        position: relative; z-index: 2;
+        border-top: 1px solid var(--line-soft);
+        background: linear-gradient(180deg, rgba(3, 15, 10, .35), rgba(3, 15, 10, .85));
+        padding: 4rem 0 2rem;
+    }
+    .footer-grid {
+        display: grid; gap: 2.5rem;
+        grid-template-columns: 1fr;
+        padding-bottom: 2.8rem;
+        border-bottom: 1px solid var(--line-soft);
+    }
+    @media (min-width: 900px) {
+        .footer-grid { grid-template-columns: 2.2fr 1fr 1fr 1.4fr; gap: 2rem; }
+    }
+    .footer-brand p { font-size: .92rem; color: var(--ink-faint); margin: 1.1rem 0 0; max-width: 22rem; }
+    .footer-col h4 {
+        font-family: var(--font-display); font-size: .78rem; font-weight: 700;
+        letter-spacing: .22em; text-transform: uppercase;
+        color: var(--emerald-soft); margin: 0 0 1.1rem;
+    }
+    .footer-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+    .footer-col a {
+        color: var(--ink-faint); text-decoration: none; font-size: .92rem;
+        transition: color .25s ease;
+    }
+    .footer-col a:hover { color: var(--spring); }
+    .footer-col .foot-note { font-size: .82rem; color: var(--ink-faint); margin: 0 0 .6rem; }
+    .footer-bottom {
+        display: flex; flex-wrap: wrap; gap: .8rem 2rem; align-items: center; justify-content: space-between;
+        padding-top: 1.8rem; font-size: .8rem; color: rgba(206, 236, 220, .42);
+    }
+    .footer-bottom a { color: inherit; text-decoration: none; border-bottom: 1px dotted rgba(206, 236, 220, .3); }
+    .footer-bottom a:hover { color: var(--emerald-soft); }
+
+    /* ================= BACK TO TOP ================= */
+    .to-top {
+        position: fixed; right: 22px; bottom: 22px; z-index: 75;
+        width: 48px; height: 48px; border-radius: 14px;
+        display: grid; place-items: center; cursor: pointer;
+        background: rgba(6, 40, 25, .6);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--line);
+        color: var(--ink);
+        opacity: 0; visibility: hidden; transform: translateY(14px);
+        transition: opacity .4s ease, visibility .4s ease, transform .4s var(--ease-out), background .3s ease, border-color .3s ease;
+    }
+    .to-top.show { opacity: 1; visibility: visible; transform: translateY(0); }
+    .to-top:hover { background: rgba(16, 185, 129, .25); border-color: rgba(52, 211, 153, .4); }
+
+    /* ================= RESPONSIVE ================= */
+    @media (max-width: 899px) {
+        .nav-links, .nav-cta-group .btn { display: none; }
+        .nav-toggle { display: block; }
+    }
+    @media (min-width: 900px) {
+        .mobile-menu { display: none; }
+    }
+
+    /* ================= REDUCED MOTION ================= */
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: .01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: .01ms !important;
+        }
+        .aurora::after, .grain, .cue-wheel, .badge .dot { animation: none !important; }
+        .marquee-track { animation: none !important; }
+        .hero-chip { opacity: 1; }
+        html { scroll-behavior: auto; }
+    }
+
+    /* no-JS fallbacks: menu stays reachable, animations idle */
     </style>
+    <noscript>
+    <style>
+        #scene-wrap { display: none; }
+        .nav-toggle { display: none; }
+        .mobile-menu { position: static; opacity: 1; visibility: visible; background: none; border: 0; padding: 1rem 0; display: flex; flex-direction: row; flex-wrap: wrap; gap: .2rem 1.6rem; -webkit-backdrop-filter: none; backdrop-filter: none; }
+        .mobile-menu a { font-size: 1rem; padding: .2rem 0; border: 0; font-family: var(--font-body); font-weight: 600; }
+        .mobile-menu .num, .mobile-menu .btn, .mobile-menu .mobile-menu-foot { display: none; }
+        .hero-chip { opacity: 1; }
+        .scroll-progress { display: none; }
+    </style>
+    </noscript>
 </head>
-<body class="bg-green-950 text-white">
+<body>
 
-    <!-- Three.js Canvas -->
-    <div id="three-canvas"></div>
+    <a class="skip-link" href="#main">Skip to content</a>
 
-    <!-- Hero Section -->
-    <section class="hero-section relative min-h-screen flex items-center justify-center px-4">
-        <div class="text-center max-w-4xl mx-auto relative z-10">
-            <div class="inline-flex items-center space-x-2 glass-card rounded-full px-5 py-2 mb-8" id="badge">
-                <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span class="text-sm text-green-200">Tambulig, Zamboanga del Sur</span>
-            </div>
-            <h1 class="text-5xl md:text-7xl lg:text-8xl font-extrabold leading-tight mb-6" id="title">
-                <span class="text-white">Tambulig</span><br>
-                <span class="text-green-400">Poultry Farm</span>
-            </h1>
-            <p class="text-lg md:text-xl text-green-100/80 max-w-2xl mx-auto mb-10" id="subtitle">
-                Modern record and inventory management system for sustainable poultry farming
-            </p>
-            <div class="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4" id="cta">
-                <a href="{% url 'accounts:login' %}" class="bg-green-500 hover:bg-green-400 text-green-950 font-semibold px-8 py-3.5 rounded-xl text-lg transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/40 shadow-lg shadow-green-500/20">
-                    Get Started
-                </a>
-                <a href="#features" class="glass-card hover:bg-white/10 text-white font-medium px-8 py-3.5 rounded-xl text-lg transition-all duration-300 inline-flex items-center space-x-2">
-                    <span>Learn More</span>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
-                </a>
-            </div>
-        </div>
-        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 scroll-indicator" id="scroll-down">
-            <svg class="w-6 h-6 text-green-400/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7"></path></svg>
-        </div>
-    </section>
+    <div class="aurora" aria-hidden="true"></div>
+    <div id="scene-wrap" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
 
-    <!-- Stats Section -->
-    <section class="content-section relative py-20 px-4">
-        <div class="max-w-6xl mx-auto">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <div class="glass-card rounded-2xl p-6 text-center stat-card">
-                    <div class="stat-number font-bold text-green-400">15+</div>
-                    <div class="text-green-200/70 mt-1">Farm Modules</div>
-                </div>
-                <div class="glass-card rounded-2xl p-6 text-center stat-card">
-                    <div class="stat-number font-bold text-green-400">3</div>
-                    <div class="text-green-200/70 mt-1">User Roles</div>
-                </div>
-                <div class="glass-card rounded-2xl p-6 text-center stat-card">
-                    <div class="stat-number font-bold text-green-400">24/7</div>
-                    <div class="text-green-200/70 mt-1">Farm Monitoring</div>
-                </div>
-                <div class="glass-card rounded-2xl p-6 text-center stat-card">
-                    <div class="stat-number font-bold text-green-400">100%</div>
-                    <div class="text-green-200/70 mt-1">Local Produce</div>
-                </div>
+    <div class="scroll-progress" aria-hidden="true"><span class="scroll-progress-bar"></span></div>
+
+    <!-- ================= NAV ================= -->
+    <header class="site-nav" id="site-nav">
+        <div class="container nav-inner">
+            <a class="brand" href="#top" aria-label="Tambulig Poultry Farm — home">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2.5C8.8 2.5 6 7.3 6 11.4a6 6 0 0 0 12 0c0-4.1-2.8-8.9-6-8.9z"/>
+                        <path d="M9.8 13.2c.6-2.2 2-3.6 4.4-4.2-.2 2.3-1.4 3.9-3.2 4.6l-1.2.4z"/>
+                    </svg>
+                </span>
+                <span class="brand-text">
+                    <span class="brand-name">Tambulig</span>
+                    <span class="brand-sub">Poultry Farm</span>
+                </span>
+            </a>
+
+            <nav class="nav-links" aria-label="Primary">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#workflow">How it works</a></li>
+                <li><a href="#stats">At a glance</a></li>
+                <li><a href="#cta">Get started</a></li>
+            </nav>
+
+            <div class="nav-cta-group">
+                <a class="btn btn-primary btn-sm magnetic" href="{% url 'accounts:login' %}">Sign in</a>
+                <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
+                    <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                </button>
             </div>
         </div>
-    </section>
+    </header>
 
-    <!-- Features Section -->
-    <section id="features" class="content-section relative py-20 px-4">
-        <div class="max-w-6xl mx-auto">
-            <h2 class="text-3xl md:text-4xl font-bold text-center mb-4" id="features-title">Everything You Need</h2>
-            <p class="text-green-200/60 text-center max-w-xl mx-auto mb-12" id="features-sub">Powerful tools to manage every aspect of your poultry farm</p>
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="glass-card rounded-2xl p-6 feature-card">
-                    <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                    </div>
-                    <h3 class="text-lg font-semibold mb-2">Flock Management</h3>
-                    <p class="text-green-200/60 text-sm">Track batches, breeds, growth stages, and health records for every flock.</p>
+    <div class="mobile-menu" id="mobile-menu">
+        <a href="#features"><span class="num">01</span>Features</a>
+        <a href="#workflow"><span class="num">02</span>How it works</a>
+        <a href="#stats"><span class="num">03</span>At a glance</a>
+        <a href="#cta"><span class="num">04</span>Get started</a>
+        <a class="btn btn-primary" href="{% url 'accounts:login' %}">Sign in
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        </a>
+        <p class="mobile-menu-foot">Tambulig &middot; Zamboanga del Sur</p>
+    </div>
+
+    <main id="main">
+
+        <!-- ================= HERO ================= -->
+        <section class="hero" id="top" aria-labelledby="hero-title">
+            <div class="hero-inner" id="hero-inner">
+                <div class="badge glass" id="badge">
+                    <span class="dot" aria-hidden="true"></span>
+                    Tambulig &middot; Zamboanga del Sur
                 </div>
-                <div class="glass-card rounded-2xl p-6 feature-card">
-                    <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-                    </div>
-                    <h3 class="text-lg font-semibold mb-2">Inventory Control</h3>
-                    <p class="text-green-200/60 text-sm">Monitor feed, medicine, supplies with automatic low-stock alerts.</p>
+
+                <h1 class="hero-title" id="hero-title">
+                    <span class="line" aria-hidden="true"><span class="word-mask"><span class="word">Tambulig</span></span></span>
+                    <span class="line grad" aria-hidden="true">
+                        <span class="word-mask"><span class="word">Poultry</span></span>
+                        <span class="word-mask"><span class="word">Farm</span></span>
+                    </span>
+                    <span class="sr-only">Tambulig Poultry Farm</span>
+                </h1>
+
+                <p class="hero-sub" id="hero-sub">
+                    The all-in-one management system for <strong>sustainable poultry farming</strong> —
+                    flocks, feed, eggs, and revenue, organized in one beautiful dashboard.
+                </p>
+
+                <div class="hero-cta" id="hero-cta">
+                    <a class="btn btn-primary magnetic" href="{% url 'accounts:login' %}">
+                        Get started
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+                    </a>
+                    <a class="btn btn-ghost" href="#features">
+                        Explore the system
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14m-6-6 6 6 6-6"/></svg>
+                    </a>
                 </div>
-                <div class="glass-card rounded-2xl p-6 feature-card">
-                    <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    </div>
-                    <h3 class="text-lg font-semibold mb-2">Egg Production</h3>
-                    <p class="text-green-200/60 text-sm">Record daily egg counts, grade quality, and track production trends.</p>
+            </div>
+
+            <div class="hero-chips" aria-hidden="true">
+                <div class="hero-chip chip-a glass">
+                    <span class="chip-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5C8.8 2.5 6 7.3 6 11.4a6 6 0 0 0 12 0c0-4.1-2.8-8.9-6-8.9z"/></svg>
+                    </span>
+                    <span><strong>1,284 eggs</strong><span>collected this week</span></span>
                 </div>
-                <div class="glass-card rounded-2xl p-6 feature-card">
-                    <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <h3 class="text-lg font-semibold mb-2">Sales & Revenue</h3>
-                    <p class="text-green-200/60 text-sm">Manage sales records, track revenue, and analyze profit margins.</p>
+                <div class="hero-chip chip-b glass">
+                    <span class="chip-icon warm">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.5 12h4l1.5-3 2.5 5 1.5-2h4"/></svg>
+                    </span>
+                    <span><strong>All flocks stable</strong><span>health check &middot; 6 pens</span></span>
                 </div>
-                <div class="glass-card rounded-2xl p-6 feature-card">
-                    <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    </div>
-                    <h3 class="text-lg font-semibold mb-2">Reports & Analytics</h3>
-                    <p class="text-green-200/60 text-sm">Generate detailed reports with charts and export to Excel.</p>
-                </div>
-                <div class="glass-card rounded-2xl p-6 feature-card">
-                    <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                    </div>
-                    <h3 class="text-lg font-semibold mb-2">Smart Alerts</h3>
-                    <p class="text-green-200/60 text-sm">Get notified about low stock, expired items, and vaccination schedules.</p>
+            </div>
+
+            <div class="scroll-cue" aria-hidden="true">
+                <span class="cue-mouse"><span class="cue-wheel"></span></span>
+                <span>Scroll to explore</span>
+            </div>
+        </section>
+
+        <!-- ================= MARQUEE ================= -->
+        <div class="marquee" aria-hidden="true">
+            <div class="marquee-track" id="marquee-track">
+                <div class="marquee-group">
+                    <span class="marquee-item">Flock Management</span>
+                    <span class="marquee-item">Egg Production</span>
+                    <span class="marquee-item">Inventory Control</span>
+                    <span class="marquee-item">Sales &amp; Revenue</span>
+                    <span class="marquee-item">Feeding Programs</span>
+                    <span class="marquee-item">Health &amp; Medicine</span>
+                    <span class="marquee-item">Mortality Tracking</span>
+                    <span class="marquee-item">Suppliers &amp; Buyers</span>
+                    <span class="marquee-item">Reports &amp; Analytics</span>
+                    <span class="marquee-item">Smart Alerts</span>
                 </div>
             </div>
         </div>
-    </section>
+        <h2 class="sr-only">System modules</h2>
+        <ul class="sr-only">
+            <li>Flock management</li><li>Egg production</li><li>Inventory control</li>
+            <li>Sales and revenue</li><li>Feeding programs</li><li>Health and medicine</li>
+            <li>Mortality tracking</li><li>Suppliers and buyers</li><li>Reports and analytics</li><li>Smart alerts</li>
+        </ul>
 
-    <!-- CTA Section -->
-    <section class="content-section relative py-20 px-4">
-        <div class="max-w-4xl mx-auto text-center">
-            <div class="glass-card rounded-3xl p-12 md:p-16" id="cta-section">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4">Ready to Modernize Your Farm?</h2>
-                <p class="text-green-200/60 text-lg mb-8 max-w-xl mx-auto">Join us in bringing technology to poultry farming in Tambulig, Zamboanga del Sur.</p>
-                <a href="{% url 'accounts:login' %}" class="bg-green-500 hover:bg-green-400 text-green-950 font-semibold px-8 py-3.5 rounded-xl text-lg transition-all duration-300 inline-flex items-center space-x-2 shadow-lg shadow-green-500/20 hover:shadow-2xl hover:shadow-green-500/40">
-                    <span>Sign In to Dashboard</span>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
-                </a>
+        <!-- ================= STATS ================= -->
+        <section class="section" id="stats" aria-labelledby="stats-title">
+            <div class="container">
+                <header class="section-head center" data-reveal>
+                    <span class="eyebrow">At a glance</span>
+                    <h2 class="section-title" id="stats-title">The whole farm, measured.</h2>
+                    <p class="section-sub">One system replacing notebooks and spreadsheets — across every corner of the operation.</p>
+                </header>
+
+                <div class="stats-grid" data-reveal-group>
+                    <div class="stat-card glass glass-spot">
+                        <div class="stat-icon" aria-hidden="true">
+                            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+                        </div>
+                        <div class="stat-value" data-target="15" data-suffix="+">0<span class="suffix">+</span></div>
+                        <div class="stat-label">Farm Modules</div>
+                        <div class="stat-desc">From hatchlings to harvest</div>
+                    </div>
+                    <div class="stat-card glass glass-spot">
+                        <div class="stat-icon" aria-hidden="true">
+                            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                        <div class="stat-value" data-target="3">0</div>
+                        <div class="stat-label">User Roles</div>
+                        <div class="stat-desc">Owner, caretaker &amp; buyer access</div>
+                    </div>
+                    <div class="stat-card glass glass-spot">
+                        <div class="stat-icon" aria-hidden="true">
+                            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        </div>
+                        <div class="stat-value" data-target="24" data-suffix="/7">0<span class="suffix">/7</span></div>
+                        <div class="stat-label">Farm Monitoring</div>
+                        <div class="stat-desc">Alerts that never sleep</div>
+                    </div>
+                    <div class="stat-card glass glass-spot">
+                        <div class="stat-icon" aria-hidden="true">
+                            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+                        </div>
+                        <div class="stat-value" data-target="100" data-suffix="%">0<span class="suffix">%</span></div>
+                        <div class="stat-label">Local Produce</div>
+                        <div class="stat-desc">Grown in Zamboanga del Sur</div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Footer -->
-    <footer class="content-section relative py-8 px-4 border-t border-white/10">
-        <div class="max-w-6xl mx-auto text-center text-green-200/40 text-sm">
-            &copy; {% now "Y" %} Tambulig Poultry Farm Management System &mdash; Zamboanga del Sur. All rights reserved.
+        <!-- ================= FEATURES ================= -->
+        <section class="section" id="features" aria-labelledby="features-title">
+            <div class="container">
+                <header class="section-head center" data-reveal>
+                    <span class="eyebrow">Features</span>
+                    <h2 class="section-title" id="features-title">Everything the farm needs.<br>Nothing it doesn't.</h2>
+                    <p class="section-sub">Purpose-built tools for poultry operations — designed to be as hardworking as the people using them.</p>
+                </header>
+
+                <div class="features-grid" data-reveal-group>
+                    <article class="feature-card glass glass-spot">
+                        <div class="feature-icon" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><path d="M16 8 2 22"/><path d="M17.5 15H9"/></svg>
+                        </div>
+                        <h3>Flock Management</h3>
+                        <p>Track batches, breeds, and growth stages with complete health histories for every bird in every pen.</p>
+                    </article>
+                    <article class="feature-card glass glass-spot">
+                        <div class="feature-icon" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.29 7 12 12l8.71-5"/><path d="M12 22V12"/></svg>
+                        </div>
+                        <h3>Inventory Control</h3>
+                        <p>Feed, medicine, and supplies with live stock counts and automatic low-stock alerts before anything runs out.</p>
+                    </article>
+                    <article class="feature-card glass glass-spot">
+                        <div class="feature-icon" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5C8.8 2.5 6 7.3 6 11.4a6 6 0 0 0 12 0c0-4.1-2.8-8.9-6-8.9z"/></svg>
+                        </div>
+                        <h3>Egg Production</h3>
+                        <p>Daily collection logs, grading, and production trends — so no egg goes uncounted and none unexplained.</p>
+                    </article>
+                    <article class="feature-card glass glass-spot">
+                        <div class="feature-icon" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>
+                        </div>
+                        <h3>Sales &amp; Revenue</h3>
+                        <p>Record every sale and watch revenue and profit margins update in real time across all product lines.</p>
+                    </article>
+                    <article class="feature-card glass glass-spot">
+                        <div class="feature-icon" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                        </div>
+                        <h3>Reports &amp; Analytics</h3>
+                        <p>One-click reports with charts, trends, and Excel export for any date range you need.</p>
+                    </article>
+                    <article class="feature-card glass glass-spot">
+                        <div class="feature-icon" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                        </div>
+                        <h3>Smart Alerts</h3>
+                        <p>Vaccination schedules, expiring medicine, and shrinking stock — flagged before they become problems.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= WORKFLOW ================= -->
+        <section class="section" id="workflow" aria-labelledby="workflow-title">
+            <div class="container">
+                <header class="section-head" data-reveal>
+                    <span class="eyebrow">How it works</span>
+                    <h2 class="section-title" id="workflow-title">From coop to dashboard<br>in four steps.</h2>
+                    <p class="section-sub">A simple daily rhythm that turns careful record-keeping into healthier flocks and better harvests.</p>
+                </header>
+
+                <div class="steps" id="steps">
+                    <div class="steps-track" aria-hidden="true"><span class="steps-line" id="steps-line"></span></div>
+                    <article class="step">
+                        <span class="step-node" aria-hidden="true">01</span>
+                        <h3>Record</h3>
+                        <p>Log flocks, feeds, eggs, and sales the moment they happen — right from the coop.</p>
+                    </article>
+                    <article class="step">
+                        <span class="step-node" aria-hidden="true">02</span>
+                        <h3>Monitor</h3>
+                        <p>Live dashboards and smart alerts keep every pen, batch, and store room in check.</p>
+                    </article>
+                    <article class="step">
+                        <span class="step-node" aria-hidden="true">03</span>
+                        <h3>Analyze</h3>
+                        <p>Trends and reports turn raw records into clear, confident decisions.</p>
+                    </article>
+                    <article class="step">
+                        <span class="step-node" aria-hidden="true">04</span>
+                        <h3>Grow</h3>
+                        <p>Optimize production, cut waste, and scale the farm with data behind every choice.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= CTA ================= -->
+        <section class="section cta-section" id="cta" aria-labelledby="cta-title">
+            <div class="container">
+                <div class="cta-panel glass" data-reveal>
+                    <h2 id="cta-title">Ready to bring<br>the farm online?</h2>
+                    <p>Join the growers of Zamboanga del Sur turning careful record-keeping into healthier flocks and better harvests.</p>
+                    <a class="btn btn-primary magnetic" href="{% url 'accounts:login' %}">
+                        Sign in to your dashboard
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+                    </a>
+                    <span class="cta-note">Tambulig Poultry Farm Management System</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ================= FOOTER ================= -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a class="brand" href="#top">
+                        <span class="brand-mark" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2.5C8.8 2.5 6 7.3 6 11.4a6 6 0 0 0 12 0c0-4.1-2.8-8.9-6-8.9z"/>
+                                <path d="M9.8 13.2c.6-2.2 2-3.6 4.4-4.2-.2 2.3-1.4 3.9-3.2 4.6l-1.2.4z"/>
+                            </svg>
+                        </span>
+                        <span class="brand-text">
+                            <span class="brand-name">Tambulig</span>
+                            <span class="brand-sub">Poultry Farm</span>
+                        </span>
+                    </a>
+                    <p>A management system built for the poultry farms of Tambulig — simple enough for daily use, powerful enough for the whole operation.</p>
+                </div>
+
+                <div class="footer-col">
+                    <h4>Explore</h4>
+                    <ul>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#workflow">How it works</a></li>
+                        <li><a href="#stats">At a glance</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4>System</h4>
+                    <ul>
+                        <li><a href="{% url 'accounts:login' %}">Sign in</a></li>
+                        <li><a href="{% url 'accounts:login' %}">Dashboard</a></li>
+                        <li><a href="{% url 'accounts:profile' %}">Profile</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4>Built with</h4>
+                    <p class="foot-note">Django &middot; Tailwind CSS &middot; Three.js &middot; GSAP</p>
+                    <p class="foot-note">3D &ldquo;Chicken&rdquo; model by pooiloui2 — <a href="https://sketchfab.com" rel="noopener">CC&nbsp;BY&nbsp;4.0 via Sketchfab</a></p>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <span>&copy; {% now "Y" %} Tambulig Poultry Farm Management System. All rights reserved.</span>
+                <span>Made with care in Zamboanga del Sur</span>
+            </div>
         </div>
     </footer>
 
-    <!-- Three.js -->
+    <button class="to-top" id="to-top" type="button" aria-label="Back to top">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
+    </button>
+
+    <!-- ================= SCRIPTS ================= -->
     <!-- "Chicken" 3D model by pooiloui2 on Sketchfab (CC BY 4.0) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script>
-    (function() {
-        var canvas = document.getElementById('three-canvas');
-        if (!canvas || typeof THREE === 'undefined') return;
+    <script defer src="{% static 'js/gsap.min.js' %}"></script>
+    <script defer src="{% static 'js/ScrollTrigger.min.js' %}"></script>
+    <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        var scene = new THREE.Scene();
-        scene.fog = new THREE.Fog(0x1a3a2a, 15, 40);
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const IS_SMALL = window.matchMedia('(max-width: 768px)').matches;
+    const gsap = window.gsap;
+    const ScrollTrigger = window.ScrollTrigger;
+    if (gsap && ScrollTrigger) gsap.registerPlugin(ScrollTrigger);
 
-        var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(3, 3, 10);
+    let elapsed = 0, lastFrame = performance.now();
 
-        var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
+    /* ---------------- 3D FARM SCENE ---------------- */
+    const wrap = document.getElementById('scene-wrap');
+    let renderer, scene, camera, chickens = [], fireflies, firefliesMat;
+    let camTarget = 0, camNow = 0;
+    const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+    let rafId = null, loopOn = false;
+
+    const CAM_KEYS = [
+        { pos: new THREE.Vector3(4.2, 2.7, 10.8), look: new THREE.Vector3(0, .4, 0) },
+        { pos: new THREE.Vector3(-6.4, 2.3, 7.6), look: new THREE.Vector3(-.4, .3, 0) },
+        { pos: new THREE.Vector3(.4, 7.6, 10.6), look: new THREE.Vector3(0, -.7, 0) },
+    ];
+    const _pos = new THREE.Vector3(), _look = new THREE.Vector3();
+
+    function buildScene() {
+        try {
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+        } catch (e) {
+            document.body.classList.add('no-webgl');
+            return false;
+        }
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 2.0;
+        renderer.toneMappingExposure = 1.12;
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        canvas.appendChild(renderer.domElement);
+        renderer.shadowMap.type = THREE.PCFShadowMap;
+        wrap.appendChild(renderer.domElement);
 
-        // Lights — natural outdoor farm lighting for realistic PBR model
-        var hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x3d2b1f, 0.9);
-        scene.add(hemiLight);
-        var sunLight = new THREE.DirectionalLight(0xffd59a, 2.5);
-        sunLight.position.set(10, 15, 5);
-        sunLight.castShadow = true;
-        sunLight.shadow.mapSize.width = 1024;
-        sunLight.shadow.mapSize.height = 1024;
-        scene.add(sunLight);
-        var skyFill = new THREE.DirectionalLight(0x88bbff, 0.6);
-        skyFill.position.set(-5, 8, -8);
+        scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x03130c, 12, 30);
+
+        camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, .1, 120);
+        camera.position.copy(CAM_KEYS[0].pos);
+        camera.lookAt(CAM_KEYS[0].look);
+
+        const hemi = new THREE.HemisphereLight(0x9ed4ff, 0x1c3a28, 1.15);
+        scene.add(hemi);
+
+        const sun = new THREE.DirectionalLight(0xffd9a6, 3.2);
+        sun.position.set(10, 15, 5);
+        sun.castShadow = true;
+        sun.shadow.mapSize.set(IS_SMALL ? 512 : 1024, IS_SMALL ? 512 : 1024);
+        sun.shadow.camera.left = -12; sun.shadow.camera.right = 12;
+        sun.shadow.camera.top = 12; sun.shadow.camera.bottom = -12;
+        sun.shadow.camera.near = 1; sun.shadow.camera.far = 45;
+        sun.shadow.bias = -0.0004;
+        scene.add(sun);
+
+        const skyFill = new THREE.DirectionalLight(0x7fb4ff, .8);
+        skyFill.position.set(-6, 8, -8);
         scene.add(skyFill);
-        var warmRim = new THREE.DirectionalLight(0xffcc88, 0.4);
+
+        const warmRim = new THREE.DirectionalLight(0xffc98a, .7);
         warmRim.position.set(-3, 2, 8);
         scene.add(warmRim);
 
+        // Sky dome
+        const skyMat = new THREE.ShaderMaterial({
+            side: THREE.BackSide, depthWrite: false,
+            uniforms: {
+                cTop: { value: new THREE.Color('#154d33') },
+                cHorizon: { value: new THREE.Color('#0a2d1e') },
+                cBottom: { value: new THREE.Color('#03130c') },
+                cGlow: { value: new THREE.Color('#f4c95d') },
+            },
+            vertexShader: `varying vec3 vDir;
+                void main(){ vDir = normalize(position);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+            fragmentShader: `varying vec3 vDir;
+                uniform vec3 cTop; uniform vec3 cHorizon; uniform vec3 cBottom; uniform vec3 cGlow;
+                void main(){
+                    float h = vDir.y;
+                    vec3 col = mix(cBottom, cTop, smoothstep(-.3, .75, h));
+                    col = mix(col, cHorizon, smoothstep(.3, .02, abs(h)));
+                    float band = pow(max(0.0, 1.0 - abs(h + .04) * 5.5), 2.0);
+                    col += cGlow * band * .16;
+                    gl_FragColor = vec4(col, 1.0);
+                }`,
+        });
+        scene.add(new THREE.Mesh(new THREE.SphereGeometry(52, 24, 16), skyMat));
+
         // Ground
-        var groundGeo = new THREE.PlaneGeometry(30, 30);
-        var groundMat = new THREE.MeshStandardMaterial({ color: 0x4a7c59, roughness: 0.95, metalness: 0 });
-        var ground = new THREE.Mesh(groundGeo, groundMat);
+        const ground = new THREE.Mesh(
+            new THREE.CircleGeometry(40, 48),
+            new THREE.MeshStandardMaterial({ color: 0x0f3524, roughness: 1 })
+        );
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = -1.5;
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // ---- LOAD REALISTIC CHICKEN MODEL ----
-        var chickens = [];
-        var chickenPositions = [
-            { x: -3.0, z: 1.5, s: 1.0 },
-            { x: -2.0, z: -1.8, s: 0.9 },
-            { x: 2.5, z: -1.0, s: 0.95 },
-            { x: 3.5, z: 2.0, s: 0.85 },
-            { x: 1.0, z: 2.5, s: 0.9 },
-            { x: 4.0, z: -2.0, s: 0.8 },
-        ];
+        // Sun glow sprite
+        const glowCanvas = document.createElement('canvas');
+        glowCanvas.width = glowCanvas.height = 128;
+        const gctx = glowCanvas.getContext('2d');
+        const grad = gctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+        grad.addColorStop(0, 'rgba(255, 220, 160, .9)');
+        grad.addColorStop(.35, 'rgba(255, 200, 120, .28)');
+        grad.addColorStop(1, 'rgba(255, 200, 120, 0)');
+        gctx.fillStyle = grad;
+        gctx.fillRect(0, 0, 128, 128);
+        const glowTex = new THREE.CanvasTexture(glowCanvas);
+        const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: glowTex, color: 0xffe0b0, transparent: true,
+            opacity: .38, blending: THREE.AdditiveBlending, depthWrite: false,
+        }));
+        glow.scale.set(15, 15, 1);
+        glow.position.set(13, 8, 6);
+        scene.add(glow);
 
-        var loader = new THREE.GLTFLoader();
-        loader.load('{% static "models/chicken.glb" %}', function(gltf) {
-            var template = gltf.scene;
-            template.traverse(function(node) {
-                if (node.isMesh) {
-                    node.castShadow = true;
-                    node.receiveShadow = true;
-                }
-            });
-            chickenPositions.forEach(function(p) {
-                var c = template.clone();
-                var scale = p.s * 0.5;
-                c.scale.set(scale, scale, scale);
-                c.position.set(p.x, -1.4, p.z);
-                c.rotation.y = Math.random() * Math.PI * 2;
-                c.userData = {
-                    bobOffset: Math.random() * Math.PI * 2,
-                    moveTimer: Math.random() * 10,
-                };
-                scene.add(c);
-                chickens.push(c);
-            });
+        buildCoop();
+        buildFence();
+        buildProps();
+
+        // Fireflies
+        const COUNT = IS_SMALL ? 90 : 220;
+        const positions = new Float32Array(COUNT * 3);
+        for (let i = 0; i < COUNT; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const d = 1.5 + Math.random() * 11;
+            positions[i * 3] = Math.cos(a) * d;
+            positions[i * 3 + 1] = -1.2 + Math.random() * 6;
+            positions[i * 3 + 2] = Math.sin(a) * d;
+        }
+        const fg = new THREE.BufferGeometry();
+        fg.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        firefliesMat = new THREE.PointsMaterial({
+            size: .06, color: 0xffd98a, transparent: true, opacity: .55,
+            blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
         });
+        fireflies = new THREE.Points(fg, firefliesMat);
+        scene.add(fireflies);
 
-        // ---- CHICKEN COOP / BARN ----
-        var coopGroup = new THREE.Group();
+        loadChickens();
+        return true;
+    }
 
-        var wallMat = new THREE.MeshStandardMaterial({ color: 0x8b5cf6, roughness: 0.8 });
-        var roofMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.7 });
-        var trimMat = new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.5 });
-        var doorMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.9 });
+    function buildCoop() {
+        const coop = new THREE.Group();
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x8a5a3b, roughness: .85 });
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0xb3402f, roughness: .7 });
+        const trimMat = new THREE.MeshStandardMaterial({ color: 0xf5efe0, roughness: .5 });
+        const doorMat = new THREE.MeshStandardMaterial({ color: 0x2f1b0e, roughness: .9 });
 
-        // Main box
-        var walls = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.2, 1.8), wallMat);
+        const walls = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.2, 1.8), wallMat);
         walls.position.y = 0;
-        walls.castShadow = true;
-        walls.receiveShadow = true;
-        coopGroup.add(walls);
+        walls.castShadow = walls.receiveShadow = true;
+        coop.add(walls);
 
-        // Roof (triangular prism using box + rotation)
-        var roof = new THREE.Mesh(new THREE.CylinderGeometry(0, 1.5, 2.6, 3), roofMat);
+        const roof = new THREE.Mesh(new THREE.CylinderGeometry(0, 1.5, 2.6, 3), roofMat);
         roof.rotation.y = Math.PI / 2;
-        roof.position.set(0, 0.8, 0);
+        roof.position.y = .8;
         roof.castShadow = true;
-        coopGroup.add(roof);
+        coop.add(roof);
 
-        // Roof ridge trim
-        var ridge = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.06, 0.15), trimMat);
+        const ridge = new THREE.Mesh(new THREE.BoxGeometry(2.7, .06, .15), trimMat);
         ridge.position.set(0, 1.05, 0);
-        coopGroup.add(ridge);
+        coop.add(ridge);
 
-        // Door
-        var door = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.05), doorMat);
-        door.position.set(0, -0.15, 0.92);
-        coopGroup.add(door);
+        const door = new THREE.Mesh(new THREE.BoxGeometry(.5, .6, .05), doorMat);
+        door.position.set(0, -.15, .92);
+        coop.add(door);
 
-        // Door handle
-        var handle = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.6, roughness: 0.3 }));
-        handle.position.set(0.2, -0.15, 0.95);
-        coopGroup.add(handle);
+        const handle = new THREE.Mesh(
+            new THREE.SphereGeometry(.04, 6, 6),
+            new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: .6, roughness: .3 })
+        );
+        handle.position.set(.2, -.15, .95);
+        coop.add(handle);
 
-        // Window openings (dark squares)
-        var windowMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, emissive: 0x1c1917 });
-        var win1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.05), windowMat);
-        win1.position.set(0.7, 0.25, 0.92);
-        coopGroup.add(win1);
-        var win2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.05), windowMat);
-        win2.position.set(-0.7, 0.25, 0.92);
-        coopGroup.add(win2);
-
-        // Cross trims on windows
-        var crossMat = trimMat;
-        [win1, win2].forEach(function(w) {
-            var hBar = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.02, 0.06), crossMat);
-            hBar.position.copy(w.position);
-            hBar.position.y += 0.02;
-            coopGroup.add(hBar);
-            var vBar = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.32, 0.06), crossMat);
+        const windowMat = new THREE.MeshStandardMaterial({ color: 0x14210f, emissive: 0x14210f });
+        const win1 = new THREE.Mesh(new THREE.BoxGeometry(.3, .3, .05), windowMat);
+        win1.position.set(.7, .25, .92);
+        coop.add(win1);
+        const win2 = win1.clone();
+        win2.position.x = -.7;
+        coop.add(win2);
+        [win1, win2].forEach(w => {
+            const hBar = new THREE.Mesh(new THREE.BoxGeometry(.32, .02, .06), trimMat);
+            hBar.position.copy(w.position); hBar.position.y += .02;
+            coop.add(hBar);
+            const vBar = new THREE.Mesh(new THREE.BoxGeometry(.02, .32, .06), trimMat);
             vBar.position.copy(w.position);
-            coopGroup.add(vBar);
+            coop.add(vBar);
         });
 
-        // Base skirting
-        var base = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.08, 1.9), trimMat);
-        base.position.y = -0.64;
-        coopGroup.add(base);
+        const base = new THREE.Mesh(new THREE.BoxGeometry(2.5, .08, 1.9), trimMat);
+        base.position.y = -.64;
+        coop.add(base);
 
-        coopGroup.position.set(-0.5, -0.86, -2.8);
-        coopGroup.rotation.y = 0.3;
-        scene.add(coopGroup);
+        coop.position.set(-.5, -.86, -2.8);
+        coop.rotation.y = .3;
+        scene.add(coop);
+    }
 
-        // ---- FENCE POSTS ----
-        var postMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 });
-        var railMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.85 });
-        var fencePositions = [
+    function buildFence() {
+        const postMat = new THREE.MeshStandardMaterial({ color: 0x7a4a2a, roughness: .9 });
+        const railMat = new THREE.MeshStandardMaterial({ color: 0x935a33, roughness: .85 });
+        const fencePositions = [
             [-3.5, -3.0], [-2.0, -3.5], [0, -3.8], [2.0, -3.5], [3.5, -3.0],
             [4.5, -1.5], [4.8, 0], [4.5, 1.5], [3.5, 3.0], [2.0, 3.5],
             [0, 3.8], [-2.0, 3.5], [-3.5, 3.0], [-4.5, 1.5], [-4.8, 0], [-4.5, -1.5],
         ];
-        fencePositions.forEach(function(p) {
-            var post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.7, 6), postMat);
+        fencePositions.forEach(p => {
+            const post = new THREE.Mesh(new THREE.CylinderGeometry(.06, .08, .7, 6), postMat);
             post.position.set(p[0], -1.15, p[1]);
             post.castShadow = true;
             scene.add(post);
-            // Top rail connector
-            var topRail = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.03), railMat);
-            topRail.position.set(p[0], -0.85, p[1]);
-            scene.add(topRail);
+            const cap = new THREE.Mesh(new THREE.BoxGeometry(.05, .04, .05), railMat);
+            cap.position.set(p[0], -.8, p[1]);
+            scene.add(cap);
         });
-
-        // Horizontal fence rails (simplified as segments)
-        var railSegments = [
-            [[-3.5,-3.0], [-2.0,-3.5]],
-            [[-2.0,-3.5], [0,-3.8]],
-            [[0,-3.8], [2.0,-3.5]],
-            [[2.0,-3.5], [3.5,-3.0]],
-            [[3.5,-3.0], [4.5,-1.5]],
-            [[4.5,-1.5], [4.8,0]],
-            [[4.8,0], [4.5,1.5]],
-            [[4.5,1.5], [3.5,3.0]],
-            [[3.5,3.0], [2.0,3.5]],
-            [[2.0,3.5], [0,3.8]],
-            [[0,3.8], [-2.0,3.5]],
-            [[-2.0,3.5], [-3.5,3.0]],
-            [[-3.5,3.0], [-4.5,1.5]],
-            [[-4.5,1.5], [-4.8,0]],
-            [[-4.8,0], [-4.5,-1.5]],
-            [[-4.5,-1.5], [-3.5,-3.0]],
-        ];
-        railSegments.forEach(function(seg) {
-            var a = new THREE.Vector3(seg[0][0], -0.95, seg[0][1]);
-            var b = new THREE.Vector3(seg[1][0], -0.95, seg[1][1]);
-            var mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
-            var len = a.distanceTo(b);
-            var rail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, len), railMat);
-            rail.position.copy(mid);
-            rail.lookAt(b);
-            scene.add(rail);
-            // Lower rail
-            var mid2 = mid.clone();
-            mid2.y = -1.2;
-            var rail2 = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, len), railMat);
-            rail2.position.copy(mid2);
-            rail2.lookAt(b);
-            scene.add(rail2);
+        const railSegments = [];
+        for (let i = 0; i < fencePositions.length; i++) {
+            railSegments.push([fencePositions[i], fencePositions[(i + 1) % fencePositions.length]]);
+        }
+        railSegments.forEach(seg => {
+            const a = new THREE.Vector3(seg[0][0], -.95, seg[0][1]);
+            const b = new THREE.Vector3(seg[1][0], -.95, seg[1][1]);
+            const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(.5);
+            const len = a.distanceTo(b);
+            [.95, -1.2].forEach(y => {
+                const rail = new THREE.Mesh(new THREE.BoxGeometry(.04, .04, len), railMat);
+                rail.position.set(mid.x, y, mid.z);
+                rail.lookAt(b);
+                scene.add(rail);
+            });
         });
+    }
 
-        // ---- FEEDERS ----
-        function createFeeder(x, z) {
-            var g = new THREE.Group();
-            var bowlMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.8 });
-            var bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 0.1, 12), bowlMat);
-            bowl.position.y = -1.35;
-            bowl.receiveShadow = true;
+    function buildProps() {
+        // Feeders
+        const feeder = (x, z) => {
+            const g = new THREE.Group();
+            const bowl = new THREE.Mesh(
+                new THREE.CylinderGeometry(.3, .25, .1, 12),
+                new THREE.MeshStandardMaterial({ color: 0xc0442f, roughness: .8 })
+            );
+            bowl.position.y = -1.35; bowl.receiveShadow = true;
             g.add(bowl);
-            var feedMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.9 });
-            var feed = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.22, 0.04, 10), feedMat);
+            const feed = new THREE.Mesh(
+                new THREE.CylinderGeometry(.25, .22, .04, 10),
+                new THREE.MeshStandardMaterial({ color: 0xc98a2e, roughness: .9 })
+            );
             feed.position.y = -1.29;
             g.add(feed);
             g.position.set(x, 0, z);
-            return g;
-        }
-        scene.add(createFeeder(1.5, -2.5));
-        scene.add(createFeeder(-2.5, 2.0));
+            scene.add(g);
+        };
+        feeder(1.5, -2.5);
+        feeder(-2.5, 2.0);
 
-        // ---- WATER DISH ----
-        function createWaterDish(x, z) {
-            var g = new THREE.Group();
-            var dishMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3, metalness: 0.1 });
-            var dish = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.08, 12), dishMat);
+        // Water dishes
+        const water = (x, z) => {
+            const g = new THREE.Group();
+            const dish = new THREE.Mesh(
+                new THREE.CylinderGeometry(.25, .2, .08, 12),
+                new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: .3, metalness: .1 })
+            );
             dish.position.y = -1.36;
             g.add(dish);
-            var waterMat = new THREE.MeshStandardMaterial({ color: 0x60a5fa, roughness: 0.1, transparent: true, opacity: 0.6 });
-            var water = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.02, 10), waterMat);
-            water.position.y = -1.31;
-            g.add(water);
+            const surf = new THREE.Mesh(
+                new THREE.CylinderGeometry(.2, .18, .02, 10),
+                new THREE.MeshStandardMaterial({ color: 0x60a5fa, roughness: .1, transparent: true, opacity: .6 })
+            );
+            surf.position.y = -1.31;
+            g.add(surf);
             g.position.set(x, 0, z);
-            return g;
-        }
-        scene.add(createWaterDish(-1.0, -2.8));
-        scene.add(createWaterDish(3.0, 2.2));
+            scene.add(g);
+        };
+        water(-1.0, -2.8);
+        water(3.0, 2.2);
 
-        // ---- SCATTERED EGGS on ground ----
-        var eggMat2 = new THREE.MeshPhysicalMaterial({ color: 0xfef3c7, roughness: 0.2, metalness: 0 });
-        for (var i = 0; i < 15; i++) {
-            var e = new THREE.Mesh(new THREE.SphereGeometry(0.08 + Math.random() * 0.06, 8, 8), eggMat2);
-            e.scale.set(1, 1.3 + Math.random() * 0.2, 0.9);
-            var angle = Math.random() * Math.PI * 2;
-            var dist = 1.0 + Math.random() * 4.5;
-            e.position.set(Math.cos(angle) * dist, -1.4 + Math.random() * 0.05, Math.sin(angle) * dist);
-            e.rotation.z = (Math.random() - 0.5) * 0.3;
-            e.rotation.x = (Math.random() - 0.5) * 0.3;
-            scene.add(e);
-        }
-
-        // ---- HAY BALES ----
-        var hayMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.95 });
-        for (var i = 0; i < 4; i++) {
-            var hay = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 0.25, 8), hayMat);
-            hay.position.set(-2.5 + i * 0.6, -1.25, -3.4);
-            hay.rotation.z = 0.2;
-            hay.rotation.x = 0.1;
+        // Hay bales
+        const hayMat = new THREE.MeshStandardMaterial({ color: 0xc98a2e, roughness: .95 });
+        for (let i = 0; i < 4; i++) {
+            const hay = new THREE.Mesh(new THREE.CylinderGeometry(.25, .3, .25, 8), hayMat);
+            hay.position.set(-2.5 + i * .6, -1.25, -3.4);
+            hay.rotation.z = .2; hay.rotation.x = .1;
             hay.castShadow = true;
             scene.add(hay);
         }
 
-        // ---- GRASS PATCHES ----
-        for (var i = 0; i < 100; i++) {
-            var blade = new THREE.Mesh(
-                new THREE.ConeGeometry(0.02, 0.12 + Math.random() * 0.18, 3),
-                new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.8 })
-            );
-            var a = Math.random() * Math.PI * 2;
-            var d = 1.5 + Math.random() * 10;
-            blade.position.set(Math.cos(a) * d, -1.4, Math.sin(a) * d);
-            blade.rotation.x = (Math.random() - 0.5) * 0.3;
-            blade.rotation.z = (Math.random() - 0.5) * 0.3;
-            scene.add(blade);
+        // Instanced grass
+        const GRASS = IS_SMALL ? 90 : 150;
+        const grassGeo = new THREE.ConeGeometry(.03, .17, 3);
+        grassGeo.translate(0, .085, 0);
+        const grass = new THREE.InstancedMesh(
+            grassGeo,
+            new THREE.MeshStandardMaterial({ color: 0x2f9e57, roughness: .9 }),
+            GRASS
+        );
+        const m = new THREE.Matrix4(), q = new THREE.Quaternion(),
+              e = new THREE.Euler(), s = new THREE.Vector3(),
+              p = new THREE.Vector3();
+        for (let i = 0; i < GRASS; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const d = 1.4 + Math.random() * 11;
+            p.set(Math.cos(a) * d, -1.5, Math.sin(a) * d);
+            e.set((Math.random() - .5) * .35, Math.random() * Math.PI, (Math.random() - .5) * .35);
+            q.setFromEuler(e);
+            const k = .7 + Math.random() * .8;
+            s.set(k, k * (.8 + Math.random() * .7), k);
+            m.compose(p, q, s);
+            grass.setMatrixAt(i, m);
+        }
+        grass.instanceMatrix.needsUpdate = true;
+        scene.add(grass);
+
+        // Instanced eggs
+        const EGGS = 16;
+        const eggGeo = new THREE.SphereGeometry(.09, 10, 10);
+        const eggs = new THREE.InstancedMesh(
+            eggGeo,
+            new THREE.MeshStandardMaterial({ color: 0xf5ead0, roughness: .35 }),
+            EGGS
+        );
+        for (let i = 0; i < EGGS; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const d = 1.0 + Math.random() * 4.5;
+            p.set(Math.cos(a) * d, -1.41 + Math.random() * .03, Math.sin(a) * d);
+            e.set((Math.random() - .5) * .4, Math.random() * Math.PI, (Math.random() - .5) * .4);
+            q.setFromEuler(e);
+            s.set(1, 1.32 + Math.random() * .15, .92);
+            m.compose(p, q, s);
+            eggs.setMatrixAt(i, m);
+        }
+        eggs.instanceMatrix.needsUpdate = true;
+        scene.add(eggs);
+    }
+
+    function loadChickens() {
+        const positions = [
+            { x: -3.0, z: 1.5, s: 1.0 }, { x: -2.0, z: -1.8, s: .9 },
+            { x: 2.5, z: -1.0, s: .95 }, { x: 3.4, z: 1.8, s: .85 },
+            { x: .9, z: 2.4, s: .9 }, { x: 4.0, z: -2.0, s: .8 },
+            { x: -1.2, z: 3.1, s: .88 }, { x: 1.7, z: -2.6, s: .92 },
+        ];
+        const loader = new GLTFLoader();
+        loader.load(
+            '{% static "models/chicken.glb" %}',
+            gltf => {
+                const template = gltf.scene;
+                template.traverse(node => {
+                    if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; }
+                });
+                positions.forEach((p, i) => {
+                    const c = template.clone();
+                    const k = p.s * .5;
+                    c.scale.setScalar(k);
+                    c.position.set(p.x, -1.4, p.z);
+                    c.rotation.y = Math.random() * Math.PI * 2;
+                    c.userData = {
+                        baseY: -1.4,
+                        phase: Math.random() * Math.PI * 2,
+                        targetScale: k,
+                    };
+                    if (!REDUCED && gsap) c.scale.setScalar(.0001);
+                    scene.add(c);
+                    chickens.push(c);
+                    if (!REDUCED && gsap) {
+                        gsap.to(c.scale, {
+                            x: k, y: k, z: k,
+                            duration: .9, delay: .35 + i * .09,
+                            ease: 'back.out(1.6)',
+                        });
+                    }
+                });
+            },
+            undefined,
+            () => { /* model failed — scene still works without birds */ }
+        );
+    }
+
+    function applyCamera(dt) {
+        camNow += (camTarget - camNow) * Math.min(1, dt * 4.5);
+        const seg = camNow < .5 ? 0 : 1;
+        const lt = THREE.MathUtils.smoothstep((camNow - seg * .5) / .5, 0, 1);
+        _pos.lerpVectors(CAM_KEYS[seg].pos, CAM_KEYS[seg + 1].pos, lt);
+        _look.lerpVectors(CAM_KEYS[seg].look, CAM_KEYS[seg + 1].look, lt);
+        mouse.x += (mouse.tx - mouse.x) * Math.min(1, dt * 3);
+        mouse.y += (mouse.ty - mouse.y) * Math.min(1, dt * 3);
+        camera.position.set(_pos.x + mouse.x * 1.15, _pos.y + mouse.y * .55, _pos.z);
+        camera.lookAt(_look);
+    }
+
+    function tick() {
+        if (!loopOn) return;
+        rafId = requestAnimationFrame(tick);
+        const now = performance.now();
+        const dt = Math.min((now - lastFrame) / 1000, .05);
+        lastFrame = now;
+        elapsed += dt;
+        const t = elapsed;
+
+        applyCamera(dt);
+
+        for (const c of chickens) {
+            const ud = c.userData;
+            c.position.y = ud.baseY + Math.sin(t * 2.1 + ud.phase) * .03;
+            c.rotation.x = Math.sin(t * 1.25 + ud.phase * 2) * .045;
+            c.rotation.y += Math.sin(t * .35 + ud.phase) * .0018;
         }
 
-        // ---- FLOATING PARTICLES ----
-        var particlesCount = 200;
-        var particlesGeo = new THREE.BufferGeometry();
-        var posArray = new Float32Array(particlesCount * 3);
-        for (var i = 0; i < particlesCount * 3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 25;
-        }
-        particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        var particlesMat = new THREE.PointsMaterial({
-            size: 0.04,
-            color: 0xfde68a,
-            transparent: true,
-            opacity: 0.3,
-            blending: THREE.AdditiveBlending,
-        });
-        var particles = new THREE.Points(particlesGeo, particlesMat);
-        particles.position.y = 2;
-        scene.add(particles);
+        fireflies.rotation.y = t * .02;
+        firefliesMat.opacity = .5 + Math.sin(t * .8) * .14;
+        fireflies.position.y = Math.sin(t * .22) * .35;
 
-        // ---- RESIZE ----
-        window.addEventListener('resize', function() {
+        renderer.render(scene, camera);
+    }
+
+    function startLoop() {
+        if (loopOn || REDUCED || !renderer) return;
+        loopOn = true;
+        lastFrame = performance.now();
+        tick();
+    }
+    function stopLoop() {
+        loopOn = false;
+        cancelAnimationFrame(rafId);
+    }
+    function renderOnce() {
+        if (!renderer) return;
+        applyCamera(.016);
+        renderer.render(scene, camera);
+    }
+
+    const sceneReady = buildScene();
+    if (sceneReady) {
+        if (REDUCED) {
+            wrap.style.opacity = '1';
+            renderOnce();
+        } else {
+            if (gsap) {
+                gsap.fromTo(wrap, { opacity: 0 }, {
+                    opacity: 1, duration: 1.6, delay: .2, ease: 'power2.out',
+                    onComplete: createSceneDim,
+                });
+            } else {
+                wrap.style.opacity = '1';
+            }
+            startLoop();
+        }
+
+        window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            if (REDUCED) renderOnce();
         });
 
-        // ---- MOUSE ----
-        var mouseX = 0, mouseY = 0;
-        document.addEventListener('mousemove', function(e) {
-            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) stopLoop();
+            else REDUCED ? renderOnce() : startLoop();
         });
+    }
 
-        // ---- ANIMATE ----
-        function animate() {
-            requestAnimationFrame(animate);
-            var time = Date.now() * 0.001;
+    function createSceneDim() {
+        if (!gsap || !ScrollTrigger) return;
+        gsap.to(wrap, {
+            opacity: .3, ease: 'none',
+            scrollTrigger: { trigger: '#stats', start: 'top 95%', end: 'top 35%', scrub: .4 },
+        });
+        ScrollTrigger.create({
+            trigger: document.body, start: 'top top', end: 'bottom bottom',
+            onUpdate: self => { camTarget = self.progress; },
+        });
+    }
 
-            // Chickens bob and wander
-            chickens.forEach(function(c) {
-                var ud = c.userData;
-                c.position.y = -1.4 + Math.sin(time * 2.5 + ud.bobOffset) * 0.03;
-                ud.moveTimer += 0.005;
-                c.rotation.y += Math.sin(ud.moveTimer) * 0.002;
-            });
+    if (FINE_POINTER && !REDUCED) {
+        window.addEventListener('mousemove', e => {
+            mouse.tx = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.ty = -((e.clientY / window.innerHeight) * 2 - 1);
+        }, { passive: true });
+    }
 
-            // Camera drift
-            camera.position.x += (mouseX * 3 - camera.position.x + 3) * 0.015;
-            camera.position.y += (mouseY * 2 + 3 - camera.position.y) * 0.015;
-            camera.lookAt(0, 0, 0);
+    /* ---------------- NAV / MENU ---------------- */
+    const nav = document.getElementById('site-nav');
+    const navToggle = document.querySelector('.nav-toggle');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const toTop = document.getElementById('to-top');
+    const progressBar = document.querySelector('.scroll-progress-bar');
 
-            // Particles float
-            particles.rotation.y = time * 0.008;
-
-            renderer.render(scene, camera);
+    let menuOpen = false;
+    function setMenu(open) {
+        menuOpen = open;
+        navToggle.setAttribute('aria-expanded', String(open));
+        navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        mobileMenu.classList.toggle('open', open);
+        mobileMenu.inert = !open;
+        document.body.classList.toggle('menu-open', open);
+        if (open) {
+            if (gsap && !REDUCED) {
+                gsap.fromTo(mobileMenu.querySelectorAll('a'),
+                    { opacity: 0, y: 26 },
+                    { opacity: 1, y: 0, duration: .55, stagger: .07, ease: 'power3.out', delay: .1, clearProps: 'all' });
+            }
+            const first = mobileMenu.querySelector('a');
+            if (first) first.focus({ preventScroll: true });
+        } else {
+            navToggle.focus({ preventScroll: true });
         }
-        animate();
-    })();
-    </script>
+    }
+    navToggle.addEventListener('click', () => setMenu(!menuOpen));
+    mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && menuOpen) setMenu(false);
+    });
+    mobileMenu.inert = true;
 
-    <!-- GSAP -->
-    <script src="{% static 'js/gsap.min.js' %}"></script>
-    <script>
-    (function() {
-        if (typeof gsap === 'undefined') return;
-        var tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-        tl.from('#badge', { opacity: 0, y: -20, duration: 0.8 })
-          .from('#title', { opacity: 0, y: 30, duration: 1 }, '-=0.4')
-          .from('#subtitle', { opacity: 0, y: 30, duration: 1 }, '-=0.6')
-          .from('#cta', { opacity: 0, y: 30, duration: 1 }, '-=0.6')
-          .from('#scroll-down', { opacity: 0, duration: 0.8 }, '-=0.4');
+    function onScrollUI() {
+        nav.classList.toggle('scrolled', window.scrollY > 24);
+        toTop.classList.toggle('show', window.scrollY > window.innerHeight * .7);
+    }
+    window.addEventListener('scroll', onScrollUI, { passive: true });
+    onScrollUI();
 
-        gsap.utils.toArray('.stat-card').forEach(function(el, i) {
+    toTop.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
+    });
+
+    // Marquee: duplicate group for a seamless loop
+    const track = document.getElementById('marquee-track');
+    if (track) track.appendChild(track.firstElementChild.cloneNode(true));
+
+    /* ---------------- GSAP CHOREOGRAPHY ---------------- */
+    if (gsap && ScrollTrigger && !REDUCED) {
+        gsap.config({ nullTargetWarn: false });
+
+        gsap.to(progressBar, {
+            scaleX: 1, ease: 'none',
+            scrollTrigger: { start: 0, end: 'max', scrub: .3 },
+        });
+
+        const intro = gsap.timeline({ defaults: { ease: 'power3.out' }, delay: .15 });
+        intro.from('#badge', { y: -22, opacity: 0, duration: .7 })
+            .from('.hero-title .word', { yPercent: 118, duration: 1.05, ease: 'power4.out', stagger: .1 }, '-=.4')
+            .from('#hero-sub', { y: 26, opacity: 0, duration: .9 }, '-=.6')
+            .from('#hero-cta .btn', { y: 22, opacity: 0, duration: .75, stagger: .1 }, '-=.65')
+            .from('.hero-chip', { opacity: 0, y: 34, scale: .92, duration: .9, ease: 'back.out(1.5)', stagger: .14, clearProps: 'opacity' }, '-=.55')
+            .from('.scroll-cue', { opacity: 0, duration: .8 }, '-=.45');
+
+        gsap.utils.toArray('[data-reveal]').forEach(el => {
             gsap.from(el, {
-                scrollTrigger: { trigger: el, start: 'top 85%' },
-                opacity: 0, y: 40, duration: 0.8, delay: i * 0.15,
+                y: 44, opacity: 0, duration: 1, ease: 'power3.out',
+                scrollTrigger: { trigger: el, start: 'top 86%', once: true },
             });
         });
 
-        gsap.from('#features-title', {
-            scrollTrigger: { trigger: '#features-title', start: 'top 85%' },
-            opacity: 0, y: 30, duration: 0.8,
+        ScrollTrigger.batch('[data-reveal-group] > *', {
+            start: 'top 88%', once: true,
+            onEnter: batch => gsap.from(batch, {
+                y: 48, opacity: 0, duration: .85, ease: 'power3.out', stagger: .09, clearProps: 'transform',
+            }),
         });
-        gsap.from('#features-sub', {
-            scrollTrigger: { trigger: '#features-sub', start: 'top 85%' },
-            opacity: 0, y: 30, duration: 0.8, delay: 0.2,
-        });
-        gsap.utils.toArray('.feature-card').forEach(function(el, i) {
-            gsap.from(el, {
-                scrollTrigger: { trigger: el, start: 'top 85%' },
-                opacity: 0, y: 40, duration: 0.8, delay: i * 0.1,
+
+        // Counters
+        document.querySelectorAll('.stat-value').forEach(el => {
+            const target = parseFloat(el.dataset.target || '0');
+            const suffix = el.dataset.suffix || '';
+            ScrollTrigger.create({
+                trigger: el, start: 'top 88%', once: true,
+                onEnter: () => {
+                    const obj = { v: 0 };
+                    gsap.to(obj, {
+                        v: target, duration: 1.7, ease: 'power2.out',
+                        onUpdate: () => { el.innerHTML = Math.round(obj.v) + (suffix ? `<span class="suffix">${suffix}</span>` : ''); },
+                    });
+                },
             });
         });
-        gsap.from('#cta-section', {
-            scrollTrigger: { trigger: '#cta-section', start: 'top 85%' },
-            opacity: 0, y: 40, duration: 1,
+
+        // Workflow line + nodes
+        gsap.to('#steps', {
+            '--line-p': 1, ease: 'none',
+            scrollTrigger: { trigger: '#steps', start: 'top 72%', end: 'bottom 58%', scrub: .5 },
         });
-    })();
+        document.querySelectorAll('.step').forEach(step => {
+            ScrollTrigger.create({
+                trigger: step, start: 'top 78%', once: true,
+                onEnter: () => step.classList.add('active'),
+            });
+        });
+
+        // Floating hero chips
+        gsap.to('.chip-a', { y: -14, duration: 3.2, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+        gsap.to('.chip-b', { y: 12, duration: 3.8, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: .6 });
+
+        // Hero parallax on pointer
+        if (FINE_POINTER) {
+            const inner = document.getElementById('hero-inner');
+            const qx = gsap.quickTo(inner, 'x', { duration: .9, ease: 'power3' });
+            const qy = gsap.quickTo(inner, 'y', { duration: .9, ease: 'power3' });
+            window.addEventListener('mousemove', e => {
+                qx((e.clientX / window.innerWidth - .5) * -14);
+                qy((e.clientY / window.innerHeight - .5) * -8);
+            }, { passive: true });
+        }
+
+        // Spotlight cursor on glass cards
+        if (FINE_POINTER) {
+            document.querySelectorAll('.glass-spot').forEach(card => {
+                card.addEventListener('mousemove', e => {
+                    const r = card.getBoundingClientRect();
+                    card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+                    card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+                }, { passive: true });
+            });
+        }
+
+        // Tilt on feature cards
+        if (FINE_POINTER) {
+            document.querySelectorAll('.feature-card').forEach(card => {
+                gsap.set(card, { transformPerspective: 900 });
+                const rx = gsap.quickTo(card, 'rotationX', { duration: .5, ease: 'power3' });
+                const ry = gsap.quickTo(card, 'rotationY', { duration: .5, ease: 'power3' });
+                card.addEventListener('mousemove', e => {
+                    const r = card.getBoundingClientRect();
+                    ry(((e.clientX - r.left) / r.width - .5) * 7);
+                    rx(-((e.clientY - r.top) / r.height - .5) * 7);
+                }, { passive: true });
+                card.addEventListener('mouseleave', () => { rx(0); ry(0); });
+            });
+        }
+
+        // Magnetic buttons
+        if (FINE_POINTER) {
+            document.querySelectorAll('.magnetic').forEach(btn => {
+                const bx = gsap.quickTo(btn, 'x', { duration: .4, ease: 'power3' });
+                const by = gsap.quickTo(btn, 'y', { duration: .4, ease: 'power3' });
+                btn.addEventListener('mousemove', e => {
+                    const r = btn.getBoundingClientRect();
+                    bx((e.clientX - r.left - r.width / 2) * .25);
+                    by((e.clientY - r.top - r.height / 2) * .35);
+                }, { passive: true });
+                btn.addEventListener('mouseleave', () => {
+                    gsap.to(btn, { x: 0, y: 0, duration: .55, ease: 'elastic.out(1, .45)' });
+                });
+            });
+        }
+
+        // Keep ScrollTrigger honest after fonts load
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => ScrollTrigger.refresh());
+        }
+    } else {
+        // Reduced motion / no GSAP: settle everything into its final state
+        document.querySelectorAll('.stat-value').forEach(el => {
+            const suffix = el.dataset.suffix || '';
+            el.innerHTML = el.dataset.target + (suffix ? `<span class="suffix">${suffix}</span>` : '');
+        });
+        document.querySelectorAll('.step').forEach(s => s.classList.add('active'));
+        document.querySelectorAll('.hero-chip').forEach(c => c.style.opacity = '1');
+        const steps = document.getElementById('steps');
+        if (steps) steps.style.setProperty('--line-p', '1');
+        const bar = progressBar;
+        if (bar) {
+            window.addEventListener('scroll', () => {
+                const max = document.documentElement.scrollHeight - window.innerHeight;
+                bar.style.transform = `scaleX(${max > 0 ? window.scrollY / max : 0})`;
+            }, { passive: true });
+        }
+    }
     </script>
 </body>
 </html>

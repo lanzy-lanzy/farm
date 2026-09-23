@@ -1,0 +1,180 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2050" viewBox="0 0 1600 2050">
+  <defs>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 14 7 L 0 14 z" fill="#000000"/>
+    </marker>
+    <style>
+      .title { font-family: Arial, Helvetica, sans-serif; font-size: 38px; font-weight: 800; fill: #000000; text-anchor: middle; }
+      .subtitle { font-family: Arial, Helvetica, sans-serif; font-size: 25px; font-weight: 700; fill: #000000; text-anchor: middle; }
+      .box-title { font-family: Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 800; fill: #000000; text-anchor: middle; }
+      .box-text { font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 700; fill: #000000; text-anchor: middle; }
+      .small { font-family: Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 700; fill: #000000; text-anchor: middle; }
+      .detail { font-family: Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 600; fill: #000000; }
+      .label-yes { font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 800; fill: #000000; }
+      .label-no { font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 800; fill: #000000; }
+      .flow { fill: none; stroke: #000000; stroke-width: 3; marker-end: url(#arrow); }
+      .line { fill: none; stroke: #000000; stroke-width: 3; }
+      .box { stroke: #000000; stroke-width: 2.5; }
+      .panel { stroke: #000000; stroke-width: 2.3; }
+      .panel-head { stroke: #000000; stroke-width: 2.3; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="2050" fill="#ffffff"/>
+
+  <text class="title" x="800" y="58">ACTIVITY DIAGRAM / FLOWCHART</text>
+  <text class="subtitle" x="800" y="100">WEB-BASED POULTRY FARM RECORD AND INVENTORY MANAGEMENT SYSTEM</text>
+  <text class="subtitle" x="800" y="136">FOR CHICKEN FARMS IN TAMBULIG, ZAMBOANGA DEL SUR</text>
+
+  <!-- Login flow -->
+  <rect class="box" x="670" y="170" width="260" height="62" rx="32" fill="#ffffff"/>
+  <text class="box-title" x="800" y="209">START</text>
+
+  <path class="flow" d="M800 232 L800 274"/>
+  <rect class="box" x="590" y="274" width="420" height="60" rx="8" fill="#ffffff"/>
+  <text class="box-text" x="800" y="310">User Opens System</text>
+
+  <path class="flow" d="M800 334 L800 378"/>
+  <rect class="box" x="590" y="378" width="420" height="60" rx="8" fill="#ffffff"/>
+  <text class="box-text" x="800" y="414">Login to Account</text>
+
+  <path class="flow" d="M800 438 L800 482"/>
+  <polygon class="box" points="800,482 930,570 800,658 670,570" fill="#ffffff"/>
+  <text class="box-title" x="800" y="560">Are the</text>
+  <text class="box-title" x="800" y="586">credentials valid?</text>
+
+  <path class="flow" d="M670 570 L430 570"/>
+  <text class="label-no" x="616" y="550">No</text>
+  <rect class="box" x="160" y="530" width="270" height="80" rx="8" fill="#ffffff"/>
+  <text class="box-text" x="295" y="562">Display Error</text>
+  <text class="box-text" x="295" y="588">Message</text>
+  <path class="line" d="M160 570 L95 570 L95 408 L590 408"/>
+  <path class="flow" d="M95 408 L590 408"/>
+
+  <path class="flow" d="M930 570 L1168 570"/>
+  <text class="label-yes" x="965" y="550">Yes</text>
+  <rect class="box" x="1168" y="530" width="270" height="80" rx="8" fill="#ffffff"/>
+  <text class="box-text" x="1303" y="578">Dashboard</text>
+
+  <path class="line" d="M1303 610 L1303 690 L800 690"/>
+  <path class="flow" d="M800 690 L800 736"/>
+  <rect class="box" x="560" y="736" width="480" height="62" rx="8" fill="#ffffff"/>
+  <text class="box-text" x="800" y="773">Select Desired Function</text>
+
+  <!-- Branches to grouped modules -->
+  <path class="line" d="M800 798 L800 835"/>
+  <path class="line" d="M275 835 L1325 835"/>
+  <path class="flow" d="M275 835 L275 872"/>
+  <path class="flow" d="M800 835 L800 872"/>
+  <path class="flow" d="M1325 835 L1325 872"/>
+  <path class="line" d="M800 798 L800 1195"/>
+  <path class="line" d="M275 1195 L1325 1195"/>
+  <path class="flow" d="M275 1195 L275 1232"/>
+  <path class="flow" d="M800 1195 L800 1232"/>
+  <path class="flow" d="M1325 1195 L1325 1232"/>
+
+  <!-- Module panels, first row -->
+  <rect class="panel" x="85" y="872" width="380" height="286" rx="10" fill="#ffffff"/>
+  <rect class="panel-head" x="85" y="872" width="380" height="72" rx="10" fill="#ffffff"/>
+  <text class="box-title" x="275" y="904">MANAGE FLOCK RECORDS</text>
+  <text class="small" x="275" y="928">Chicken batches and stock count</text>
+  <text class="detail" x="120" y="985">• Add / edit / delete flock records</text>
+  <text class="detail" x="120" y="1020">• Batch number, breed, quantity</text>
+  <text class="detail" x="120" y="1055">• Age, stage, source, date acquired</text>
+  <text class="detail" x="120" y="1090">• Mortality, sold, and remaining stock</text>
+  <rect x="145" y="1115" width="260" height="36" rx="7" fill="#ffffff" stroke="#000000" stroke-width="1.6"/>
+  <text class="small" x="275" y="1139">Save Flock Data</text>
+
+  <rect class="panel" x="610" y="872" width="380" height="286" rx="10" fill="#ffffff"/>
+  <rect class="panel-head" x="610" y="872" width="380" height="72" rx="10" fill="#ffffff"/>
+  <text class="box-title" x="800" y="904">MANAGE FARM INPUTS</text>
+  <text class="small" x="800" y="928">Inventory, feeding, medicine</text>
+  <text class="detail" x="645" y="985">• Record stock in / stock out</text>
+  <text class="detail" x="645" y="1020">• Feeds, medicine, vaccines, supplies</text>
+  <text class="detail" x="645" y="1055">• Quantity, unit, supplier, cost</text>
+  <text class="detail" x="645" y="1090">• Deduct usage from inventory</text>
+  <rect x="670" y="1115" width="260" height="36" rx="7" fill="#ffffff" stroke="#000000" stroke-width="1.6"/>
+  <text class="small" x="800" y="1139">Update Stock</text>
+
+  <rect class="panel" x="1135" y="872" width="380" height="286" rx="10" fill="#ffffff"/>
+  <rect class="panel-head" x="1135" y="872" width="380" height="72" rx="10" fill="#ffffff"/>
+  <text class="box-title" x="1325" y="904">RECORD PRODUCTION</text>
+  <text class="small" x="1325" y="928">Eggs, mortality, health status</text>
+  <text class="detail" x="1170" y="985">• Record daily egg production</text>
+  <text class="detail" x="1170" y="1020">• Good, cracked, rejected eggs</text>
+  <text class="detail" x="1170" y="1055">• Record mortality and causes</text>
+  <text class="detail" x="1170" y="1090">• Symptoms, remarks, action taken</text>
+  <rect x="1195" y="1115" width="260" height="36" rx="7" fill="#ffffff" stroke="#000000" stroke-width="1.6"/>
+  <text class="small" x="1325" y="1139">Save Production Data</text>
+
+  <!-- Module panels, second row -->
+  <rect class="panel" x="85" y="1232" width="380" height="286" rx="10" fill="#ffffff"/>
+  <rect class="panel-head" x="85" y="1232" width="380" height="72" rx="10" fill="#ffffff"/>
+  <text class="box-title" x="275" y="1264">RECORD SALES &amp; EXPENSES</text>
+  <text class="small" x="275" y="1288">Income and farm costs</text>
+  <text class="detail" x="120" y="1345">• Buyer, product type, quantity</text>
+  <text class="detail" x="120" y="1380">• Unit price, total amount, payment</text>
+  <text class="detail" x="120" y="1415">• Expense category and description</text>
+  <text class="detail" x="120" y="1450">• Amount and payment method</text>
+  <rect x="145" y="1475" width="260" height="36" rx="7" fill="#ffffff" stroke="#000000" stroke-width="1.6"/>
+  <text class="small" x="275" y="1499">Save Transaction Data</text>
+
+  <rect class="panel" x="610" y="1232" width="380" height="286" rx="10" fill="#ffffff"/>
+  <rect class="panel-head" x="610" y="1232" width="380" height="72" rx="10" fill="#ffffff"/>
+  <text class="box-title" x="800" y="1264">MANAGE PEOPLE &amp; SETTINGS</text>
+  <text class="small" x="800" y="1288">Users, buyers, suppliers, farm profile</text>
+  <text class="detail" x="645" y="1345">• User accounts and role access</text>
+  <text class="detail" x="645" y="1380">• Buyer and supplier records</text>
+  <text class="detail" x="645" y="1415">• Farm profile and system settings</text>
+  <text class="detail" x="645" y="1450">• Categories, units, and preferences</text>
+  <rect x="670" y="1475" width="260" height="36" rx="7" fill="#ffffff" stroke="#000000" stroke-width="1.6"/>
+  <text class="small" x="800" y="1499">Save Account Data</text>
+
+  <rect class="panel" x="1135" y="1232" width="380" height="286" rx="10" fill="#ffffff"/>
+  <rect class="panel-head" x="1135" y="1232" width="380" height="72" rx="10" fill="#ffffff"/>
+  <text class="box-title" x="1325" y="1264">GENERATE REPORTS</text>
+  <text class="small" x="1325" y="1288">Reports, alerts, activity logs</text>
+  <text class="detail" x="1170" y="1345">• Inventory and production reports</text>
+  <text class="detail" x="1170" y="1380">• Mortality, sales, expense reports</text>
+  <text class="detail" x="1170" y="1415">• Profit and loss report</text>
+  <text class="detail" x="1170" y="1450">• Print, export, or view alerts</text>
+  <rect x="1195" y="1475" width="260" height="36" rx="7" fill="#ffffff" stroke="#000000" stroke-width="1.6"/>
+  <text class="small" x="1325" y="1499">Generate Report</text>
+
+  <!-- Merge to database -->
+  <path class="line" d="M275 1158 L275 1180 L58 1180 L58 1578 L275 1578"/>
+  <path class="line" d="M800 1158 L800 1180 L58 1180"/>
+  <path class="line" d="M1325 1158 L1325 1180 L1542 1180 L1542 1578 L1325 1578"/>
+  <path class="line" d="M275 1518 L275 1578"/>
+  <path class="line" d="M800 1518 L800 1578"/>
+  <path class="line" d="M1325 1518 L1325 1578"/>
+  <path class="line" d="M275 1578 L1325 1578"/>
+  <path class="flow" d="M800 1578 L800 1624"/>
+
+  <rect class="box" x="540" y="1624" width="520" height="82" rx="9" fill="#ffffff"/>
+  <ellipse cx="620" cy="1650" rx="28" ry="10" fill="#ffffff" stroke="#000000" stroke-width="3"/>
+  <path d="M592 1650 L592 1682 C592 1689 604 1695 620 1695 C636 1695 648 1689 648 1682 L648 1650" fill="#ffffff" stroke="#000000" stroke-width="3"/>
+  <path d="M592 1666 C592 1673 604 1679 620 1679 C636 1679 648 1673 648 1666" fill="none" stroke="#000000" stroke-width="3"/>
+  <text class="box-title" x="825" y="1674">Data Stored in Database</text>
+
+  <path class="flow" d="M800 1706 L800 1750"/>
+  <polygon class="box" points="800,1750 970,1850 800,1950 630,1850" fill="#ffffff"/>
+  <text class="box-title" x="800" y="1840">Continue Using</text>
+  <text class="box-title" x="800" y="1868">the System?</text>
+
+  <path class="flow" d="M630 1850 L415 1850 L415 1930"/>
+  <text class="label-yes" x="565" y="1828">Yes</text>
+  <rect class="box" x="220" y="1930" width="390" height="70" rx="9" fill="#ffffff"/>
+  <text class="box-text" x="415" y="1973">Return to Dashboard</text>
+  <path class="line" d="M220 1965 L45 1965 L45 767 L560 767"/>
+  <path class="flow" d="M45 767 L560 767"/>
+
+  <path class="flow" d="M970 1850 L1190 1850"/>
+  <text class="label-no" x="1025" y="1828">No</text>
+  <rect class="box" x="1190" y="1815" width="260" height="70" rx="9" fill="#ffffff"/>
+  <text class="box-text" x="1320" y="1858">Logout</text>
+
+  <path class="flow" d="M1320 1885 L1320 1930"/>
+  <rect class="box" x="1195" y="1930" width="250" height="62" rx="32" fill="#ffffff"/>
+  <text class="box-title" x="1320" y="1969">END</text>
+</svg>

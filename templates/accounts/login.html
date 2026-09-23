@@ -4,55 +4,622 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Tambulig Poultry Farm</title>
-    <script src="{% static 'js/htmx.min.js' %}"></script>
-    <script defer src="{% static 'js/alpine.min.js' %}"></script>
+    <title>Sign in · Tambulig Poultry Farm</title>
+    <meta name="description" content="Sign in to the Tambulig Poultry Farm Management System.">
+    <meta name="theme-color" content="#04170e">
+    <meta name="robots" content="noindex">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "{% static 'js/three.min.js' %}",
+            "three/addons/": "{% static 'js/addons/' %}"
+        }
+    }
+    </script>
+
+    <style>
+    :root {
+        --bg: #04170e;
+        --bg-deep: #030f0a;
+        --ink: #f2faf5;
+        --ink-soft: rgba(220, 242, 230, .8);
+        --ink-faint: rgba(206, 236, 220, .55);
+        --line: rgba(255, 255, 255, .12);
+        --line-soft: rgba(255, 255, 255, .07);
+        --spring: #a3e635;
+        --emerald: #34d399;
+        --emerald-soft: #6ee7b7;
+        --amber: #fcd34d;
+        --danger: #fb7185;
+        --font-display: 'Sora', 'Inter', system-ui, sans-serif;
+        --font-body: 'Inter', system-ui, sans-serif;
+        --ease-out: cubic-bezier(.22, 1, .36, 1);
+    }
+
+    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+    body {
+        margin: 0; background: var(--bg); color: var(--ink-soft);
+        font-family: var(--font-body); font-size: 1rem; line-height: 1.6;
+        min-height: 100vh; min-height: 100svh;
+        overflow-x: hidden; -webkit-font-smoothing: antialiased;
+    }
+
+    ::selection { background: var(--spring); color: var(--bg); }
+    :focus-visible { outline: 2px solid var(--emerald-soft); outline-offset: 3px; border-radius: 6px; }
+
+    .sr-only {
+        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+    }
+
+    /* ---- Background layers ---- */
+    .aurora {
+        position: fixed; inset: 0; z-index: 0; pointer-events: none;
+        background:
+            radial-gradient(55% 45% at 15% 10%, rgba(16, 185, 129, .18), transparent 70%),
+            radial-gradient(50% 40% at 85% 14%, rgba(132, 204, 22, .12), transparent 70%),
+            radial-gradient(60% 55% at 50% 110%, rgba(45, 212, 191, .14), transparent 70%),
+            linear-gradient(180deg, #04170e 0%, #030f0a 100%);
+    }
+    .aurora::after {
+        content: ''; position: absolute; inset: 0;
+        background:
+            radial-gradient(40% 32% at 20% 32%, rgba(52, 211, 153, .10), transparent 65%),
+            radial-gradient(36% 30% at 82% 68%, rgba(163, 230, 53, .07), transparent 65%);
+        animation: aurora-drift 26s ease-in-out infinite alternate;
+    }
+    @keyframes aurora-drift {
+        from { transform: translate3d(-2%, -1.5%, 0) scale(1); }
+        to   { transform: translate3d(2%, 2%, 0) scale(1.06); }
+    }
+    #scene-wrap { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0; }
+    #scene-wrap canvas { display: block; width: 100%; height: 100%; }
+    body.no-webgl #scene-wrap { display: none; }
+    .grain {
+        position: fixed; inset: -50%; z-index: 5; pointer-events: none;
+        opacity: .05; mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* ---- Shell ---- */
+    .auth-shell {
+        position: relative; z-index: 2;
+        min-height: 100vh; min-height: 100svh;
+        display: grid; place-items: center;
+        padding: 2rem 1.25rem;
+    }
+    .auth-shell::before {
+        content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+        background: radial-gradient(52% 52% at 50% 46%, rgba(3, 15, 10, .62), rgba(3, 15, 10, .82) 100%);
+    }
+
+    .auth-card {
+        position: relative; width: min(980px, 100%);
+        display: grid; grid-template-columns: 1fr;
+        border-radius: 28px; overflow: hidden;
+        background: linear-gradient(160deg, rgba(255, 255, 255, .085), rgba(255, 255, 255, .02) 42%, rgba(6, 40, 25, .42));
+        -webkit-backdrop-filter: blur(22px) saturate(1.5);
+        backdrop-filter: blur(22px) saturate(1.5);
+        border: 1px solid var(--line);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .10), 0 40px 90px -30px rgba(0, 0, 0, .75);
+    }
+    @media (min-width: 860px) {
+        .auth-card { grid-template-columns: 1.02fr .98fr; }
+    }
+
+    /* ---- Brand showcase (left) ---- */
+    .auth-brand {
+        position: relative; padding: 2.2rem 2.2rem 1.6rem;
+        display: flex; flex-direction: column; gap: 1.4rem;
+        border-bottom: 1px solid var(--line-soft);
+    }
+    @media (min-width: 860px) {
+        .auth-brand {
+            padding: 3rem 3rem 3.2rem; border-bottom: 0;
+            border-right: 1px solid var(--line-soft);
+            justify-content: space-between;
+            background: linear-gradient(160deg, rgba(16, 185, 129, .08), transparent 60%);
+        }
+    }
+    .brand { display: inline-flex; align-items: center; gap: .75rem; text-decoration: none; }
+    .brand-mark {
+        width: 42px; height: 42px; border-radius: 13px; flex-shrink: 0;
+        display: grid; place-items: center; color: var(--spring);
+        background: linear-gradient(140deg, rgba(163, 230, 53, .22), rgba(52, 211, 153, .14));
+        border: 1px solid rgba(163, 230, 53, .3);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+    }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.12; }
+    .brand-name { font-family: var(--font-display); font-weight: 700; font-size: 1.08rem; letter-spacing: -.01em; color: var(--ink); }
+    .brand-sub { font-size: .64rem; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--ink-faint); }
+
+    .auth-showcase { display: none; }
+    @media (min-width: 860px) { .auth-showcase { display: block; } }
+    .auth-showcase-title {
+        font-family: var(--font-display); font-weight: 800;
+        font-size: clamp(1.9rem, 3vw, 2.5rem); line-height: 1.1; letter-spacing: -.03em;
+        color: var(--ink); margin: 0 0 1rem; text-wrap: balance;
+    }
+    .auth-showcase-title .grad {
+        background: linear-gradient(115deg, #d9f99d, #34d399 60%, #6ee7b7);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent; color: transparent;
+    }
+    .auth-showcase-sub { color: var(--ink-faint); font-size: .98rem; max-width: 30rem; margin: 0 0 1.8rem; }
+    .ticks { list-style: none; margin: 0; padding: 0; display: grid; gap: .85rem; }
+    .ticks li { display: flex; align-items: center; gap: .75rem; font-size: .92rem; color: var(--ink-soft); }
+    .ticks .tick {
+        width: 24px; height: 24px; border-radius: 8px; flex-shrink: 0;
+        display: grid; place-items: center; color: var(--bg-deep);
+        background: linear-gradient(140deg, var(--spring), var(--emerald));
+    }
+
+    .brand-foot { display: none; }
+    @media (min-width: 860px) {
+        .brand-foot {
+            display: flex; align-items: center; gap: .6rem;
+            font-size: .8rem; color: var(--ink-faint); letter-spacing: .04em;
+        }
+    }
+
+    /* ---- Form (right) ---- */
+    .auth-form-wrap { padding: 2.2rem 1.75rem 2rem; display: flex; flex-direction: column; justify-content: center; }
+    @media (min-width: 860px) { .auth-form-wrap { padding: 3rem 2.8rem; } }
+
+    .auth-kicker {
+        display: inline-flex; align-items: center; gap: .55rem;
+        font-size: .72rem; font-weight: 600; letter-spacing: .22em; text-transform: uppercase;
+        color: var(--emerald-soft); margin-bottom: .9rem;
+    }
+    .auth-kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--spring); box-shadow: 0 0 12px 1px rgba(163,230,53,.6); }
+    .auth-title {
+        font-family: var(--font-display); font-weight: 800;
+        font-size: clamp(1.7rem, 4vw, 2.15rem); line-height: 1.1; letter-spacing: -.02em;
+        color: var(--ink); margin: 0 0 .4rem;
+    }
+    .auth-lead { color: var(--ink-faint); font-size: .95rem; margin: 0 0 1.9rem; }
+
+    .auth-error {
+        display: flex; align-items: center; gap: .7rem;
+        padding: .85rem 1rem; margin-bottom: 1.4rem;
+        background: rgba(251, 113, 133, .1); border: 1px solid rgba(251, 113, 133, .35);
+        border-left: 3px solid var(--danger); border-radius: 12px;
+        color: #fecdd3; font-size: .9rem;
+    }
+    .auth-error svg { flex-shrink: 0; color: var(--danger); }
+
+    .field { position: relative; margin-bottom: 1.15rem; }
+    .field-icon {
+        position: absolute; left: 1.05rem; top: 50%; transform: translateY(-50%);
+        color: var(--ink-faint); pointer-events: none;
+        transition: color .3s ease;
+    }
+    .field-input {
+        width: 100%; box-sizing: border-box;
+        padding: 1.6rem 1rem .6rem 3.1rem;
+        background: rgba(255, 255, 255, .04);
+        border: 1px solid var(--line); border-radius: 14px;
+        color: var(--ink); font-size: 1rem; font-family: var(--font-body);
+        transition: border-color .3s ease, background .3s ease, box-shadow .3s ease;
+    }
+    .field-input:hover { border-color: rgba(255, 255, 255, .2); }
+    .field-input:focus {
+        outline: none; border-color: rgba(52, 211, 153, .6);
+        background: rgba(52, 211, 153, .06);
+        box-shadow: 0 0 0 4px rgba(52, 211, 153, .12);
+    }
+    .field-input:focus ~ .field-icon { color: var(--emerald-soft); }
+    .field-label {
+        position: absolute; left: 3.1rem; top: 1.15rem;
+        color: var(--ink-faint); pointer-events: none; font-size: 1rem;
+        transition: all .22s var(--ease-out);
+    }
+    .field-input:focus + .field-label,
+    .field-input:not(:placeholder-shown) + .field-label {
+        top: .55rem; left: 3.1rem; font-size: .66rem; font-weight: 600;
+        letter-spacing: .1em; text-transform: uppercase; color: var(--emerald-soft);
+    }
+    .field--pw .field-input { padding-right: 3.4rem; }
+    .pw-toggle {
+        position: absolute; right: .55rem; top: 50%; transform: translateY(-50%);
+        width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
+        display: grid; place-items: center; color: var(--ink-faint);
+        background: transparent; border: 0;
+        transition: color .25s ease, background .25s ease;
+    }
+    .pw-toggle:hover { color: var(--ink); background: rgba(255, 255, 255, .06); }
+
+    input:-webkit-autofill,
+    input:-webkit-autofill:focus {
+        -webkit-text-fill-color: var(--ink);
+        -webkit-box-shadow: 0 0 0 1000px #0c2a1c inset;
+        caret-color: var(--ink); transition: background-color 9999s;
+    }
+
+    .btn-submit {
+        position: relative; overflow: hidden; width: 100%;
+        display: inline-flex; align-items: center; justify-content: center; gap: .6rem;
+        margin-top: .4rem; padding: 1.05rem 1.5rem; border: 0; border-radius: 14px;
+        font-family: var(--font-body); font-weight: 700; font-size: 1.02rem; cursor: pointer;
+        color: #052e1b;
+        background: linear-gradient(135deg, #bef264 0%, #4ade80 45%, #10b981 100%);
+        box-shadow: 0 12px 34px -12px rgba(52, 211, 153, .6), inset 0 1px 0 rgba(255, 255, 255, .55);
+        transition: transform .3s var(--ease-out), box-shadow .3s ease;
+        will-change: transform;
+    }
+    .btn-submit::after {
+        content: ''; position: absolute; top: -45%; bottom: -45%; left: 0; width: 36%;
+        background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .55), transparent);
+        transform: translateX(-220%) skewX(-18deg); transition: transform .75s var(--ease-out);
+        pointer-events: none;
+    }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 18px 44px -12px rgba(52, 211, 153, .75), inset 0 1px 0 rgba(255, 255, 255, .55); }
+    .btn-submit:hover::after { transform: translateX(340%) skewX(-18deg); }
+    .btn-submit:active { transform: translateY(0); }
+    .btn-submit .spinner { display: none; width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(5, 46, 27, .35); border-top-color: #052e1b; animation: spin .7s linear infinite; }
+    .btn-submit.is-loading { pointer-events: none; }
+    .btn-submit.is-loading .spinner { display: inline-block; }
+    .btn-submit.is-loading .btn-label-arrow { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .auth-links { margin-top: 1.6rem; padding-top: 1.4rem; border-top: 1px solid var(--line-soft); text-align: center; }
+    .back-home {
+        display: inline-flex; align-items: center; gap: .5rem;
+        color: var(--emerald-soft); text-decoration: none; font-size: .92rem; font-weight: 500;
+        transition: color .25s ease;
+    }
+    .back-home svg { transition: transform .3s var(--ease-out); }
+    .back-home:hover { color: var(--spring); }
+    .back-home:hover svg { transform: translateX(-4px); }
+    .auth-loc { margin: .9rem 0 0; font-size: .78rem; letter-spacing: .06em; color: var(--ink-faint); }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+        .aurora::after { animation: none !important; }
+    }
+    </style>
+    <noscript><style>#scene-wrap { display: none; } .field-label { top: .55rem; font-size: .66rem; text-transform: uppercase; letter-spacing: .1em; color: var(--emerald-soft); } .pw-toggle { display: none; }</style></noscript>
 </head>
-<body class="bg-gradient-to-br from-green-600 via-green-700 to-emerald-800 dark:from-gray-900 dark:via-gray-900 dark:to-gray-950 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-white/20">
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900 rounded-2xl mb-4">
-                    <svg class="w-8 h-8 text-green-700 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                </div>
-                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Tambulig Poultry Farm</h1>
-                <p class="text-gray-500 dark:text-gray-400 mt-1">Record and Inventory Management System</p>
-            </div>
-            <form method="post" class="space-y-5">
-                {% csrf_token %}
-                {% if form.errors %}
-                <div class="flex items-center space-x-2 p-3 bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-300 rounded-lg text-sm">
-                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                    <span>Invalid username or password.</span>
-                </div>
-                {% endif %}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Username</label>
-                    <div class="relative">
-                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        <input type="text" name="username" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all" placeholder="Enter username" required>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Password</label>
-                    <div class="relative">
-                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                        <input type="password" name="password" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-all" placeholder="Enter password" required>
-                    </div>
-                </div>
-                <button type="submit" class="w-full bg-green-700 hover:bg-green-800 text-white font-medium py-2.5 px-4 rounded-xl transition-all duration-200 shadow-lg shadow-green-900/30 hover:shadow-xl cursor-pointer">
-                    Sign In
-                </button>
-            </form>
-            <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <a href="/" class="flex items-center justify-center space-x-1 text-sm text-green-700 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors mb-3">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    <span>Back to Home</span>
+<body>
+
+    <div class="aurora" aria-hidden="true"></div>
+    <div id="scene-wrap" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <main class="auth-shell">
+        <div class="auth-card">
+
+            <!-- Brand showcase -->
+            <aside class="auth-brand">
+                <a class="brand" href="/">
+                    <span class="brand-mark" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2.5C8.8 2.5 6 7.3 6 11.4a6 6 0 0 0 12 0c0-4.1-2.8-8.9-6-8.9z"/>
+                            <path d="M9.8 13.2c.6-2.2 2-3.6 4.4-4.2-.2 2.3-1.4 3.9-3.2 4.6l-1.2.4z"/>
+                        </svg>
+                    </span>
+                    <span class="brand-text">
+                        <span class="brand-name">Tambulig</span>
+                        <span class="brand-sub">Poultry Farm</span>
+                    </span>
                 </a>
-                <p class="text-xs text-center text-gray-400 dark:text-gray-500">Tambulig, Zamboanga del Sur</p>
+
+                <div class="auth-showcase">
+                    <p class="auth-showcase-title">Welcome back to the <span class="grad">farm.</span></p>
+                    <p class="auth-showcase-sub">Sign in to pick up right where you left off — flocks, feed, eggs, and revenue, all in one place.</p>
+                    <ul class="ticks">
+                        <li>
+                            <span class="tick" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+                            Live flock &amp; inventory dashboards
+                        </li>
+                        <li>
+                            <span class="tick" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+                            Smart low-stock &amp; health alerts
+                        </li>
+                        <li>
+                            <span class="tick" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+                            One-click reports &amp; Excel export
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="brand-foot">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    Tambulig &middot; Zamboanga del Sur
+                </div>
+            </aside>
+
+            <!-- Form -->
+            <div class="auth-form-wrap">
+                <span class="auth-kicker"><span class="dot" aria-hidden="true"></span> Member access</span>
+                <h1 class="auth-title">Sign in</h1>
+                <p class="auth-lead">Enter your credentials to reach your dashboard.</p>
+
+                <form method="post" id="login-form" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.errors %}
+                    <div class="auth-error" role="alert">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+                        <span>Invalid username or password. Please try again.</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="field">
+                        <input class="field-input" type="text" name="username" id="id_username" placeholder=" " autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
+                        <label class="field-label" for="id_username">Username</label>
+                        <span class="field-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </span>
+                    </div>
+
+                    <div class="field field--pw">
+                        <input class="field-input" type="password" name="password" id="id_password" placeholder=" " autocomplete="current-password" required>
+                        <label class="field-label" for="id_password">Password</label>
+                        <span class="field-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </span>
+                        <button class="pw-toggle" type="button" id="pw-toggle" aria-label="Show password" aria-pressed="false">
+                            <svg id="eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg id="eye-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61A18.5 18.5 0 0 0 2 12s3.5 8 10 8a9.12 9.12 0 0 0 5.39-1.61"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="m2 2 20 20"/></svg>
+                        </button>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="submit-btn">
+                        <span class="spinner" aria-hidden="true"></span>
+                        <span>Sign in</span>
+                        <svg class="btn-label-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+                    </button>
+                </form>
+
+                <div class="auth-links">
+                    <a class="back-home" href="/">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                        <span>Back to Home</span>
+                    </a>
+                    <p class="auth-loc">Tambulig, Zamboanga del Sur</p>
+                </div>
             </div>
+
         </div>
-    </div>
+    </main>
+
+    <!-- "Chicken" 3D model by pooiloui2 on Sketchfab (CC BY 4.0) -->
+    <script defer src="{% static 'js/gsap.min.js' %}"></script>
+    <script defer src="{% static 'js/ScrollTrigger.min.js' %}"></script>
+    <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const IS_SMALL = window.matchMedia('(max-width: 768px)').matches;
+    const gsap = window.gsap;
+
+    /* ---------------- Ambient farm scene ---------------- */
+    const wrap = document.getElementById('scene-wrap');
+    let renderer, scene, camera, chickens = [], fireflies, firefliesMat;
+    let rafId = null, loopOn = false, elapsed = 0, lastFrame = performance.now();
+    const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+    const base = new THREE.Vector3(0, 1.7, 8.8);
+    const lookAt = new THREE.Vector3(0, .1, 0);
+
+    function buildScene() {
+        try {
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+        } catch (e) { document.body.classList.add('no-webgl'); return false; }
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.12;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFShadowMap;
+        wrap.appendChild(renderer.domElement);
+
+        scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x03130c, 10, 26);
+        camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, .1, 120);
+        camera.position.copy(base);
+        camera.lookAt(lookAt);
+
+        scene.add(new THREE.HemisphereLight(0x9ed4ff, 0x1c3a28, 1.15));
+        const sun = new THREE.DirectionalLight(0xffd9a6, 3.0);
+        sun.position.set(8, 12, 6);
+        sun.castShadow = true;
+        sun.shadow.mapSize.set(IS_SMALL ? 512 : 1024, IS_SMALL ? 512 : 1024);
+        sun.shadow.camera.left = -8; sun.shadow.camera.right = 8;
+        sun.shadow.camera.top = 8; sun.shadow.camera.bottom = -8;
+        sun.shadow.bias = -0.0004;
+        scene.add(sun);
+        const fill = new THREE.DirectionalLight(0x7fb4ff, .7);
+        fill.position.set(-6, 6, -6);
+        scene.add(fill);
+
+        // Sky dome
+        const skyMat = new THREE.ShaderMaterial({
+            side: THREE.BackSide, depthWrite: false,
+            uniforms: {
+                cTop: { value: new THREE.Color('#154d33') },
+                cHorizon: { value: new THREE.Color('#0a2d1e') },
+                cBottom: { value: new THREE.Color('#03130c') },
+                cGlow: { value: new THREE.Color('#f4c95d') },
+            },
+            vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+            fragmentShader: `varying vec3 vDir; uniform vec3 cTop; uniform vec3 cHorizon; uniform vec3 cBottom; uniform vec3 cGlow;
+                void main(){ float h = vDir.y; vec3 col = mix(cBottom, cTop, smoothstep(-.3,.75,h));
+                col = mix(col, cHorizon, smoothstep(.3,.02,abs(h)));
+                col += cGlow * pow(max(0.0, 1.0 - abs(h+.04)*5.5), 2.0) * .16;
+                gl_FragColor = vec4(col,1.0); }`,
+        });
+        scene.add(new THREE.Mesh(new THREE.SphereGeometry(52, 24, 16), skyMat));
+
+        const ground = new THREE.Mesh(new THREE.CircleGeometry(40, 48), new THREE.MeshStandardMaterial({ color: 0x0f3524, roughness: 1 }));
+        ground.rotation.x = -Math.PI / 2; ground.position.y = -1.5; ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Coop (simplified)
+        const coop = new THREE.Group();
+        const walls = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.1, 1.7), new THREE.MeshStandardMaterial({ color: 0x8a5a3b, roughness: .85 }));
+        walls.castShadow = walls.receiveShadow = true; coop.add(walls);
+        const roof = new THREE.Mesh(new THREE.CylinderGeometry(0, 1.4, 2.4, 3), new THREE.MeshStandardMaterial({ color: 0xb3402f, roughness: .7 }));
+        roof.rotation.y = Math.PI / 2; roof.position.y = .75; roof.castShadow = true; coop.add(roof);
+        coop.position.set(-3.4, -.85, -3); coop.rotation.y = .35;
+        scene.add(coop);
+
+        // Fireflies
+        const COUNT = IS_SMALL ? 70 : 160;
+        const pos = new Float32Array(COUNT * 3);
+        for (let i = 0; i < COUNT; i++) {
+            const a = Math.random() * Math.PI * 2, d = 1.5 + Math.random() * 10;
+            pos[i * 3] = Math.cos(a) * d;
+            pos[i * 3 + 1] = -1 + Math.random() * 6;
+            pos[i * 3 + 2] = Math.sin(a) * d;
+        }
+        const fg = new THREE.BufferGeometry();
+        fg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        firefliesMat = new THREE.PointsMaterial({ size: .06, color: 0xffd98a, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false });
+        fireflies = new THREE.Points(fg, firefliesMat);
+        scene.add(fireflies);
+
+        loadChickens();
+        return true;
+    }
+
+    function loadChickens() {
+        const spots = [ { x: -1.6, z: 1.4, s: 1.0 }, { x: .6, z: 2.2, s: .92 }, { x: 2.1, z: .4, s: .96 } ];
+        new GLTFLoader().load(
+            '{% static "models/chicken.glb" %}',
+            gltf => {
+                const t = gltf.scene;
+                t.traverse(n => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } });
+                spots.forEach((p, i) => {
+                    const c = t.clone();
+                    const k = p.s * .5;
+                    c.scale.setScalar(k);
+                    c.position.set(p.x, -1.4, p.z);
+                    c.rotation.y = Math.random() * Math.PI * 2;
+                    c.userData = { baseY: -1.4, phase: Math.random() * Math.PI * 2 };
+                    if (!REDUCED && gsap) c.scale.setScalar(.0001);
+                    scene.add(c); chickens.push(c);
+                    if (!REDUCED && gsap) gsap.to(c.scale, { x: k, y: k, z: k, duration: .9, delay: .3 + i * .12, ease: 'back.out(1.6)' });
+                });
+            },
+            undefined,
+            () => {}
+        );
+    }
+
+    function tick() {
+        if (!loopOn) return;
+        rafId = requestAnimationFrame(tick);
+        const now = performance.now();
+        const dt = Math.min((now - lastFrame) / 1000, .05);
+        lastFrame = now; elapsed += dt;
+        const t = elapsed;
+
+        mouse.x += (mouse.tx - mouse.x) * Math.min(1, dt * 3);
+        mouse.y += (mouse.ty - mouse.y) * Math.min(1, dt * 3);
+        camera.position.set(
+            base.x + Math.sin(t * .18) * .5 + mouse.x * 1.1,
+            base.y + mouse.y * .5,
+            base.z + Math.cos(t * .12) * .4
+        );
+        camera.lookAt(lookAt);
+
+        for (const c of chickens) {
+            const ud = c.userData;
+            c.position.y = ud.baseY + Math.sin(t * 2.1 + ud.phase) * .03;
+            c.rotation.x = Math.sin(t * 1.25 + ud.phase * 2) * .045;
+            c.rotation.y += Math.sin(t * .35 + ud.phase) * .0018;
+        }
+        fireflies.rotation.y = t * .02;
+        firefliesMat.opacity = .5 + Math.sin(t * .8) * .14;
+
+        renderer.render(scene, camera);
+    }
+    function renderOnce() { if (renderer) { camera.lookAt(lookAt); renderer.render(scene, camera); } }
+    function startLoop() { if (loopOn || REDUCED || !renderer) return; loopOn = true; lastFrame = performance.now(); tick(); }
+    function stopLoop() { loopOn = false; cancelAnimationFrame(rafId); }
+
+    if (buildScene()) {
+        if (REDUCED) { wrap.style.opacity = '1'; renderOnce(); }
+        else {
+            if (gsap) gsap.fromTo(wrap, { opacity: 0 }, { opacity: .9, duration: 1.6, delay: .15, ease: 'power2.out' });
+            else wrap.style.opacity = '.9';
+            startLoop();
+        }
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            if (REDUCED) renderOnce();
+        });
+        document.addEventListener('visibilitychange', () => { document.hidden ? stopLoop() : (REDUCED ? renderOnce() : startLoop()); });
+        if (FINE_POINTER && !REDUCED) {
+            window.addEventListener('mousemove', e => {
+                mouse.tx = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.ty = -((e.clientY / window.innerHeight) * 2 - 1);
+            }, { passive: true });
+        }
+    }
+
+    /* ---------------- Form interactions ---------------- */
+    const pwInput = document.getElementById('id_password');
+    const pwToggle = document.getElementById('pw-toggle');
+    const eyeOpen = document.getElementById('eye-open');
+    const eyeClosed = document.getElementById('eye-closed');
+    pwToggle.addEventListener('click', () => {
+        const show = pwInput.type === 'password';
+        pwInput.type = show ? 'text' : 'password';
+        eyeOpen.style.display = show ? 'none' : 'block';
+        eyeClosed.style.display = show ? 'block' : 'none';
+        pwToggle.setAttribute('aria-pressed', String(show));
+        pwToggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        pwInput.focus({ preventScroll: true });
+    });
+
+    const form = document.getElementById('login-form');
+    const submitBtn = document.getElementById('submit-btn');
+    form.addEventListener('submit', () => {
+        if (form.checkValidity()) { submitBtn.classList.add('is-loading'); submitBtn.setAttribute('aria-busy', 'true'); }
+    });
+
+    if (gsap && !REDUCED) {
+        const tl = gsap.timeline({ defaults: { ease: 'power3.out' }, delay: .1 });
+        tl.from('.auth-card', { opacity: 0, y: 34, scale: .98, duration: .9 })
+          .from('.auth-brand .brand', { opacity: 0, x: -18, duration: .6 }, '-=.5')
+          .from('.auth-showcase-title, .auth-showcase-sub, .ticks li', { opacity: 0, y: 18, stagger: .08, duration: .7 }, '-=.4')
+          .from('.auth-kicker, .auth-title, .auth-lead', { opacity: 0, y: 14, stagger: .06, duration: .55 }, '-=.7')
+          .from('.field', { opacity: 0, y: 16, stagger: .1, duration: .55 }, '-=.4')
+          .from('.btn-submit', { opacity: 0, y: 14, duration: .5 }, '-=.3')
+          .from('.auth-links', { opacity: 0, duration: .5 }, '-=.25')
+          .set('.auth-card, .brand, .auth-showcase-title, .auth-showcase-sub, .ticks li, .auth-kicker, .auth-title, .auth-lead, .field, .btn-submit, .auth-links', { clearProps: 'transform,opacity' })
+          .eventCallback('onComplete', () => {
+              gsap.set(submitBtn, { clearProps: 'transform,opacity' });
+              if (FINE_POINTER) {
+                  const bx = gsap.quickTo(submitBtn, 'x', { duration: .4, ease: 'power3' });
+                  const by = gsap.quickTo(submitBtn, 'y', { duration: .4, ease: 'power3' });
+                  submitBtn.addEventListener('mousemove', e => {
+                      const r = submitBtn.getBoundingClientRect();
+                      bx((e.clientX - r.left - r.width / 2) * .12);
+                      by((e.clientY - r.top - r.height / 2) * .2);
+                  }, { passive: true });
+                  submitBtn.addEventListener('mouseleave', () => gsap.to(submitBtn, { x: 0, y: 0, duration: .55, ease: 'elastic.out(1,.45)' }));
+              }
+          });
+
+        if (document.querySelector('.auth-error')) {
+            gsap.from('.auth-error', { keyframes: [{ x: -10 }, { x: 8 }, { x: -5 }, { x: 0 }], duration: .5, ease: 'power2.out', delay: .3 });
+        }
+    }
+    </script>
 </body>
 </html>

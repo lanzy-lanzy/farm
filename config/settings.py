@@ -24,6 +24,8 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_tailwind",
     "rest_framework",
+    "rest_framework.authtoken",
+    "api",
     "accounts",
     "dashboard",
     "flocks",
@@ -109,3 +111,20 @@ LOGOUT_REDIRECT_URL = "accounts:login"
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "tailwind"
 CRISPY_TEMPLATE_PACK = "tailwind"
+
+# ---- Django REST Framework (read-only monitoring API for the mobile app) ----
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 50,
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    ],
+}
