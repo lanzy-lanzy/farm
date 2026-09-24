@@ -52,6 +52,25 @@
         </div>
     </div>
 
+    <!-- Open Commitments -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <a href="{% url 'sales:sales_list' %}" class="block bg-gradient-to-br from-emerald-600 to-green-800 rounded-2xl shadow-lg shadow-green-900/20 p-6 no-underline hover:shadow-xl transition-shadow">
+            <p class="text-emerald-100 text-sm font-medium">Receivables (unpaid sales)</p>
+            <p class="text-3xl font-bold text-white mt-1">₱{{ receivables|floatformat:2 }}</p>
+            <p class="text-emerald-200/80 text-xs mt-2">Sum of amounts still owed across pending and partial sales</p>
+        </a>
+        <a href="{% url 'sales:order_request_queue' %}" class="block bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 no-underline hover:border-green-300 dark:hover:border-green-700 transition-colors">
+            <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Open order requests</p>
+            <p class="text-3xl font-bold text-gray-800 dark:text-white mt-1">{{ open_requests }}</p>
+            <p class="text-gray-400 dark:text-gray-500 text-xs mt-2">Awaiting review, quote, acceptance, or conversion to a sale</p>
+        </a>
+        <a href="{% url 'expenses:delivery_notice_queue' %}" class="block bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 no-underline hover:border-green-300 dark:hover:border-green-700 transition-colors">
+            <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Announced deliveries</p>
+            <p class="text-3xl font-bold text-gray-800 dark:text-white mt-1">{{ open_deliveries }}</p>
+            <p class="text-gray-400 dark:text-gray-500 text-xs mt-2">Supplier announcements and farm purchase orders awaiting receipt</p>
+        </a>
+    </div>
+
     <!-- Sales & Expenses -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">

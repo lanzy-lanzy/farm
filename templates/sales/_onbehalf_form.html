@@ -1,0 +1,9 @@
+{% extends "partials/modal.html" %}
+{% block modal_title %}New Request On Behalf of Buyer{% endblock %}
+{% block modal_content %}
+<form method="post" action="{% url 'sales:order_request_create_internal' %}"
+      hx-post="{% url 'sales:order_request_create_internal' %}" hx-target="#modal-container" hx-swap="innerHTML" hx-target-4*="#modal-container" class="space-y-4">
+    {% csrf_token %}
+    {% include "sales/_onbehalf_fields.html" %}
+</form>
+{% endblock %}

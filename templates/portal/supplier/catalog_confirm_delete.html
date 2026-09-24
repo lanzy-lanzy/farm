@@ -1,0 +1,17 @@
+{% extends "portal/base.html" %}
+{% block title %}Remove Item{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h1 class="text-lg font-bold text-gray-800 dark:text-white">Remove "{{ item.name }}" from your catalog?</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-4">Delivery notices already sent will still show this item's history.</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="flex gap-3">
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl font-medium">Remove</button>
+                <a href="{% url 'portal:supplier_catalog' %}" class="px-5 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300">Keep</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

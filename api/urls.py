@@ -35,6 +35,9 @@ router.register("notifications", NotificationViewSet, basename="notifications")
 
 urlpatterns = [
     path("auth/token/", obtain_auth_token, name="api-token"),
+    # /api/v2/ is the write-capable portal + internal surface; everything above stays
+    # read-only for the owner monitoring app and must not be mixed with v2 policies.
+    path("v2/", include("api.urls_v2")),
     path("summary/", SummaryView.as_view(), name="api-summary"),
     path("trends/", TrendsView.as_view(), name="api-trends"),
     # Explicit routes must precede the router so they are not captured by an <pk> detail match.

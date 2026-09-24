@@ -1,0 +1,12 @@
+{% if user.role == 'buyer' %}
+    <a href="{% url 'portal:buyer_home' %}" class="{% if request.resolver_match.url_name == 'buyer_home' %}active{% endif %}">Home</a>
+    <a href="{% url 'portal:buyer_requests' %}" class="{% if 'request' in request.resolver_match.url_name %}active{% endif %}">My Requests</a>
+    <a href="{% url 'portal:buyer_request_create' %}" class="{% if request.resolver_match.url_name == 'buyer_request_create' %}active{% endif %}">New Request</a>
+    <a href="{% url 'portal:buyer_profile' %}" class="{% if request.resolver_match.url_name == 'buyer_profile' %}active{% endif %}">Profile</a>
+{% elif user.role == 'supplier' %}
+    <a href="{% url 'portal:supplier_home' %}" class="{% if request.resolver_match.url_name == 'supplier_home' %}active{% endif %}">Home</a>
+    <a href="{% url 'portal:supplier_catalog' %}" class="{% if 'catalog' in request.resolver_match.url_name %}active{% endif %}">Catalog</a>
+    <a href="{% url 'portal:supplier_deliveries' %}" class="{% if 'deliver' in request.resolver_match.url_name %}active{% endif %}">Deliveries</a>
+    <a href="{% url 'portal:supplier_history' %}" class="{% if request.resolver_match.url_name == 'supplier_history' %}active{% endif %}">History</a>
+    <a href="{% url 'portal:supplier_profile' %}" class="{% if request.resolver_match.url_name == 'supplier_profile' %}active{% endif %}">Profile</a>
+{% endif %}

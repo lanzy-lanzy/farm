@@ -27,6 +27,13 @@ class ExpenseRecord(models.Model):
     category = models.ForeignKey(
         ExpenseCategory, on_delete=models.CASCADE, related_name="expenses"
     )
+    supplier = models.ForeignKey(
+        "suppliers.Supplier",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="expense_records",
+    )
     description = models.CharField(max_length=300)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     expense_date = models.DateField()

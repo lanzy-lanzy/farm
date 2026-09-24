@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from accounts.access import internal_only
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse
 
@@ -13,7 +13,7 @@ def is_htmx(request):
     return request.headers.get("HX-Request") == "true"
 
 
-@login_required
+@internal_only
 def inventory_list(request):
     items = InventoryItem.objects.filter(is_active=True)
     category_filter = request.GET.get("category", "")
@@ -27,7 +27,7 @@ def inventory_list(request):
     )
 
 
-@login_required
+@internal_only
 def inventory_detail(request, pk):
     item = get_object_or_404(InventoryItem, pk=pk)
     transactions = InventoryTransaction.objects.filter(item=item)[:20]
@@ -36,7 +36,7 @@ def inventory_detail(request, pk):
     )
 
 
-@login_required
+@internal_only
 def inventory_create(request):
     categories = InventoryCategory.objects.all()
     units = Unit.objects.all()
@@ -61,7 +61,7 @@ def inventory_create(request):
     return render(request, template, {"form": form, "categories": categories, "units": units, "suppliers": suppliers_list})
 
 
-@login_required
+@internal_only
 def inventory_update(request, pk):
     item = get_object_or_404(InventoryItem, pk=pk)
     categories = InventoryCategory.objects.all()
@@ -85,7 +85,7 @@ def inventory_update(request, pk):
     return render(request, template, {"form": form, "item": item, "categories": categories, "units": units, "suppliers": suppliers_list})
 
 
-@login_required
+@internal_only
 def inventory_delete(request, pk):
     item = get_object_or_404(InventoryItem, pk=pk)
     if request.method == "POST":
@@ -101,7 +101,7 @@ def inventory_delete(request, pk):
     return render(request, template, {"item": item})
 
 
-@login_required
+@internal_only
 def transaction_create(request, item_id=None):
     item = None
     if item_id:
@@ -123,13 +123,13 @@ def transaction_create(request, item_id=None):
     )
 
 
-@login_required
+@internal_only
 def category_list(request):
     categories = InventoryCategory.objects.all()
     return render(request, "inventory/category_list.html", {"categories": categories})
 
 
-@login_required
+@internal_only
 def category_create(request):
     if request.method == "POST":
         form = InventoryCategoryForm(request.POST)
@@ -142,13 +142,13 @@ def category_create(request):
     return render(request, "inventory/category_form.html", {"form": form})
 
 
-@login_required
+@internal_only
 def unit_list(request):
     units = Unit.objects.all()
     return render(request, "inventory/unit_list.html", {"units": units})
 
 
-@login_required
+@internal_only
 def unit_create(request):
     if request.method == "POST":
         form = UnitForm(request.POST)

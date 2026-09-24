@@ -1,0 +1,98 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }" :class="{ 'dark': darkMode }">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Portal{% endblock %} &middot; Tambulig Poultry</title>
+    <script src="{% static 'js/htmx.min.js' %}"></script>
+    <script defer src="{% static 'js/alpine.min.js' %}"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <style>
+        [x-cloak] { display: none !important; }
+        .pill { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: .72rem; font-weight: 600; }
+        .pill-submitted, .pill-announced { background: #dbeafe; color: #1e40af; }
+        .pill-under_review, .pill-pending { background: #fef3c7; color: #92400e; }
+        .pill-quoted { background: #e9d5ff; color: #6b21a8; }
+        .pill-accepted, .pill-received, .pill-approved { background: #dcfce7; color: #166534; }
+        .pill-converted { background: #bbf7d0; color: #14532d; }
+        .pill-rejected, .pill-cancelled { background: #fee2e2; color: #991b1b; }
+        .pill-inactive { background: #f3f4f6; color: #4b5563; }
+        .pill-stale { background: #ffedd5; color: #9a3412; }
+        .pill-portal { background: #ccfbf1; color: #115e59; }
+        .pill-staff { background: #e0e7ff; color: #3730a3; }
+        .pill-farm { background: #d1fae5; color: #065f46; }
+        .pill-supplier { background: #fef9c3; color: #854d0e; }
+        .stepper { display: flex; gap: 0; align-items: center; font-size: .72rem; font-weight: 600; }
+        .stepper span { padding: 4px 12px; background: #e5e7eb; color: #6b7280; position: relative; }
+        .stepper span:first-child { border-radius: 8px 0 0 8px; }
+        .stepper span:last-child { border-radius: 0 8px 8px 0; }
+        .stepper span.done { background: #a7f3d0; color: #065f46; }
+        .stepper span.current { background: #059669; color: #fff; }
+        .stepper span.dead { background: #fecaca; color: #7f1d1d; }
+        .portal-nav a { padding: .45rem .9rem; border-radius: 10px; font-size: .88rem; font-weight: 500; color: #4b5563; text-decoration: none; white-space: nowrap; flex-shrink: 0; }
+        .portal-nav a:hover { background: #ecfdf5; color: #047857; }
+        .portal-nav a.active { background: #d1fae5; color: #065f46; }
+        .form-input {
+            width: 100%; padding: .625rem 1rem; border: 1px solid #d1d5db; border-radius: .75rem;
+            font-size: .9rem; color: #1f2937; background: #fff; transition: border-color .2s, box-shadow .2s;
+        }
+        .form-input:focus { outline: none; border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, .25); }
+        .dark .form-input { background: #374151; border-color: #4b5563; color: #f9fafb; }
+    </style>
+</head>
+<body class="bg-green-50 dark:bg-gray-900 min-h-screen">
+    <div x-data="{ menuOpen: false }">
+        <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-30">
+            <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-9 h-9 rounded-xl grid place-items-center text-emerald-600 bg-emerald-100 dark:bg-emerald-900/40 font-bold">T</span>
+                    <div class="leading-tight">
+                        <div class="font-bold text-gray-800 dark:text-white" style="font-family:'Sora',sans-serif;">Tambulig Poultry</div>
+                        <div class="text-[.62rem] uppercase tracking-widest text-emerald-700 font-semibold">{% if user.role == 'buyer' %}Buyer Portal{% else %}Supplier Portal{% endif %}</div>
+                    </div>
+                </div>
+                <nav class="portal-nav hidden md:flex items-center gap-1">{% include "portal/_nav_links.html" %}</nav>
+                <div class="flex items-center gap-2">
+                    <a href="{% url 'notifications:notification_list' %}" class="relative p-2 text-gray-500 hover:text-emerald-700" title="Notifications">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                        {% if unread_notifications %}
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">{{ unread_notifications }}</span>
+                        {% endif %}
+                    </a>
+                    <button @click="menuOpen = !menuOpen" class="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 rounded-full pl-3 pr-2 py-1.5 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                        <span class="font-medium">{{ user.first_name|default:user.username }}</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div x-show="menuOpen" @click.away="menuOpen = false" x-cloak x-transition class="absolute right-4 top-14 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-1 z-50">
+                        <a href="{% url 'portal:password_change' %}" class="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700">Change Password</a>
+                        <form method="post" action="{% url 'accounts:logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-gray-700">Logout</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <nav class="portal-nav md:hidden flex items-center gap-1 px-4 pt-3 overflow-x-auto">{% include "portal/_nav_links.html" %}</nav>
+        <main class="max-w-5xl mx-auto p-4">
+            {% if messages %}
+            <div class="my-4 space-y-2">
+                {% for message in messages %}
+                <div class="flex items-center space-x-2 p-4 rounded-xl shadow-sm {% if message.tags == 'success' %}bg-green-100 text-green-800 border-l-4 border-green-500{% elif message.tags == 'error' %}bg-red-100 text-red-800 border-l-4 border-red-500{% else %}bg-blue-100 text-blue-800 border-l-4 border-blue-500{% endif %}">
+                    <span class="flex-1">{{ message }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+        <footer class="max-w-5xl mx-auto px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            &copy; {% now "Y" %} Tambulig Poultry Farm &mdash; Zamboanga del Sur
+        </footer>
+    </div>
+</body>
+</html>

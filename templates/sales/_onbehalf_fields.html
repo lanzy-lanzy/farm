@@ -1,0 +1,46 @@
+{% if form.non_field_errors %}
+<div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700/60 rounded-xl p-3 text-sm text-red-700 dark:text-red-300">
+    {% for error in form.non_field_errors %}{{ error }}<br>{% endfor %}
+</div>
+{% endif %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="md:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Buyer</label>
+        {{ form.buyer }}
+        {% for error in form.buyer.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product Type</label>
+        {{ form.product_type }}
+        {% for error in form.product_type.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product Name</label>
+        {{ form.product_name }}
+        {% for error in form.product_name.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
+        {{ form.quantity }}
+        {% for error in form.quantity.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Agreed Unit Price (₱, optional)</label>
+        {{ form.requested_unit_price }}
+        {% for error in form.requested_unit_price.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Needed By</label>
+        {{ form.requested_date }}
+        {% for error in form.requested_date.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Note (optional)</label>
+        {{ form.staff_note }}
+    </div>
+</div>
+<p class="text-xs text-gray-500 dark:text-gray-400">On-behalf orders are treated as accepted — convert them to a sale when delivered.</p>
+<div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+    <button type="button" onclick="this.closest('#modal-overlay') ? this.closest('#modal-overlay').remove() : history.back()" class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors cursor-pointer">Cancel</button>
+    <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-xl shadow-lg shadow-green-900/30 hover:shadow-xl transition-all duration-200 cursor-pointer">Save Request</button>
+</div>

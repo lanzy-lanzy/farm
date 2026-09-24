@@ -7,7 +7,12 @@ class User(AbstractUser):
         ("admin", "Administrator"),
         ("owner", "Farm Owner"),
         ("staff", "Staff/Caretaker"),
+        ("buyer", "Buyer"),
+        ("supplier", "Supplier"),
     ]
+
+    INTERNAL_ROLES = ("admin", "owner", "staff")
+    EXTERNAL_ROLES = ("buyer", "supplier")
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="staff")
     phone = models.CharField(max_length=20, blank=True, null=True)
@@ -31,3 +36,9 @@ class User(AbstractUser):
 
     def is_staff_member(self):
         return self.role == "staff"
+
+    def is_external(self):
+        return self.role in self.EXTERNAL_ROLES
+
+    def is_internal(self):
+        return self.role in self.INTERNAL_ROLES or self.is_superuser

@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from accounts.access import internal_only
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse
 
@@ -13,13 +13,13 @@ def is_htmx(request):
     return request.headers.get("HX-Request") == "true"
 
 
-@login_required
+@internal_only
 def mortality_list(request):
     records = MortalityRecord.objects.all()
     return render(request, "mortality/mortality_list.html", {"records": records})
 
 
-@login_required
+@internal_only
 def mortality_create(request):
     flocks = FlockBatch.objects.filter(status="active")
     if request.method == "POST":
@@ -41,7 +41,7 @@ def mortality_create(request):
     return render(request, template, {"form": form, "flocks": flocks})
 
 
-@login_required
+@internal_only
 def mortality_update(request, pk):
     record = get_object_or_404(MortalityRecord, pk=pk)
     flocks = FlockBatch.objects.filter(status="active")
@@ -62,7 +62,7 @@ def mortality_update(request, pk):
     return render(request, template, {"form": form, "record": record, "flocks": flocks})
 
 
-@login_required
+@internal_only
 def mortality_delete(request, pk):
     record = get_object_or_404(MortalityRecord, pk=pk)
     if request.method == "POST":

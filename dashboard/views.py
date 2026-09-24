@@ -1,9 +1,10 @@
-from django.contrib.auth.decorators import login_required
+from accounts.access import internal_only
 from django.db import models
-from django.db.models import Sum, Count, Q
+from django.db.models import DecimalField, ExpressionWrapper, F, Sum, Count, Q
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
+from buyers.models import OrderRequest
 from flocks.models import FlockBatch
 from inventory.models import InventoryItem
 from eggs.models import EggProduction
@@ -11,11 +12,12 @@ from mortality.models import MortalityRecord
 from sales.models import SalesRecord
 from expenses.models import ExpenseRecord
 from notifications.models import Notification, ActivityLog
+from suppliers.models import DeliveryNotice
 from .forms import FarmProfileForm
 from .models import FarmProfile
 
 
-@login_required
+@internal_only
 def index(request):
     today = timezone.now().date()
     week_ago = today - timezone.timedelta(days=7)
@@ -69,6 +71,21 @@ def index(request):
         expense_date__gte=month_ago
     ).aggregate(total=Sum("amount"))["total"] or 0
 
+    receivables = SalesRecord.objects.exclude(payment_status="paid").aggregate(
+        total=Sum(
+            ExpressionWrapper(
+                F("total_amount") - F("amount_paid"),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            )
+        )
+    )["total"] or 0
+
+    open_requests = OrderRequest.objects.filter(
+        status__in=["submitted", "under_review", "quoted", "accepted"]
+    ).count()
+
+    open_deliveries = DeliveryNotice.objects.filter(status="announced").count()
+
     recent_activities = ActivityLog.objects.all()[:10]
     recent_notifications = Notification.objects.filter(
         user=request.user, is_read=False
@@ -101,6 +118,9 @@ def index(request):
         "month_sales": month_sales,
         "week_expenses": week_expenses,
         "month_expenses": month_expenses,
+        "receivables": receivables,
+        "open_requests": open_requests,
+        "open_deliveries": open_deliveries,
         "recent_activities": recent_activities,
         "recent_notifications": recent_notifications,
         "egg_chart_data": egg_chart_data,
@@ -109,7 +129,7 @@ def index(request):
     return render(request, "dashboard/index.html", context)
 
 
-@login_required
+@internal_only
 def farm_profile(request):
     profile, _ = FarmProfile.objects.get_or_create(user=request.user)
     if request.method == "POST":

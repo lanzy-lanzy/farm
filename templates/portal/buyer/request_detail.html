@@ -1,0 +1,55 @@
+{% extends "portal/base.html" %}
+{% block title %}{{ order.request_number }}{% endblock %}
+{% block content %}
+<div class="space-y-4">
+    <div class="flex items-center justify-between">
+        <h1 class="text-xl font-bold text-gray-800 dark:text-white">{{ order.request_number }}</h1>
+        <a href="{% url 'portal:buyer_requests' %}" class="text-sm text-emerald-700 hover:underline">All requests</a>
+    </div>
+
+    <div class="stepper flex-wrap">
+        {% for label, state in order.timeline %}
+        <span class="{% if state != 'pending' %}{{ state }}{% endif %}">{{ label }}</span>
+        {% endfor %}
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <dl class="grid grid-cols-2 gap-y-3 text-sm">
+            <dt class="text-gray-500">Product</dt><dd class="text-gray-800 dark:text-white font-medium">{{ order.product_name }} ({{ order.get_product_type_display }})</dd>
+            <dt class="text-gray-500">Quantity</dt><dd class="text-gray-800 dark:text-white font-medium">{{ order.quantity }}</dd>
+            <dt class="text-gray-500">Your target price</dt><dd class="text-gray-800 dark:text-white">{% if order.requested_unit_price %}₱{{ order.requested_unit_price|floatformat:2 }}{% else %}—{% endif %}</dd>
+            <dt class="text-gray-500">Farm quote</dt><dd class="text-gray-800 dark:text-white font-semibold">{% if order.quoted_unit_price %}₱{{ order.quoted_unit_price|floatformat:2 }}{% else %}Awaiting quote{% endif %}</dd>
+            <dt class="text-gray-500">Needed by</dt><dd class="text-gray-800 dark:text-white">{{ order.requested_date }}</dd>
+            <dt class="text-gray-500">Status</dt><dd><span class="pill pill-{{ order.status }}">{{ order.get_status_display }}</span></dd>
+            {% if order.staff_note %}<dt class="text-gray-500">Note from farm</dt><dd class="text-gray-800 dark:text-white">{{ order.staff_note }}</dd>{% endif %}
+            {% if order.sales_record %}<dt class="text-gray-500">Sale</dt><dd class="text-gray-800 dark:text-white">₱{{ order.sales_record.total_amount|floatformat:2 }} on {{ order.sales_record.date_sold }} ({{ order.sales_record.get_payment_status_display }})</dd>{% endif %}
+        </dl>
+
+        {% if order.status == 'quoted' and order.is_stale %}
+        <div class="mt-4 bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700/60 rounded-xl px-4 py-3 text-sm text-orange-800 dark:text-orange-200">
+            This quote has expired. Contact the farm to request a fresh quote.
+        </div>
+        {% endif %}
+
+        {% if order.can_accept %}
+        <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3">
+            <form method="post" action="{% url 'portal:buyer_request_respond' order.pk %}">
+                {% csrf_token %}
+                <button type="submit" name="action" value="accept" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2 rounded-xl font-medium transition-colors">Accept Quote</button>
+            </form>
+            <form method="post" action="{% url 'portal:buyer_request_respond' order.pk %}">
+                {% csrf_token %}
+                <button type="submit" name="action" value="decline" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-xl font-medium transition-colors">Decline</button>
+            </form>
+        </div>
+        {% elif order.is_cancellable %}
+        <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <form method="post" action="{% url 'portal:buyer_request_cancel' order.pk %}" onsubmit="return confirm('Cancel this request?');">
+                {% csrf_token %}
+                <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">Cancel this request</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

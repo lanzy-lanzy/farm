@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from accounts.access import internal_only
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse
 
@@ -14,13 +14,13 @@ def is_htmx(request):
     return request.headers.get("HX-Request") == "true"
 
 
-@login_required
+@internal_only
 def feeding_list(request):
     records = FeedingRecord.objects.all()
     return render(request, "feeding/feeding_list.html", {"records": records})
 
 
-@login_required
+@internal_only
 def feeding_create(request):
     flocks = FlockBatch.objects.filter(status="active")
     feed_items = InventoryItem.objects.filter(category__name__iexact="Feeds", is_active=True)
@@ -43,7 +43,7 @@ def feeding_create(request):
     return render(request, template, {"form": form, "flocks": flocks, "feed_items": feed_items})
 
 
-@login_required
+@internal_only
 def feeding_update(request, pk):
     record = get_object_or_404(FeedingRecord, pk=pk)
     flocks = FlockBatch.objects.filter(status="active")
@@ -65,7 +65,7 @@ def feeding_update(request, pk):
     return render(request, template, {"form": form, "record": record, "flocks": flocks, "feed_items": feed_items})
 
 
-@login_required
+@internal_only
 def feeding_delete(request, pk):
     record = get_object_or_404(FeedingRecord, pk=pk)
     if request.method == "POST":
@@ -81,7 +81,7 @@ def feeding_delete(request, pk):
     return render(request, template, {"record": record})
 
 
-@login_required
+@internal_only
 def feeding_history(request, flock_id):
     records = FeedingRecord.objects.filter(flock_id=flock_id)
     return render(request, "feeding/feeding_history.html", {"records": records})

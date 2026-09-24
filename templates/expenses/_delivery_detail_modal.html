@@ -1,0 +1,24 @@
+{% extends "partials/modal.html" %}
+{% block modal_title %}Delivery Details{% endblock %}
+{% block modal_content %}
+<div class="mb-5 flex flex-wrap items-center gap-2">
+    <span class="font-semibold text-gray-800 dark:text-white">{{ notice.supplier.name }}</span>
+    <span class="pill pill-{{ notice.origin }}">{{ notice.get_origin_display }}</span>
+    <span class="pill pill-{{ notice.status }}">{{ notice.get_status_display }}</span>
+</div>
+<dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+    <dt class="text-gray-500 dark:text-gray-400">Description</dt><dd class="font-medium text-gray-800 dark:text-white">{{ notice.description }}</dd>
+    <dt class="text-gray-500 dark:text-gray-400">Quantity</dt><dd class="text-gray-800 dark:text-white">{{ notice.quantity }}</dd>
+    <dt class="text-gray-500 dark:text-gray-400">Catalog item</dt><dd class="text-gray-800 dark:text-white">{% if notice.supply_item %}{{ notice.supply_item.name }}{% if notice.supply_item.unit_price %} @ ₱{{ notice.supply_item.unit_price|floatformat:2 }}{% endif %}{% else %}Ad-hoc{% endif %}</dd>
+    <dt class="text-gray-500 dark:text-gray-400">Expected</dt><dd class="text-gray-800 dark:text-white">{{ notice.expected_date }}</dd>
+    <dt class="text-gray-500 dark:text-gray-400">Payment terms</dt><dd class="text-gray-800 dark:text-white">{{ notice.supplier.get_payment_terms_display }}</dd>
+    {% if notice.supplier_note %}<dt class="text-gray-500 dark:text-gray-400">Supplier note</dt><dd class="text-gray-800 dark:text-white italic">“{{ notice.supplier_note }}”</dd>{% endif %}
+    {% if notice.created_by %}<dt class="text-gray-500 dark:text-gray-400">Ordered by</dt><dd class="text-gray-800 dark:text-white">{{ notice.created_by.get_full_name|default:notice.created_by.username }}</dd>{% endif %}
+    {% if notice.received_by %}<dt class="text-gray-500 dark:text-gray-400">Received by</dt><dd class="text-gray-800 dark:text-white">{{ notice.received_by.get_full_name|default:notice.received_by.username }}</dd>{% endif %}
+    {% if notice.expense_record %}<dt class="text-gray-500 dark:text-gray-400">Linked expense</dt><dd class="text-gray-800 dark:text-white">₱{{ notice.expense_record.amount|floatformat:2 }} on {{ notice.expense_record.expense_date }} ({{ notice.expense_record.category }})</dd>{% endif %}
+</dl>
+<div class="flex justify-end pt-5 mt-5 border-t border-gray-100 dark:border-gray-700">
+    <button type="button" onclick="this.closest('#modal-overlay').remove()"
+            class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl font-medium cursor-pointer transition-colors">Close</button>
+</div>
+{% endblock %}

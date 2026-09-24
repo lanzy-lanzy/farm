@@ -4,6 +4,7 @@
 <form hx-post="{% if record %}{% url 'sales:sales_update' record.pk %}{% else %}{% url 'sales:sales_create' %}{% endif %}" 
       hx-target="#modal-container" hx-swap="innerHTML" hx-target-4*="#modal-container" class="space-y-4">
     {% csrf_token %}
+    {% if order_request_id %}<input type="hidden" name="order_request" value="{{ order_request_id }}">{% endif %}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product Type</label>

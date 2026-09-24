@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Order from Supplier{% endblock %}
+{% block content %}
+<div class="max-w-2xl space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Order from Supplier</h1>
+        <a href="{% url 'expenses:delivery_notice_queue' %}" class="text-sm text-emerald-700 dark:text-emerald-400 hover:underline">Back to deliveries</a>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <form method="post" action="{% url 'expenses:delivery_notice_create' %}" class="space-y-4">
+            {% csrf_token %}
+            {% include "expenses/_farm_order_fields.html" %}
+        </form>
+    </div>
+</div>
+{% endblock %}

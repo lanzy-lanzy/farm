@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}New Request On Behalf{% endblock %}
+{% block content %}
+<div class="max-w-2xl space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">New Request On Behalf of Buyer</h1>
+        <a href="{% url 'sales:order_request_queue' %}" class="text-sm text-emerald-700 dark:text-emerald-400 hover:underline">Back to queue</a>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <form method="post" action="{% url 'sales:order_request_create_internal' %}" class="space-y-4">
+            {% csrf_token %}
+            {% include "sales/_onbehalf_fields.html" %}
+        </form>
+    </div>
+</div>
+{% endblock %}

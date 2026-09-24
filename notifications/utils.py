@@ -18,8 +18,32 @@ def create_notification(user, notification_type, title, message, link=None):
     return notification
 
 
+def notify_team(notification_type, title, message, link=None):
+    """Notify all internal (farm) users about an event from the buyer/supplier portal."""
+    users = User.objects.filter(is_active=True, role__in=["admin", "owner", "staff"])
+    for user in users:
+        create_notification(
+            user=user,
+            notification_type=notification_type,
+            title=title,
+            message=message,
+            link=link,
+        )
+
+
+def notify_user(user, notification_type, title, message, link=None):
+    if user is not None and user.is_active:
+        create_notification(
+            user=user,
+            notification_type=notification_type,
+            title=title,
+            message=message,
+            link=link,
+        )
+
+
 def notify_low_stock(item, request=None):
-    users = User.objects.filter(is_active=True)
+    users = User.objects.filter(is_active=True, role__in=["admin", "owner", "staff"])
     for user in users:
         create_notification(
             user=user,
@@ -31,7 +55,7 @@ def notify_low_stock(item, request=None):
 
 
 def notify_expired(item, request=None):
-    users = User.objects.filter(is_active=True)
+    users = User.objects.filter(is_active=True, role__in=["admin", "owner", "staff"])
     for user in users:
         create_notification(
             user=user,
@@ -43,7 +67,7 @@ def notify_expired(item, request=None):
 
 
 def notify_vaccination_due(record, request=None):
-    users = User.objects.filter(is_active=True)
+    users = User.objects.filter(is_active=True, role__in=["admin", "owner", "staff"])
     for user in users:
         create_notification(
             user=user,

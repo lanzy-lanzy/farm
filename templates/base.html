@@ -81,6 +81,32 @@
             .side-link, .side-link svg { transition: none; }
             .side-link:hover { transform: none; }
         }
+
+        /* ---------- Status pills (custom; styles.css is precompiled Tailwind) ---------- */
+        .pill { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: .72rem; font-weight: 600; }
+        .pill-submitted, .pill-announced { background: #dbeafe; color: #1e40af; }
+        .pill-under_review, .pill-pending { background: #fef3c7; color: #92400e; }
+        .pill-quoted { background: #e9d5ff; color: #6b21a8; }
+        .pill-accepted, .pill-received, .pill-approved, .pill-paid { background: #dcfce7; color: #166534; }
+        .pill-converted { background: #bbf7d0; color: #14532d; }
+        .pill-rejected, .pill-cancelled, .pill-partial { background: #fee2e2; color: #991b1b; }
+        .pill-inactive { background: #f3f4f6; color: #4b5563; }
+        .pill-stale { background: #ffedd5; color: #9a3412; }
+        .pill-portal { background: #ccfbf1; color: #115e59; }
+        .pill-staff { background: #e0e7ff; color: #3730a3; }
+        .pill-farm { background: #d1fae5; color: #065f46; }
+        .pill-supplier { background: #fef9c3; color: #854d0e; }
+        .nav-badge { margin-left: auto; background: #ef4444; color: #fff; font-size: .65rem; font-weight: 700; border-radius: 999px; min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; }
+
+        /* ---------- Form widgets (classes come from Django form widgets; styles.css is precompiled) ---------- */
+        .form-input {
+            width: 100%; padding: .625rem 1rem; border: 1px solid #d1d5db; border-radius: .75rem;
+            font-size: .9rem; color: #1f2937; background: #fff; transition: border-color .2s, box-shadow .2s;
+        }
+        .form-input:focus { outline: none; border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, .25); }
+        .dark .form-input { background: #374151; border-color: #4b5563; color: #f9fafb; }
+        .form-input::placeholder { color: #9ca3af; }
+
     </style>
 </head>
 <body class="bg-green-50 dark:bg-gray-900 min-h-screen" hx-ext="response-targets">
@@ -101,68 +127,94 @@
                 </span>
             </div>
             <nav class="side-nav">
-                {% with url=request.path %}
+                {% with ns=request.resolver_match.namespace act=request.resolver_match.url_name %}
                 <div class="side-label">Overview</div>
-                <a href="{% url 'dashboard:index' %}" class="side-link {% if url == '/dashboard/' %}is-active{% endif %}">
+                <a href="{% url 'dashboard:index' %}" class="side-link {% if ns == 'dashboard' %}is-active{% endif %}">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                     <span>Dashboard</span>
                 </a>
                 <div class="side-label">Farm Operations</div>
-                <a href="{% url 'flocks:flock_list' %}" class="side-link {% if '/flocks/' in url %}is-active{% endif %}">
+                <a href="{% url 'flocks:flock_list' %}" class="side-link {% if ns == 'flocks' %}is-active{% endif %}">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                     <span>Flocks</span>
                 </a>
-                <a href="{% url 'inventory:inventory_list' %}" class="side-link {% if '/inventory/' in url %}is-active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-                    <span>Inventory</span>
-                </a>
-                <a href="{% url 'feeding:feeding_list' %}" class="side-link {% if '/feeding/' in url %}is-active{% endif %}">
+                <a href="{% url 'feeding:feeding_list' %}" class="side-link {% if ns == 'feeding' %}is-active{% endif %}">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                     <span>Feeding</span>
                 </a>
-                <a href="{% url 'medicine:medicine_list' %}" class="side-link {% if '/medicine/' in url %}is-active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-                    <span>Medicine</span>
-                </a>
-                <a href="{% url 'eggs:egg_list' %}" class="side-link {% if '/eggs/' in url %}is-active{% endif %}">
+                <a href="{% url 'eggs:egg_list' %}" class="side-link {% if ns == 'eggs' %}is-active{% endif %}">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                     <span>Eggs</span>
                 </a>
-                <a href="{% url 'mortality:mortality_list' %}" class="side-link {% if '/mortality/' in url %}is-active{% endif %}">
+                <a href="{% url 'mortality:mortality_list' %}" class="side-link {% if ns == 'mortality' %}is-active{% endif %}">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                     <span>Mortality</span>
                 </a>
-                <a href="{% url 'sales:sales_list' %}" class="side-link {% if '/sales/' in url %}is-active{% endif %}">
+                <a href="{% url 'medicine:medicine_list' %}" class="side-link {% if ns == 'medicine' %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    <span>Medicine</span>
+                </a>
+                <div class="side-label">Sales &amp; Orders</div>
+                <a href="{% url 'sales:sales_list' %}" class="side-link {% if ns == 'sales' and 'request' not in act %}is-active{% endif %}">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <span>Sales</span>
                 </a>
-                <a href="{% url 'expenses:expense_list' %}" class="side-link {% if '/expenses/' in url %}is-active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"></path></svg>
-                    <span>Expenses</span>
+                <a href="{% url 'sales:order_request_queue' %}" class="side-link {% if ns == 'sales' and 'request' in act %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    <span>Order Requests</span>{% if open_order_requests %}<span class="nav-badge">{{ open_order_requests }}</span>{% endif %}
                 </a>
-                <div class="side-label">Records</div>
-                <a href="{% url 'suppliers:supplier_list' %}" class="side-link {% if '/suppliers/' in url %}is-active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    <span>Suppliers</span>
-                </a>
-                <a href="{% url 'buyers:buyer_list' %}" class="side-link {% if '/buyers/' in url %}is-active{% endif %}">
+                <a href="{% url 'buyers:buyer_list' %}" class="side-link {% if ns == 'buyers' %}is-active{% endif %}">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                     <span>Buyers</span>
                 </a>
-                <a href="{% url 'reports:reports_index' %}" class="side-link {% if '/reports/' in url %}is-active{% endif %}">
+                <div class="side-label">Procurement &amp; Inventory</div>
+                <a href="{% url 'inventory:inventory_list' %}" class="side-link {% if ns == 'inventory' %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    <span>Inventory</span>
+                </a>
+                <a href="{% url 'expenses:expense_list' %}" class="side-link {% if ns == 'expenses' and 'delivery' not in act %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"></path></svg>
+                    <span>Expenses</span>
+                </a>
+                <a href="{% url 'expenses:delivery_notice_queue' %}" class="side-link {% if ns == 'expenses' and 'delivery' in act %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.535a1 1 0 01.949.684L19 14h0a1 1 0 01-1 1h-5z"></path></svg>
+                    <span>Deliveries</span>{% if open_delivery_notices %}<span class="nav-badge">{{ open_delivery_notices }}</span>{% endif %}
+                </a>
+                <a href="{% url 'suppliers:supplier_list' %}" class="side-link {% if ns == 'suppliers' %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <span>Suppliers</span>
+                </a>
+                <div class="side-label">Partners &amp; Reports</div>
+                <a href="{% url 'reports:reports_index' %}" class="side-link {% if ns == 'reports' %}is-active{% endif %}">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     <span>Reports</span>
                 </a>
                 {% if user.is_admin_user or user.is_owner %}
+                <a href="{% url 'accounts:verification_queue' %}" class="side-link {% if 'verif' in act %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-1.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    <span>Verifications</span>{% if pending_verifications %}<span class="nav-badge">{{ pending_verifications }}</span>{% endif %}
+                </a>
+                {% endif %}
+                {% if user.is_admin_user or user.is_owner %}
                 <div class="side-label">Administration</div>
-                <a href="{% url 'accounts:user_list' %}" class="side-link {% if '/users/' in url %}is-active{% endif %}">
+                <a href="{% url 'accounts:user_list' %}" class="side-link {% if 'user' in act %}is-active{% endif %}">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path></svg>
                     <span>Users</span>
                 </a>
-                <a href="{% url 'settings_app:settings' %}" class="side-link {% if '/settings/' in url %}is-active{% endif %}">
+                <a href="{% url 'settings_app:settings' %}" class="side-link {% if ns == 'settings_app' and act != 'lan_sharing' %}is-active{% endif %}">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     <span>Settings</span>
                 </a>
+                {% endif %}
+                {% if user.is_staff or user.role == 'admin' %}
+                {% url 'settings_app:lan_sharing' as lan_sharing_url %}
+                {% if lan_sharing_url %}
+                <div class="side-label">Developer &amp; Network</div>
+                <a href="{{ lan_sharing_url }}" class="side-link {% if act == 'lan_sharing' %}is-active{% endif %}">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 11.792l3.017 3.017m0-6.034l-3.017 3.017m8.222-3.017a5.875 5.875 0 11-11.75 0 5.875 5.875 0 0111.75 0zM12 2v1.5m0 17V22M4.22 4.22l1.06 1.06m13.44 13.44l1.06 1.06M2 12h1.5m17 0H22M4.22 19.78l1.06-1.06M17.72 6.28l1.06-1.06"></path></svg>
+                    <span>LAN Sharing</span>
+                </a>
+                {% endif %}
                 {% endif %}
                 {% endwith %}
             </nav>
@@ -178,7 +230,7 @@
         </aside>
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col min-h-screen">
+        <div class="flex-1 flex flex-col min-h-screen min-w-0">
             <!-- Top Bar -->
             <header class="bg-white dark:bg-gray-800 shadow-sm h-16 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
                 <div class="flex items-center space-x-3">

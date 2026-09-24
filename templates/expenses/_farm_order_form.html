@@ -1,0 +1,9 @@
+{% extends "partials/modal.html" %}
+{% block modal_title %}Order from Supplier{% endblock %}
+{% block modal_content %}
+<form method="post" action="{% url 'expenses:delivery_notice_create' %}"
+      hx-post="{% url 'expenses:delivery_notice_create' %}" hx-target="#modal-container" hx-swap="innerHTML" hx-target-4*="#modal-container" class="space-y-4">
+    {% csrf_token %}
+    {% include "expenses/_farm_order_fields.html" %}
+</form>
+{% endblock %}

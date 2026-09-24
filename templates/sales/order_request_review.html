@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Review {{ order.request_number }}{% endblock %}
+{% block content %}
+<div class="max-w-2xl space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">{{ order.request_number }} <span class="pill pill-{{ order.status }}">{{ order.get_status_display }}</span></h1>
+        <a href="{% url 'sales:order_request_queue' %}" class="text-sm text-emerald-700 dark:text-emerald-400 hover:underline">Back to queue</a>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <dl class="grid grid-cols-2 gap-y-3 text-sm mb-6">
+            <dt class="text-gray-500">Buyer</dt><dd class="font-medium text-gray-800 dark:text-white">{{ order.buyer.name }} <span class="pill pill-{{ order.source }}">{{ order.get_source_display }}</span></dd>
+            <dt class="text-gray-500">Contact</dt><dd class="text-gray-800 dark:text-white">{{ order.buyer.phone|default:"-" }}</dd>
+            <dt class="text-gray-500">Product</dt><dd class="text-gray-800 dark:text-white">{{ order.product_name }} ({{ order.get_product_type_display }})</dd>
+            <dt class="text-gray-500">Quantity</dt><dd class="text-gray-800 dark:text-white">{{ order.quantity }}</dd>
+            <dt class="text-gray-500">Buyer target price</dt><dd class="text-gray-800 dark:text-white">{% if order.requested_unit_price %}₱{{ order.requested_unit_price|floatformat:2 }}{% else %}Not specified{% endif %}</dd>
+            <dt class="text-gray-500">Needed by</dt><dd class="text-gray-800 dark:text-white">{{ order.requested_date }}</dd>
+            {% if order.quoted_unit_price %}<dt class="text-gray-500">Quoted price</dt><dd class="text-gray-800 dark:text-white">₱{{ order.quoted_unit_price|floatformat:2 }} per unit</dd>{% endif %}
+            {% if order.staff_note %}<dt class="text-gray-500">Note to buyer</dt><dd class="text-gray-800 dark:text-white">{{ order.staff_note }}</dd>{% endif %}
+            {% if order.sales_record %}<dt class="text-gray-500">Linked sale</dt><dd class="text-gray-800 dark:text-white">₱{{ order.sales_record.total_amount|floatformat:2 }} on {{ order.sales_record.date_sold }}</dd>{% endif %}
+        </dl>
+
+        {% if order.status == 'submitted' %}
+        <form method="post" class="mb-4">
+            {% csrf_token %}
+            <button type="submit" name="action" value="start_review" class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer">Start Review</button>
+        </form>
+        {% endif %}
+
+        {% if order.status == 'under_review' %}
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
+            <h2 class="font-semibold text-gray-800 dark:text-white mb-3">Send a quote or decline</h2>
+            <div class="flex flex-wrap gap-3">
+                <button hx-get="{% url 'sales:order_request_review' order.pk %}?form=quote" hx-target="#modal-container" hx-swap="innerHTML"
+                        class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Send Quote</button>
+                <button hx-get="{% url 'sales:order_request_review' order.pk %}?form=reject" hx-target="#modal-container" hx-swap="innerHTML"
+                        class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl font-medium cursor-pointer transition-colors">Decline Request</button>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if order.status == 'quoted' and order.is_stale %}
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
+            <div class="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700/60 rounded-xl p-4 mb-4 text-sm text-orange-800 dark:text-orange-200">
+                This quote has expired (older than {{ stale_quote_days|default:7 }} days) and can no longer be accepted by the buyer. Send a fresh quote to restart the clock.
+            </div>
+            <h2 class="font-semibold text-gray-800 dark:text-white mb-3">Re-quote</h2>
+            <div class="flex flex-wrap gap-3">
+                <button hx-get="{% url 'sales:order_request_review' order.pk %}?form=requote" hx-target="#modal-container" hx-swap="innerHTML"
+                        class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Send New Quote</button>
+                <button hx-get="{% url 'sales:order_request_review' order.pk %}?form=reject" hx-target="#modal-container" hx-swap="innerHTML"
+                        class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl font-medium cursor-pointer transition-colors">Decline Request</button>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if order.status == 'accepted' %}
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">This order is confirmed. Convert it to a sale when the goods are handed over.</p>
+            <a href="{% url 'sales:order_request_convert' order.pk %}" class="inline-block bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-green-900/30 no-underline transition-colors">Convert to Sale</a>
+        </div>
+        {% endif %}
+
+        {% if order.status == 'quoted' and not order.is_stale %}
+        <p class="text-sm text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-5">Quote sent — waiting for the buyer to accept or decline.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

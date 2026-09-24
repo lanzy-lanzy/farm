@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from accounts.access import internal_only
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse
 
@@ -13,13 +13,13 @@ def is_htmx(request):
     return request.headers.get("HX-Request") == "true"
 
 
-@login_required
+@internal_only
 def medicine_list(request):
     records = MedicineRecord.objects.all()
     return render(request, "medicine/medicine_list.html", {"records": records})
 
 
-@login_required
+@internal_only
 def medicine_create(request):
     flocks = FlockBatch.objects.filter(status="active")
     if request.method == "POST":
@@ -43,7 +43,7 @@ def medicine_create(request):
     return render(request, template, {"form": form, "flocks": flocks})
 
 
-@login_required
+@internal_only
 def medicine_update(request, pk):
     record = get_object_or_404(MedicineRecord, pk=pk)
     flocks = FlockBatch.objects.filter(status="active")
@@ -64,7 +64,7 @@ def medicine_update(request, pk):
     return render(request, template, {"form": form, "record": record, "flocks": flocks})
 
 
-@login_required
+@internal_only
 def medicine_delete(request, pk):
     record = get_object_or_404(MedicineRecord, pk=pk)
     if request.method == "POST":
@@ -80,7 +80,7 @@ def medicine_delete(request, pk):
     return render(request, template, {"record": record})
 
 
-@login_required
+@internal_only
 def vaccination_schedule(request):
     from django.utils import timezone
     upcoming = MedicineRecord.objects.filter(

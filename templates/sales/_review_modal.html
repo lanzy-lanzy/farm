@@ -1,0 +1,41 @@
+{% extends "partials/modal.html" %}
+{% block modal_title %}{% if modal_form == 'reject' %}Decline Request{% elif modal_form == 'requote' %}Send New Quote{% else %}Send Quote{% endif %}{% endblock %}
+{% block modal_content %}
+<div class="mb-5 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+    <span class="font-semibold text-gray-800 dark:text-white">{{ order.request_number }}</span>
+    · {{ order.buyer.name }} · {{ order.quantity }} × {{ order.product_name }}
+</div>
+<form hx-post="{% url 'sales:order_request_review' order.pk %}" hx-target="#modal-container" hx-swap="innerHTML" class="space-y-4">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{{ modal_form }}">
+    {% if modal_form == 'reject' %}
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="id_staff_note">Reason for declining (shared with the buyer)</label>
+        {{ form.staff_note }}
+        {% for error in form.staff_note.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+    </div>
+    {% else %}
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="id_quoted_unit_price">Quoted unit price (₱)</label>
+        {{ form.quoted_unit_price }}
+        {% for error in form.quoted_unit_price.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="id_staff_note">Note to buyer</label>
+        {{ form.staff_note }}
+        {% for error in form.staff_note.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+    </div>
+    {% endif %}
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <button type="button" onclick="this.closest('#modal-overlay').remove()"
+                class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl font-medium cursor-pointer transition-colors">Cancel</button>
+        {% if modal_form == 'reject' %}
+        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-red-900/20 transition-colors">Decline Request</button>
+        {% elif modal_form == 'requote' %}
+        <button type="submit" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Send New Quote</button>
+        {% else %}
+        <button type="submit" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Send Quote</button>
+        {% endif %}
+    </div>
+</form>
+{% endblock %}

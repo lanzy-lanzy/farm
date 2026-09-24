@@ -1,0 +1,17 @@
+{% extends "portal/base.html" %}
+{% block title %}{% if item %}Edit Item{% else %}Add Item{% endif %}{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <h1 class="text-xl font-bold text-gray-800 dark:text-white mb-4">{% if item %}Edit "{{ item.name }}"{% else %}Add Catalog Item{% endif %}</h1>
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <form method="post">
+            {% csrf_token %}
+            {% include "portal/_form_fields.html" %}
+            <div class="flex items-center gap-3">
+                <button type="submit" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg transition-colors">Save</button>
+                <a href="{% url 'portal:supplier_catalog' %}" class="text-sm text-gray-500 hover:underline">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "portal/base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto space-y-4">
+    <h1 class="text-xl font-bold text-gray-800 dark:text-white">My Profile</h1>
+    <div class="flex items-center gap-2 text-sm">
+        <span class="text-gray-500">Account status:</span>
+        <span class="pill pill-{{ supplier.verification_status }}">{{ supplier.get_verification_status_display }}</span>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <form method="post">
+            {% csrf_token %}
+            {% include "portal/_form_fields.html" %}
+            <button type="submit" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg transition-colors">Save Changes</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

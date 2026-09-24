@@ -51,6 +51,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "config.middleware.ExternalPortalAccessMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -69,6 +70,7 @@ TEMPLATES = [
                 "notifications.context_processors.notification_context",
                 "config.context_processors.sidebar_context",
                 "config.context_processors.static_version",
+                "config.context_processors.queue_context",
             ],
         },
     },
@@ -129,3 +131,7 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.BrowsableAPIRenderer",
     ],
 }
+
+# ---- Buyer/supplier workflow ----
+# Days before an unanswered quote is considered stale and must be re-quoted.
+ORDER_REQUEST_QUOTE_STALE_DAYS = 7

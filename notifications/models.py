@@ -9,6 +9,9 @@ class Notification(models.Model):
         ("vaccination", "Vaccination Reminder"),
         ("mortality", "High Mortality Warning"),
         ("activity", "Activity Notification"),
+        ("order_request", "Order Request"),
+        ("delivery_notice", "Delivery Notice"),
+        ("account", "Account Review"),
     ]
 
     user = models.ForeignKey(

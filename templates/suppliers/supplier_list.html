@@ -5,7 +5,10 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
             <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Suppliers</h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage your supplier contacts</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Manage your supplier contacts
+                <span class="inline-flex items-center ml-2 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">{{ suppliers|length }} total</span>
+            </p>
         </div>
         <button hx-get="{% url 'suppliers:supplier_create' %}" hx-target="#modal-container" hx-swap="innerHTML" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-green-900/30 hover:shadow-xl transition-all duration-200 cursor-pointer inline-flex items-center space-x-2 self-start">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
@@ -17,24 +20,74 @@
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead>
-                    <tr class="bg-gray-50 dark:bg-gray-700/50">
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                    <tr class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Supplier</th>
                         <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Supplies</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Portal Account</th>
                         <th class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                     {% for supplier in suppliers %}
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <tr class="hover:bg-emerald-50/40 dark:hover:bg-gray-700/30 transition-colors">
                         <td class="px-5 py-4">
-                            <span class="font-medium text-gray-800 dark:text-white">{{ supplier.name }}</span>
+                            <div class="flex items-center gap-3">
+                                <span class="w-9 h-9 rounded-full bg-gradient-to-br from-green-600 to-emerald-700 text-white text-sm font-bold grid place-items-center shrink-0">{{ supplier.name|slice:":1"|upper }}</span>
+                                <div class="min-w-0">
+                                    <span class="font-medium text-gray-800 dark:text-white block truncate">{{ supplier.name }}</span>
+                                    <span class="text-xs {% if supplier.is_active %}text-emerald-600 dark:text-emerald-400{% else %}text-gray-400 dark:text-gray-500{% endif %}">{% if supplier.is_active %}Active{% else %}Inactive{% endif %}{% if supplier.contact_person %} &middot; {{ supplier.contact_person }}{% endif %}</span>
+                                </div>
+                            </div>
                         </td>
-                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">{{ supplier.contact_person|default:"-" }}</td>
-                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">{{ supplier.phone|default:"-" }}</td>
                         <td class="px-5 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if supplier.is_active %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400{% endif %}">{% if supplier.is_active %}Active{% else %}Inactive{% endif %}</span>
+                            <div class="text-sm text-gray-600 dark:text-gray-300">
+                                {% if supplier.phone %}
+                                <p class="flex items-center gap-1.5 whitespace-nowrap">
+                                    <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                    {{ supplier.phone }}
+                                </p>
+                                {% endif %}
+                                {% if supplier.email %}
+                                <p class="flex items-center gap-1.5 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                    <span class="truncate">{{ supplier.email }}</span>
+                                </p>
+                                {% endif %}
+                                {% if not supplier.phone and not supplier.email %}<span class="text-gray-400 dark:text-gray-500">—</span>{% endif %}
+                            </div>
+                        </td>
+                        <td class="px-5 py-4">
+                            {% if supplier.supplies %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">{{ supplier.supplies }}</span>
+                            {% else %}
+                            <span class="text-xs text-gray-400 dark:text-gray-500">Not specified</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4">
+                            {% if supplier.user %}
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-md">{{ supplier.user.username }}</span>
+                                <span class="pill pill-{{ supplier.verification_status }}">{{ supplier.get_verification_status_display }}</span>
+                                {% if supplier.is_active %}
+                                {% if user.is_admin_user or user.is_owner %}
+                                <form method="post" action="{% url 'suppliers:supplier_deactivate_account' supplier.pk %}" onsubmit="return confirm('Deactivate {{ supplier.name }}\'s portal account? This also deactivates the supplier record.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-full px-2.5 py-0.5 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">Deactivate</button>
+                                </form>
+                                {% endif %}
+                                {% endif %}                            </div>
+                            {% elif supplier.is_active %}
+                            <form method="post" action="{% url 'suppliers:supplier_create_account' supplier.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-full px-3 py-1 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors cursor-pointer">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                                    Create account
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-xs text-gray-400 dark:text-gray-500">Inactive — no account</span>
+                            {% endif %}
                         </td>
                         <td class="px-5 py-4 text-right">
                             <div class="flex items-center justify-end space-x-2">
@@ -49,11 +102,16 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="px-5 py-12 text-center">
-                            <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
-                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        <td colspan="5" class="px-5 py-16 text-center">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 dark:text-emerald-400 rounded-2xl mb-4">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                             </div>
-                            <p class="text-gray-500 dark:text-gray-400 text-sm">No suppliers found</p>
+                            <p class="font-semibold text-gray-700 dark:text-gray-200">No suppliers yet</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-4">Add feed, medicine, or equipment suppliers to keep your purchase records organized.</p>
+                            <button hx-get="{% url 'suppliers:supplier_create' %}" hx-target="#modal-container" hx-swap="innerHTML" class="inline-flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-xl text-sm font-medium shadow-md shadow-green-900/20 transition-all cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                Add your first supplier
+                            </button>
                         </td>
                     </tr>
                     {% endfor %}

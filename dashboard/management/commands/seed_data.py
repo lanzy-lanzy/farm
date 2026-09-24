@@ -95,6 +95,24 @@ class Command(BaseCommand):
             defaults={"contact_person": "Dr. Reyes", "phone": "+63 922 234 5678", "supplies": "Medicines and Vaccines"},
         )
 
+        # Supplier portal demo login -> redirects to /portal/ (external role)
+        supplier_user, _ = User.objects.get_or_create(
+            username="supplier",
+            defaults={
+                "email": "supplier@farm.com",
+                "first_name": "Maria",
+                "last_name": "Garcia",
+                "role": "supplier",
+            },
+        )
+        supplier_user.set_password("supplier123")
+        supplier_user.save()
+        supplier1.user = supplier_user
+        supplier1.verification_status = "approved"
+        supplier1.verified_by = admin_user
+        supplier1.verified_at = timezone.now()
+        supplier1.save()
+
         # Create inventory items
         InventoryItem.objects.get_or_create(
             name="Chick Starter Crumbs",
@@ -235,10 +253,28 @@ class Command(BaseCommand):
         )
 
         # Create buyers
-        Buyer.objects.get_or_create(
+        buyer_account, _ = Buyer.objects.get_or_create(
             name="Tambulig Market",
             defaults={"buyer_type": "wholesale", "phone": "+63 933 345 6789"},
         )
+
+        # Buyer portal demo login -> redirects to /portal/ (external role)
+        buyer_user, _ = User.objects.get_or_create(
+            username="buyer",
+            defaults={
+                "email": "buyer@farm.com",
+                "first_name": "Tambulig",
+                "last_name": "Market",
+                "role": "buyer",
+            },
+        )
+        buyer_user.set_password("buyer123")
+        buyer_user.save()
+        buyer_account.user = buyer_user
+        buyer_account.verification_status = "approved"
+        buyer_account.verified_by = admin_user
+        buyer_account.verified_at = timezone.now()
+        buyer_account.save()
 
         # Create sales
         SalesRecord.objects.get_or_create(
@@ -255,4 +291,14 @@ class Command(BaseCommand):
             },
         )
 
-        self.stdout.write(self.style.SUCCESS("Database seeded successfully!"))
+        self.stdout.write(
+            self.style.SUCCESS(
+                "Database seeded successfully!\n"
+                "Demo logins (change before real use):\n"
+                "  admin    / admin123     (Administrator)\n"
+                "  owner    / owner123     (Farm Owner)\n"
+                "  staff    / staff123     (Staff/Caretaker)\n"
+                "  buyer    / buyer123     (Buyer portal)\n"
+                "  supplier / supplier123  (Supplier portal)"
+            )
+        )

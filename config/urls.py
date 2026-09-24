@@ -5,6 +5,8 @@ from django.urls import include, path
 
 def root_redirect(request):
     if request.user.is_authenticated:
+        if request.user.is_external():
+            return redirect("/portal/")
         return redirect("dashboard:index")
     return render(request, "landing/index.html")
 
@@ -12,6 +14,7 @@ def root_redirect(request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("api.urls")),
+    path("portal/", include("portal.urls")),
     path("", root_redirect, name="root"),
     path("", include("accounts.urls")),
     path("dashboard/", include("dashboard.urls")),

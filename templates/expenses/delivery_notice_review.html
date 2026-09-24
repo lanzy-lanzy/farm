@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Delivery from {{ notice.supplier.name }}{% endblock %}
+{% block content %}
+<div class="max-w-2xl space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Delivery from {{ notice.supplier.name }} <span class="pill pill-{{ notice.origin }}">{{ notice.get_origin_display }}</span> <span class="pill pill-{{ notice.status }}">{{ notice.get_status_display }}</span></h1>
+        <a href="{% url 'expenses:delivery_notice_queue' %}" class="text-sm text-emerald-700 dark:text-emerald-400 hover:underline">Back to queue</a>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <dl class="grid grid-cols-2 gap-y-3 text-sm mb-6">
+            <dt class="text-gray-500">Description</dt><dd class="font-medium text-gray-800 dark:text-white">{{ notice.description }}</dd>
+            <dt class="text-gray-500">Quantity</dt><dd class="text-gray-800 dark:text-white">{{ notice.quantity }}</dd>
+            <dt class="text-gray-500">Catalog item</dt><dd class="text-gray-800 dark:text-white">{% if notice.supply_item %}{{ notice.supply_item.name }}{% if notice.supply_item.unit_price %} @ ₱{{ notice.supply_item.unit_price|floatformat:2 }}{% endif %}{% else %}Ad-hoc{% endif %}</dd>
+            <dt class="text-gray-500">Expected</dt><dd class="text-gray-800 dark:text-white">{{ notice.expected_date }}</dd>
+            <dt class="text-gray-500">Payment terms</dt><dd class="text-gray-800 dark:text-white">{{ notice.supplier.get_payment_terms_display }}</dd>
+            {% if notice.supplier_note %}<dt class="text-gray-500">Supplier note</dt><dd class="text-gray-800 dark:text-white italic">“{{ notice.supplier_note }}”</dd>{% endif %}
+            {% if notice.created_by %}<dt class="text-gray-500">Ordered by</dt><dd class="text-gray-800 dark:text-white">{{ notice.created_by.get_full_name|default:notice.created_by.username }}</dd>{% endif %}
+            {% if notice.expense_record %}<dt class="text-gray-500">Linked expense</dt><dd class="text-gray-800 dark:text-white">₱{{ notice.expense_record.amount|floatformat:2 }} on {{ notice.expense_record.expense_date }}</dd>{% endif %}
+        </dl>
+
+        {% if notice.status == 'announced' %}
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
+            <h2 class="font-semibold text-gray-800 dark:text-white mb-3">Goods arrived? Book the expense to receive this delivery.</h2>
+            <div class="flex flex-wrap gap-3">
+                <button hx-get="{% url 'expenses:delivery_notice_review' notice.pk %}?form=receive" hx-target="#modal-container" hx-swap="innerHTML"
+                        class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Receive &amp; Book Expense</button>
+                <button hx-get="{% url 'expenses:delivery_notice_review' notice.pk %}?form=reject" hx-target="#modal-container" hx-swap="innerHTML"
+                        class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl font-medium cursor-pointer transition-colors">Reject Delivery</button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

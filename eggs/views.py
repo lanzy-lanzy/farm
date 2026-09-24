@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from accounts.access import internal_only
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse
 
@@ -13,7 +13,7 @@ def is_htmx(request):
     return request.headers.get("HX-Request") == "true"
 
 
-@login_required
+@internal_only
 def egg_list(request):
     records = EggProduction.objects.all()
     flock_filter = request.GET.get("flock", "")
@@ -22,7 +22,7 @@ def egg_list(request):
     return render(request, "eggs/egg_list.html", {"records": records, "flock_filter": flock_filter})
 
 
-@login_required
+@internal_only
 def egg_create(request):
     flocks = FlockBatch.objects.filter(status="active")
     if request.method == "POST":
@@ -44,7 +44,7 @@ def egg_create(request):
     return render(request, template, {"form": form, "flocks": flocks})
 
 
-@login_required
+@internal_only
 def egg_update(request, pk):
     record = get_object_or_404(EggProduction, pk=pk)
     flocks = FlockBatch.objects.filter(status="active")
@@ -65,7 +65,7 @@ def egg_update(request, pk):
     return render(request, template, {"form": form, "record": record, "flocks": flocks})
 
 
-@login_required
+@internal_only
 def egg_delete(request, pk):
     record = get_object_or_404(EggProduction, pk=pk)
     if request.method == "POST":

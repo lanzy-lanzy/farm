@@ -20,3 +20,22 @@ def static_version(request):
     except OSError:
         version = "0"
     return {"static_version": version}
+
+
+def queue_context(request):
+    ctx = {"open_order_requests": 0, "open_delivery_notices": 0, "pending_verifications": 0}
+    user = getattr(request, "user", None)
+    if user is None or not user.is_authenticated or user.is_external():
+        return ctx
+    from buyers.models import Buyer, OrderRequest
+    from suppliers.models import DeliveryNotice, Supplier
+
+    ctx["open_order_requests"] = OrderRequest.objects.filter(
+        status__in=["submitted", "under_review", "quoted", "accepted"]
+    ).count()
+    ctx["open_delivery_notices"] = DeliveryNotice.objects.filter(status="announced").count()
+    ctx["pending_verifications"] = (
+        Buyer.objects.filter(verification_status="pending").count()
+        + Supplier.objects.filter(verification_status="pending").count()
+    )
+    return ctx

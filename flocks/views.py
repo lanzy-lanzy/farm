@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from accounts.access import internal_only
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.http import HttpResponse
@@ -13,7 +13,7 @@ def is_htmx(request):
     return request.headers.get("HX-Request") == "true"
 
 
-@login_required
+@internal_only
 def flock_list(request):
     flocks = FlockBatch.objects.all()
     status_filter = request.GET.get("status", "")
@@ -22,13 +22,13 @@ def flock_list(request):
     return render(request, "flocks/flock_list.html", {"flocks": flocks, "status_filter": status_filter})
 
 
-@login_required
+@internal_only
 def flock_detail(request, pk):
     flock = get_object_or_404(FlockBatch, pk=pk)
     return render(request, "flocks/flock_detail.html", {"flock": flock})
 
 
-@login_required
+@internal_only
 def flock_create(request):
     if request.method == "POST":
         form = FlockBatchForm(request.POST)
@@ -49,7 +49,7 @@ def flock_create(request):
     return render(request, template, {"form": form})
 
 
-@login_required
+@internal_only
 def flock_update(request, pk):
     flock = get_object_or_404(FlockBatch, pk=pk)
     if request.method == "POST":
@@ -69,7 +69,7 @@ def flock_update(request, pk):
     return render(request, template, {"form": form, "flock": flock})
 
 
-@login_required
+@internal_only
 def flock_delete(request, pk):
     flock = get_object_or_404(FlockBatch, pk=pk)
     if request.method == "POST":
