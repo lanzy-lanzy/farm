@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}LAN Sharing{% endblock %}
+{% block content %}
+<div class="space-y-4 max-w-2xl">
+
+    <div>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">LAN Sharing</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Let other devices on your local network reach this app and its API.
+        </p>
+    </div>
+
+    <!-- ============ SHARE CARD ============ -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow"
+         x-data="{ port: {{ share_port }} }">
+
+        <!-- Header row: title + status pill -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+            <h2 class="font-semibold text-gray-800 dark:text-white">Share on Local Network</h2>
+            {% if is_sharing %}
+            <span class="pill pill-approved inline-flex items-center gap-1.5">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                Sharing
+            </span>
+            {% else %}
+            <span class="pill pill-inactive">Not Shared</span>
+            {% endif %}
+        </div>
+
+        <div class="p-6">
+            {% if is_sharing %}
+            <!-- ============ SHARING STATE ============ -->
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Open one of these from a device on the <strong>same Wi-Fi / LAN</strong>.
+            </p>
+
+            {% if lan_ips %}
+            <div class="space-y-3">
+                {% for ip in lan_ips %}
+                <div x-data="{ copied: false }" class="rounded-xl bg-gray-900 px-4 py-3">
+                    <div class="flex items-center gap-2">
+                        <a href="http://{{ ip }}:{{ active.port }}" target="_blank" rel="noopener"
+                           class="flex-1 font-mono text-sm text-green-300 underline break-all">http://{{ ip }}:{{ active.port }}/</a>
+                        <button type="button" @click="navigator.clipboard.writeText('http://{{ ip }}:{{ active.port }}').then(() => { copied = true; setTimeout(() => copied = false, 1600) })"
+                                class="shrink-0 px-3 py-1 rounded-lg bg-white/10 text-gray-200 hover:bg-white/20 text-xs font-medium transition">
+                            <span x-show="!copied">Copy</span><span x-cloak x-show="copied">Copied ✓</span>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2 mt-1.5">
+                        <span class="font-mono text-xs text-gray-400 break-all">http://{{ ip }}:{{ active.port }}/api/</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-amber-700 dark:text-amber-300">Server is up on port {{ active.port }}, but no LAN IP was detected — check this machine is connected to the network.</p>
+            {% endif %}
+
+            <div class="mt-6 pt-5 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-4">
+                <p class="text-xs text-gray-400 dark:text-gray-500">Sharing on port {{ active.port }}{% if active.pid %} &middot; PID {{ active.pid }}{% endif %}.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="stop">
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-2.5 rounded-xl transition shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12a3 3 0 016 0"></path></svg>
+                        Stop Sharing
+                    </button>
+                </form>
+            </div>
+
+            {% else %}
+            <!-- ============ IDLE STATE (opt-in) ============ -->
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Detected server address</h3>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 mb-3">This computer's local IP address was detected automatically.</p>
+
+            {% if primary_ip %}
+            <div class="rounded-xl bg-gray-900 px-4 py-3">
+                <span class="font-mono text-sm text-green-300">http://{{ primary_ip }}:<span x-text="port">{{ share_port }}</span>/</span>
+            </div>
+            {% else %}
+            <div class="rounded-xl bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+                No local IP detected. Connect this computer to a Wi-Fi / LAN network first.
+            </div>
+            {% endif %}
+
+            <div class="mt-5 pt-5 border-t border-gray-100 dark:border-gray-700">
+                <form method="post" class="flex flex-wrap items-end gap-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="start">
+                    <div class="flex-1 min-w-[8rem]">
+                        <label for="id_port" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Network port</label>
+                        <input type="number" id="id_port" name="port" min="1024" max="65535" x-model.number="port"
+                               class="form-input">
+                    </div>
+                    <button type="submit" {% if not primary_ip %}disabled{% endif %}
+                            class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-xl transition shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                        Start Sharing
+                    </button>
+                </form>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-4">
+                    Use only on a trusted private network. If Windows Firewall asks, allow access for
+                    <strong>Private networks</strong> only. Nothing is shared until you start it, and sharing
+                    stops when you click Stop or the server closes.
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

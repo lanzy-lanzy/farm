@@ -1,0 +1,50 @@
+{% extends "reports/_print_base.html" %}
+{% block report_body %}
+    {% if low_stock %}
+    <div class="alert warn">
+        <strong>Low Stock Alerts ({{ low_stock|length }})</strong>
+        <ul>
+            {% for item in low_stock %}
+            <li>{{ item.name }} &mdash; {{ item.quantity }} {{ item.unit }} (reorder at {{ item.reorder_level }})</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if expired %}
+    <div class="alert danger">
+        <strong>Expired Items ({{ expired|length }})</strong>
+        <ul>
+            {% for item in expired %}
+            <li>{{ item.name }} &mdash; expired {{ item.expiration_date }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if items %}
+    <table class="data">
+        <caption>All Inventory Items</caption>
+        <thead>
+            <tr><th>Name</th><th>Category</th><th class="num">Quantity</th><th>Expiry</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.category.name|default:"-" }}</td>
+                <td class="num">{{ item.quantity }} {{ item.unit }}</td>
+                <td>{{ item.expiration_date|default:"N/A" }}</td>
+                <td>
+                    {% if item in expired %}<span class="value neg" style="font-size:12px;">Expired</span>
+                    {% elif item in low_stock %}<span class="value warn" style="font-size:12px;">Low Stock</span>
+                    {% else %}<span class="value pos" style="font-size:12px;">In Stock</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No inventory items found.</div>
+    {% endif %}
+{% endblock %}

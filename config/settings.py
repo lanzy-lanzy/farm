@@ -68,6 +68,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "notifications.context_processors.notification_context",
                 "config.context_processors.sidebar_context",
+                "config.context_processors.static_version",
             ],
         },
     },

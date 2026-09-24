@@ -124,6 +124,27 @@ farm/
 
 ## Development
 
+### Sharing on Your Local Network (Wi-Fi / LAN)
+
+Want other computers and mobile phones on the same Wi-Fi to open the app and
+API? Use the one-click share launcher — it auto-detects this machine's local
+IP, copies the share URL to your clipboard, and serves the app to the network.
+
+1. **First time only (if devices can't connect):** double-click
+   `Allow Network Access (once).bat` and accept the admin prompt. This opens
+   Windows Firewall for ports 8000-8010.
+2. **Start sharing:** double-click `Share Farm App.bat` (or run
+   `uv run python share_server.py`). To use another port, pass it as an
+   argument, e.g. `uv run python share_server.py 8080`.
+3. **Open on other devices** (must be on the same Wi-Fi/LAN), using the IP the
+   launcher prints:
+   - Other computers / phones (app): `http://<your-lan-ip>:8000/`
+   - API from any device: `http://<your-lan-ip>:8000/api/`
+
+The launcher prints the exact addresses and copies the app URL to your
+clipboard so you can paste and send it. Close the window (or press Ctrl+C) to
+stop sharing.
+
 ### Running Tests
 ```bash
 uv run python manage.py test

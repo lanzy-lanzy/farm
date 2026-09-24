@@ -1,0 +1,29 @@
+{% extends "reports/_print_base.html" %}
+{% block report_body %}
+    <div class="cards">
+        <div class="card"><div class="label">Total Sales</div><div class="value pos">${{ total_sales|floatformat:2 }}</div></div>
+        <div class="card"><div class="label">Total Expenses</div><div class="value neg">${{ total_expenses|floatformat:2 }}</div></div>
+        <div class="card">
+            <div class="label">Net {% if profit_loss >= 0 %}Profit{% else %}Loss{% endif %}</div>
+            <div class="value {% if profit_loss >= 0 %}pos{% else %}neg{% endif %}">{% if profit_loss >= 0 %}+{% else %}&minus;{% endif %}${{ profit_loss|floatformat:2|cut:"-" }}</div>
+        </div>
+    </div>
+
+    <h2 class="section">Financial Summary</h2>
+    <table class="data">
+        <thead>
+            <tr><th>Metric</th><th class="num">Amount</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Total Sales</td><td class="num">${{ total_sales|floatformat:2 }}</td></tr>
+            <tr><td>Total Expenses</td><td class="num">${{ total_expenses|floatformat:2 }}</td></tr>
+        </tbody>
+        <tfoot>
+            <tr><td>Net {% if profit_loss >= 0 %}Profit{% else %}Loss{% endif %}</td><td class="num">${{ profit_loss|floatformat:2 }}</td></tr>
+        </tfoot>
+    </table>
+
+    <div class="meta" style="margin-top:16px;">
+        <span><b>Profit Margin:</b> {{ margin_display }}</span>
+    </div>
+{% endblock %}

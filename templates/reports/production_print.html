@@ -1,0 +1,44 @@
+{% extends "reports/_print_base.html" %}
+{% block report_body %}
+    <div class="cards">
+        <div class="card"><div class="label">Total Eggs</div><div class="value">{{ total_eggs }}</div></div>
+        <div class="card"><div class="label">Good Eggs</div><div class="value pos">{{ total_good }}</div></div>
+        <div class="card"><div class="label">Cracked Eggs</div><div class="value warn">{{ total_cracked }}</div></div>
+        <div class="card"><div class="label">Rejected Eggs</div><div class="value neg">{{ total_rejected }}</div></div>
+    </div>
+
+    {% if records %}
+    <table class="data">
+        <caption>Daily Production Records</caption>
+        <thead>
+            <tr>
+                <th>Date</th><th>Flock</th>
+                <th class="num">Total</th><th class="num">Good</th><th class="num">Cracked</th><th class="num">Rejected</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in records %}
+            <tr>
+                <td>{{ r.production_date }}</td>
+                <td>{{ r.flock.batch_number }}</td>
+                <td class="num">{{ r.total_eggs }}</td>
+                <td class="num">{{ r.good_eggs }}</td>
+                <td class="num">{{ r.cracked_eggs }}</td>
+                <td class="num">{{ r.rejected_eggs }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="2">Totals</td>
+                <td class="num">{{ total_eggs }}</td>
+                <td class="num">{{ total_good }}</td>
+                <td class="num">{{ total_cracked }}</td>
+                <td class="num">{{ total_rejected }}</td>
+            </tr>
+        </tfoot>
+    </table>
+    {% else %}
+    <div class="empty">No production records found for this period.</div>
+    {% endif %}
+{% endblock %}

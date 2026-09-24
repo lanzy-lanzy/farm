@@ -1,0 +1,31 @@
+{% extends "reports/_print_base.html" %}
+{% block report_body %}
+    <div class="cards">
+        <div class="card"><div class="label">Total Mortality</div><div class="value neg">{{ total_mortality }}</div></div>
+        <div class="card"><div class="label">Records</div><div class="value">{{ records|length }}</div></div>
+    </div>
+
+    {% if records %}
+    <table class="data">
+        <caption>Mortality Records</caption>
+        <thead>
+            <tr><th>Date</th><th>Flock</th><th class="num">Quantity</th><th>Cause</th></tr>
+        </thead>
+        <tbody>
+            {% for r in records %}
+            <tr>
+                <td>{{ r.date_recorded }}</td>
+                <td>{{ r.flock.batch_number }}</td>
+                <td class="num">{{ r.quantity }}</td>
+                <td>{{ r.cause|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr><td colspan="2">Total</td><td class="num">{{ total_mortality }}</td><td></td></tr>
+        </tfoot>
+    </table>
+    {% else %}
+    <div class="empty">No mortality records found for this period.</div>
+    {% endif %}
+{% endblock %}
