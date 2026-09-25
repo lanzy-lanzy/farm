@@ -19,7 +19,7 @@
             {% if notice.expense_record %}<dt class="text-gray-500">Linked expense</dt><dd class="text-gray-800 dark:text-white">₱{{ notice.expense_record.amount|floatformat:2 }} on {{ notice.expense_record.expense_date }}</dd>{% endif %}
         </dl>
 
-        {% if notice.status == 'announced' %}
+        {% if notice.awaits_farm_action %}
         <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
             <h2 class="font-semibold text-gray-800 dark:text-white mb-3">Goods arrived? Book the expense to receive this delivery.</h2>
             <div class="flex flex-wrap gap-3">

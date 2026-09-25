@@ -2,10 +2,12 @@ from decimal import Decimal
 
 from django.contrib import messages
 from accounts.access import admin_or_owner_required, internal_only
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.http import HttpResponse
 
+from inventory.services import deduct_for_sale, sale_stock_block_reason
 from .forms import OrderRequestOnBehalfForm, OrderRequestQuoteForm, SalesRecordForm
 from .models import SalesRecord
 from buyers.models import OrderRequest
@@ -67,29 +69,38 @@ def sales_create(request):
                 if record.payment_status != "paid"
                 else None
             )
-            if reason and not is_elevated(request.user):
+            stock_reason = sale_stock_block_reason(record.product_type, record.quantity)
+            if stock_reason:
+                form.add_error(None, f"Insufficient stock — {stock_reason}")
+            elif reason and not is_elevated(request.user):
                 form.add_error(
                     None,
                     f"Credit limit exceeded — {reason} Ask an owner or administrator to record this sale.",
                 )
             else:
-                record.recorded_by = request.user
-                record.save()
+                converted_here = False
+                with transaction.atomic():
+                    record.recorded_by = request.user
+                    record.save()
+                    deduct_for_sale(record, user=request.user)
+                    if linked_order and linked_order.can_convert():
+                        linked_order.sales_record = record
+                        linked_order.status = "converted"
+                        linked_order.save()
+                        converted_here = True
                 if reason and is_elevated(request.user):
                     log_activity(
                         request.user, "update", "SalesRecord", record.pk,
                         record.__str__(), f"Credit limit override: {reason}",
                     )
-                if linked_order and linked_order.can_convert():
-                    linked_order.sales_record = record
-                    linked_order.status = "converted"
-                    linked_order.save()
+                if linked_order and converted_here:
                     notify_user(
                         linked_order.buyer.user,
                         "order_request",
                         f"Order {linked_order.request_number} recorded as sold",
                         f"Sale of {record.quantity} {record.product_name} for {record.total_amount} has been recorded.",
                         link=f"/portal/buyer/requests/{linked_order.pk}/",
+                        target=f"order_request:{linked_order.pk}",
                     )
                 log_activity(request.user, "create", "SalesRecord", record.pk, record.__str__(), "Created sales record")
                 messages.success(request, "Sales record created successfully.")
@@ -256,6 +267,7 @@ def order_request_review(request, pk):
                     f"Quote ready for {order.request_number}",
                     f"The farm quoted {order.quoted_unit_price} per unit. Review and accept or decline in your portal.",
                     link=f"/portal/buyer/requests/{order.pk}/",
+                    target=f"order_request:{order.pk}",
                 )
                 messages.success(request, f"Quote sent to {order.buyer.name}.")
                 if is_htmx(request):
@@ -284,6 +296,7 @@ def order_request_review(request, pk):
                 f"Request {order.request_number} declined",
                 order.staff_note or "The farm could not fulfil this request.",
                 link=f"/portal/buyer/requests/{order.pk}/",
+                target=f"order_request:{order.pk}",
             )
             messages.success(request, "Request rejected.")
             if is_htmx(request):
@@ -338,26 +351,33 @@ def order_request_convert(request, pk):
                         f"Credit limit exceeded — {reason} Record as paid, take a partial payment, or ask an owner/administrator to override.",
                     )
                 else:
-                    record.recorded_by = request.user
-                    record.save()
-                    order.sales_record = record
-                    order.status = "converted"
-                    order.save()
-                    if reason and elevated:
-                        log_activity(
-                            request.user, "update", "OrderRequest", order.pk,
-                            order.request_number, f"Credit limit override at conversion: {reason}",
+                    stock_reason = sale_stock_block_reason(record.product_type, record.quantity)
+                    if stock_reason:
+                        form.add_error(None, f"Insufficient stock — {stock_reason}")
+                    else:
+                        with transaction.atomic():
+                            record.recorded_by = request.user
+                            record.save()
+                            order.sales_record = record
+                            order.status = "converted"
+                            order.save()
+                            deduct_for_sale(record, user=request.user)
+                        if reason and elevated:
+                            log_activity(
+                                request.user, "update", "OrderRequest", order.pk,
+                                order.request_number, f"Credit limit override at conversion: {reason}",
+                            )
+                        log_activity(request.user, "create", "SalesRecord", record.pk, record.__str__(), f"Converted from {order.request_number}")
+                        notify_user(
+                            order.buyer.user,
+                            "order_request",
+                            f"Order {order.request_number} recorded as sold",
+                            f"Sale of {record.quantity} {record.product_name} for {record.total_amount} has been recorded.",
+                            link=f"/portal/buyer/requests/{order.pk}/",
+                            target=f"order_request:{order.pk}",
                         )
-                    log_activity(request.user, "create", "SalesRecord", record.pk, record.__str__(), f"Converted from {order.request_number}")
-                    notify_user(
-                        order.buyer.user,
-                        "order_request",
-                        f"Order {order.request_number} recorded as sold",
-                        f"Sale of {record.quantity} {record.product_name} for {record.total_amount} has been recorded.",
-                        link=f"/portal/buyer/requests/{order.pk}/",
-                    )
-                    messages.success(request, f"{order.request_number} converted to a sale.")
-                    return redirect("sales:order_request_queue")
+                        messages.success(request, f"{order.request_number} converted to a sale.")
+                        return redirect("sales:order_request_queue")
     else:
         form = SalesRecordForm(
             initial={

@@ -1,0 +1,97 @@
+{% comment %}
+Shared order-request body, rendered both inside _request_detail.html (dialog) and
+portal/buyer/request_detail.html (standalone page / notification deep link).
+Actions post over HTMX into #modal-container, so the same markup works with or
+without a dialog open.
+{% endcomment %}
+<div class="stepper flex-wrap">
+    {% for label, state in order.timeline %}
+    <span class="{% if state != 'pending' %}{{ state }}{% endif %}">{{ label }}</span>
+    {% endfor %}
+</div>
+
+<div class="mt-4 flex flex-wrap items-center gap-2">
+    <span class="pill pill-{{ order.status }}">{{ order.get_status_display }}</span>
+    {% if order.source %}<span class="pill pill-{{ order.source }}">{{ order.get_source_display }}</span>{% endif %}
+    <span class="text-xs text-gray-400">Submitted {{ order.created_at|date:"j M Y, H:i" }}</span>
+</div>
+
+<dl class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Product</dt>
+        <dd class="text-sm text-gray-800 mt-1">{{ order.product_name }} <span class="text-gray-400">&middot; {{ order.get_product_type_display }}</span></dd>
+    </div>
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Quantity</dt>
+        <dd class="text-sm font-semibold text-gray-800 mt-1">{{ order.quantity }}</dd>
+    </div>
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Needed by</dt>
+        <dd class="text-sm text-gray-800 mt-1">{{ order.requested_date }}</dd>
+    </div>
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Your target price</dt>
+        <dd class="text-sm text-gray-800 mt-1">{% if order.requested_unit_price %}₱{{ order.requested_unit_price|floatformat:2 }}{% else %}<span class="text-gray-400">No target given</span>{% endif %}</dd>
+    </div>
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Farm quote</dt>
+        <dd class="text-sm font-bold text-gray-800 mt-1">{% if order.quoted_unit_price %}₱{{ order.quoted_unit_price|floatformat:2}} <span class="text-xs font-normal text-gray-400">/ unit</span>{% else %}<span class="text-gray-400 font-normal">Awaiting quote</span>{% endif %}</dd>
+    </div>
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Estimated total</dt>
+        <dd class="text-sm font-bold mt-1" style="color: var(--brand);">{% if order.estimated_total %}₱{{ order.estimated_total|floatformat:2 }}{% else %}<span class="text-gray-400 font-normal">Priced once quoted</span>{% endif %}</dd>
+    </div>
+    {% if order.staff_note %}
+    <div class="sm:col-span-2">
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Note from the farm</dt>
+        <dd class="text-sm text-gray-800 mt-1 italic">&ldquo;{{ order.staff_note }}&rdquo;</dd>
+    </div>
+    {% endif %}
+    {% if order.sales_record %}
+    <div class="sm:col-span-2 pt-4 mt-1 border-t border-gray-100">
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Converted sale</dt>
+        <dd class="text-sm text-gray-800 mt-1">
+            ₱{{ order.sales_record.total_amount|floatformat:2 }} on {{ order.sales_record.date_sold }}
+            <span class="pill {% if order.sales_record.payment_status == 'paid' %}pill-accepted{% elif order.sales_record.payment_status == 'pending' %}pill-under_review{% else %}pill-quoted{% endif %} ml-1">{{ order.sales_record.get_payment_status_display }}</span>
+        </dd>
+    </div>
+    {% endif %}
+</dl>
+
+{% if order.status == 'quoted' and order.is_stale %}
+<div class="mt-5 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 text-sm text-orange-800">
+    This quote has expired. The farm can re-quote it &mdash; open a fresh request or stop by and ask.
+</div>
+{% endif %}
+
+{% if order.can_accept %}
+<div class="mt-6 rounded-2xl p-4 border" style="background: var(--brand-ink); border-color: color-mix(in srgb, var(--brand) 25%, #fff);">
+    <p class="text-sm font-semibold text-gray-800">This quote is waiting for your decision.</p>
+    <p class="text-xs text-gray-500 mt-1 mb-4">Accepting tells the farm to prepare the order; declining closes the request.</p>
+    <div class="flex flex-col sm:flex-row gap-2">
+        <form hx-post="{% url 'portal:buyer_request_respond' order.pk %}" hx-target="#modal-container" hx-swap="innerHTML" class="flex-1">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="accept">
+            <button type="submit" class="btn btn-primary w-full justify-center cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Accept Quote</span>
+            </button>
+        </form>
+        <form hx-post="{% url 'portal:buyer_request_respond' order.pk %}" hx-target="#modal-container" hx-swap="innerHTML" class="flex-1">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="decline">
+            <button type="submit" class="btn btn-ghost w-full justify-center cursor-pointer">Decline</button>
+        </form>
+    </div>
+</div>
+{% elif order.is_cancellable %}
+<div class="mt-6 pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+    <p class="text-xs text-gray-400">The farm has not quoted yet &mdash; you can still withdraw this request.</p>
+    <button hx-get="{% url 'portal:buyer_request_cancel' order.pk %}" hx-target="#modal-container" hx-swap="innerHTML"
+            type="button" class="text-red-600 hover:text-red-800 text-sm font-medium text-left sm:text-right cursor-pointer">Cancel this request</button>
+</div>
+{% elif order.status == 'accepted' %}
+<div class="mt-6 pt-4 border-t border-gray-100">
+    <p class="text-sm text-gray-600">Accepted &mdash; the farm is preparing your order and will record the sale against your account.</p>
+</div>
+{% endif %}

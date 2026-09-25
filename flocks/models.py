@@ -50,8 +50,8 @@ class FlockBatch(models.Model):
     def remaining_stock(self):
         return self.current_quantity or self.quantity
 
-    def mortality_count(self):
-        return self.mortality_records.aggregate(total=models.Sum("quantity"))["total"] or 0
+    def death_count(self):
+        return self.death_records.aggregate(total=models.Sum("quantity"))["total"] or 0
 
     def sold_count(self):
         return self.sales_records.aggregate(total=models.Sum("quantity"))["total"] or 0

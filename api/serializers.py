@@ -2,13 +2,13 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from buyers.models import Buyer
+from deaths.models import DeathRecord
 from eggs.models import EggProduction
 from expenses.models import ExpenseRecord
 from feeding.models import FeedingRecord
 from flocks.models import FlockBatch
 from inventory.models import InventoryItem
 from medicine.models import MedicineRecord
-from mortality.models import MortalityRecord
 from notifications.models import Notification
 from sales.models import SalesRecord
 from suppliers.models import Supplier
@@ -62,11 +62,11 @@ class EggProductionSerializer(serializers.ModelSerializer):
         ]
 
 
-class MortalityRecordSerializer(serializers.ModelSerializer):
+class DeathRecordSerializer(serializers.ModelSerializer):
     flock_batch = serializers.CharField(source="flock.batch_number", read_only=True)
 
     class Meta:
-        model = MortalityRecord
+        model = DeathRecord
         fields = [
             "id", "flock_batch", "date_recorded", "quantity", "cause_of_death",
             "symptoms", "action_taken", "remarks", "created_at",

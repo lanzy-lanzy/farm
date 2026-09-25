@@ -84,6 +84,69 @@ class InventoryViewTests(TestCase):
         self.assertContains(response, "Chicken Feed")
 
 
+class InventoryTransactionSafetyTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="admin", password="admin123", role="admin")
+        category = InventoryCategory.objects.create(name="Feed")
+        unit = Unit.objects.create(name="Kilogram", abbreviation="kg")
+        self.item = InventoryItem.objects.create(
+            category=category, name="Chicken Feed", quantity=50, unit=unit,
+            reorder_level=20, created_by=self.user,
+        )
+
+    def test_overdraw_transaction_is_rejected(self):
+        from django.core.exceptions import ValidationError
+
+        with self.assertRaises(ValidationError):
+            InventoryTransaction.objects.create(
+                item=self.item, transaction_type="out", quantity=60, created_by=self.user
+            )
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.quantity, 50)
+        self.assertFalse(InventoryTransaction.objects.exists())
+
+    def test_editing_a_transaction_does_not_reapply_it(self):
+        txn = InventoryTransaction.objects.create(
+            item=self.item, transaction_type="out", quantity=10, created_by=self.user
+        )
+        txn.notes = "corrected note"
+        txn.save()
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.quantity, 40)
+
+
+class AdjustStockServiceTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="admin", password="admin123", role="admin")
+        category = InventoryCategory.objects.create(name="Feed")
+        unit = Unit.objects.create(name="Kilogram", abbreviation="kg")
+        self.item = InventoryItem.objects.create(
+            category=category, name="Chicken Feed", quantity=50, unit=unit,
+            reorder_level=20, created_by=self.user,
+        )
+
+    def test_adjust_stock_out_alerts_low_stock(self):
+        from inventory.services import adjust_stock
+
+        adjust_stock(self.item, "out", 35, reference="Test deduct", user=self.user)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.quantity, 15)
+        from notifications.models import Notification
+
+        self.assertTrue(
+            Notification.objects.filter(notification_type="low_stock", title__icontains="Chicken Feed").exists()
+        )
+
+    def test_sale_stock_block_reason_only_when_mapped(self):
+        from inventory.services import sale_stock_block_reason
+
+        self.assertIsNone(sale_stock_block_reason("eggs", 999))
+        self.item.sales_product_type = "eggs"
+        self.item.save()
+        self.assertIsNone(sale_stock_block_reason("eggs", 50))
+        self.assertIn("Chicken Feed", sale_stock_block_reason("eggs", 51))
+
+
 class NotificationUtilTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="admin", password="admin123", role="admin")

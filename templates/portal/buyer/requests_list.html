@@ -1,36 +1,99 @@
 {% extends "portal/base.html" %}
 {% block title %}My Requests{% endblock %}
+{% block page_title %}Order Requests{% endblock %}
 {% block content %}
 <div class="space-y-4">
-    <div class="flex items-center justify-between">
-        <h1 class="text-xl font-bold text-gray-800 dark:text-white">My Order Requests</h1>
-        <a href="{% url 'portal:buyer_request_create' %}" class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-xl text-sm font-medium no-underline">New Request</a>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h1 class="text-xl font-bold text-gray-800">My Order Requests</h1>
+            <p class="text-sm text-gray-500 mt-1">
+                Every request you have raised, newest first. Open one to see where it stands.
+                <span class="inline-flex items-center ml-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">{{ requests|length }} {% if requests|length == 1 %}request{% else %}requests{% endif %}</span>
+            </p>
+        </div>
+        <button hx-get="{% url 'portal:buyer_request_create' %}" hx-target="#modal-container" hx-swap="innerHTML"
+                type="button" class="btn btn-primary self-start sm:self-auto cursor-pointer">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+            <span>New Order Request</span>
+        </button>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <table class="w-full">
-            <thead>
-                <tr class="bg-gray-50 dark:bg-gray-700/50">
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Request</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Product</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Qty</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Needed</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                {% for order in requests %}
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                    <td class="px-4 py-3"><a class="text-emerald-700 hover:underline font-medium" href="{% url 'portal:buyer_request_detail' order.pk %}">{{ order.request_number }}</a></td>
-                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{{ order.product_name }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{{ order.quantity }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{{ order.requested_date }}</td>
-                    <td class="px-4 py-3"><span class="pill pill-{{ order.status }}">{{ order.get_status_display }}</span></td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="5" class="px-4 py-10 text-center text-sm text-gray-500">No requests yet — create your first order request to get started.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+    <div class="panel overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[40rem] text-left">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Request</th>
+                        <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Product</th>
+                        <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Qty</th>
+                        <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Needed By</th>
+                        <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for order in requests %}
+                    <tr class="hover:bg-emerald-50/40 transition-colors">
+                        <td class="px-5 py-4">
+                            <button hx-get="{% url 'portal:buyer_request_detail' order.pk %}" hx-target="#modal-container" hx-swap="innerHTML"
+                                    class="text-left font-semibold text-gray-800 hover:underline cursor-pointer" title="Open {{ order.request_number }}">
+                                {{ order.request_number }}
+                            </button>
+                            <p class="text-xs text-gray-400 mt-0.5">{{ order.created_at|date:"j M, H:i" }}</p>
+                        </td>
+                        <td class="px-5 py-4">
+                            <p class="text-sm text-gray-700 truncate max-w-[12rem]">{{ order.product_name }}</p>
+                            <p class="text-xs text-gray-400">{{ order.get_product_type_display }}</p>
+                        </td>
+                        <td class="px-5 py-4 text-sm text-gray-700 whitespace-nowrap">{{ order.quantity }}</td>
+                        <td class="px-5 py-4 text-sm text-gray-600 whitespace-nowrap hidden md:table-cell">{{ order.requested_date }}</td>
+                        <td class="px-5 py-4">
+                            <span class="pill pill-{{ order.status }}">{{ order.get_status_display }}</span>
+                            {% if order.status == 'quoted' and order.is_stale %}<span class="pill pill-stale mt-1">Expired</span>{% endif %}
+                        </td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center justify-end gap-1">
+                                {% if order.can_accept %}
+                                <button hx-get="{% url 'portal:buyer_request_detail' order.pk %}" hx-target="#modal-container" hx-swap="innerHTML"
+                                        type="button" class="btn btn-primary cursor-pointer" style="padding:.4rem .8rem; font-size:.75rem" title="This quote needs your answer">Respond</button>
+                                {% endif %}
+                                <button hx-get="{% url 'portal:buyer_request_detail' order.pk %}" hx-target="#modal-container" hx-swap="innerHTML"
+                                        type="button" class="p-2 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer" title="View">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                </button>
+                                {% if order.is_cancellable %}
+                                <button hx-get="{% url 'portal:buyer_request_cancel' order.pk %}" hx-target="#modal-container" hx-swap="innerHTML"
+                                        type="button" class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" title="Cancel request">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-5 py-14 text-center">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-emerald-50 text-emerald-500 rounded-2xl mb-4">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                            </div>
+                            <p class="font-semibold text-gray-700">No requests yet</p>
+                            <p class="text-sm text-gray-500 mt-1 mb-5 max-w-md mx-auto">Tell the farm what you need and it comes back with a quoted price — usually the same day.</p>
+                            <button hx-get="{% url 'portal:buyer_request_create' %}" hx-target="#modal-container" hx-swap="innerHTML"
+                                    type="button" class="btn btn-primary cursor-pointer">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+                                <span>Create my first request</span>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if requests %}
+        <div class="px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
+            Quotes lapse if left too long &mdash; respond as soon as the farm prices your request.
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

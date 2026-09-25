@@ -2,7 +2,8 @@ from rest_framework import serializers
 
 from buyers.models import Buyer, OrderRequest
 from expenses.models import ExpenseRecord
-from inventory.models import Unit
+from inventory.models import InventoryItem, Unit
+from inventory.services import stock_target_for_notice
 from notifications.models import Notification
 from sales.models import SalesRecord
 from suppliers.models import DeliveryNotice, Supplier, SupplyItem
@@ -24,7 +25,7 @@ class PortalNotificationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Notification
-        fields = ["id", "kind", "title", "message", "link", "is_read", "created_at"]
+        fields = ["id", "kind", "title", "message", "link", "target", "is_read", "created_at"]
 
 
 class ProfileEmailSyncMixin:
@@ -216,20 +217,61 @@ class ConvertSaleSerializer(serializers.ModelSerializer):
 
 class DeliveryNoticeStaffSerializer(serializers.ModelSerializer):
     supplier_name = serializers.CharField(source="supplier.name", read_only=True)
+    # Lets clients prefill the booked amount as the web review page does (unit price x quantity).
+    supply_item_price = serializers.DecimalField(
+        source="supply_item.unit_price", max_digits=10, decimal_places=2, read_only=True, allow_null=True
+    )
+    # The stock row a receive would land in if left untouched (explicit booking, else catalog
+    # mapping), so the mobile picker can preselect it. Null means no booking will happen.
+    mapped_inventory_item = serializers.SerializerMethodField()
 
     class Meta:
         model = DeliveryNotice
         fields = [
-            "id", "supplier", "supplier_name", "origin", "supply_item", "description",
-            "quantity", "expected_date", "supplier_note", "status", "expense_record", "created_at",
+            "id", "supplier", "supplier_name", "origin", "supply_item", "supply_item_price", "description",
+            "quantity", "expected_date", "supplier_note", "status", "expense_record", "inventory_item",
+            "mapped_inventory_item", "created_at",
         ]
-        read_only_fields = ["id", "supplier_name", "origin", "expense_record", "created_at"]
+        read_only_fields = ["id", "supplier_name", "origin", "expense_record", "inventory_item", "created_at"]
+
+    def get_mapped_inventory_item(self, obj):
+        target = stock_target_for_notice(obj)
+        return target.pk if target else None
+
+
+class FarmOrderCreateSerializer(serializers.ModelSerializer):
+    """Payload for a farm-initiated purchase order; mirrors FarmDeliveryOrderForm."""
+
+    class Meta:
+        model = DeliveryNotice
+        fields = ["supplier", "supply_item", "description", "quantity", "expected_date"]
+
+    def validate_supplier(self, value):
+        if not value.is_active or value.verification_status != "approved":
+            raise serializers.ValidationError("Only an approved supplier can receive farm orders.")
+        return value
+
+    def validate_supply_item(self, value):
+        if not value.is_active:
+            raise serializers.ValidationError("This catalog item is no longer offered.")
+        return value
+
+    def validate(self, attrs):
+        item = attrs.get("supply_item")
+        if item and item.supplier_id != attrs["supplier"].pk:
+            raise serializers.ValidationError({"supply_item": "This item is not in the selected supplier's catalog."})
+        return attrs
 
 
 class ReceiveExpenseSerializer(serializers.ModelSerializer):
+    # Receive-time stock decision; consumed by the view, never saved on ExpenseRecord.
+    inventory_item = serializers.PrimaryKeyRelatedField(
+        queryset=InventoryItem.objects.filter(is_active=True), required=False, allow_null=True,
+    )
+
     class Meta:
         model = ExpenseRecord
-        fields = ["category", "description", "amount", "expense_date", "payment_method", "notes"]
+        fields = ["category", "description", "amount", "expense_date", "payment_method", "notes", "inventory_item"]
         extra_kwargs = {
             "notes": {"required": False, "allow_blank": True},
         }

@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Mortality Report{% endblock %}
+{% block title %}Deaths Report{% endblock %}
 {% block content %}
 <div class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Mortality Report</h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Last 30 days mortality records</p>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Deaths Report</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Last 30 days death records</p>
         </div>
         <div class="flex items-center space-x-3">
-            <a href="{% url 'reports:export_mortality_excel' %}" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 inline-flex items-center space-x-1 text-sm">
+            <a href="{% url 'reports:export_death_excel' %}" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 inline-flex items-center space-x-1 text-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 <span>Export Excel</span>
             </a>
-            <a href="{% url 'reports:mortality_report_print' %}" target="_blank" rel="noopener" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 inline-flex items-center space-x-1 text-sm">
+            <a href="{% url 'reports:death_report_print' %}" target="_blank" rel="noopener" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 inline-flex items-center space-x-1 text-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                 <span>Print / PDF</span>
             </a>
@@ -25,14 +25,14 @@
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Total Mortality</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Total Deaths</p>
             <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ total_mortality }}</p>
         </div>
     </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="font-semibold text-gray-800 dark:text-white">Mortality Records</h3>
+            <h3 class="font-semibold text-gray-800 dark:text-white">Death Records</h3>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full">
@@ -58,7 +58,7 @@
                             <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
                                 <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                             </div>
-                            <p class="text-gray-500 dark:text-gray-400 text-sm">No mortality records found for this period</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm">No death records found for this period</p>
                         </td>
                     </tr>
                     {% endfor %}

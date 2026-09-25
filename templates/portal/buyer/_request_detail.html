@@ -1,0 +1,5 @@
+{% extends "partials/modal.html" %}
+{% block modal_title %}{{ order.request_number }}{% endblock %}
+{% block modal_content %}
+{% include "portal/buyer/_detail_body.html" %}
+{% endblock %}

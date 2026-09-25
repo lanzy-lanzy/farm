@@ -1,0 +1,20 @@
+{% extends "partials/modal.html" %}
+{% block modal_title %}Cancel Request{% endblock %}
+{% block modal_content %}
+<div class="text-center py-2">
+    <div class="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+    </div>
+    <h3 class="text-lg font-semibold text-gray-800">Cancel {{ order.request_number }}?</h3>
+    <p class="text-sm text-gray-500 mt-2 max-w-sm mx-auto">
+        {{ order.quantity }} &times; {{ order.product_name }} wanted {{ order.requested_date }} will be withdrawn from the farm's queue.
+        Cancelled requests cannot be reopened &mdash; you would need to submit a new one.
+    </p>
+</div>
+<form hx-post="{% url 'portal:buyer_request_cancel' order.pk %}" hx-target="#modal-container" hx-swap="innerHTML"
+      class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-center gap-2 sm:space-x-3 pt-5 mt-4 border-t border-gray-200">
+    {% csrf_token %}
+    <button type="button" onclick="this.closest('#modal-overlay').remove()" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer">Keep Request</button>
+    <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg transition-all duration-200 cursor-pointer">Yes, Cancel It</button>
+</form>
+{% endblock %}

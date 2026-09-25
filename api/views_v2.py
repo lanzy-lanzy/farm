@@ -1,15 +1,18 @@
 from decimal import Decimal
 
+from django.db import transaction
+from django.db.models import Max
 from django.utils import timezone
-from rest_framework import status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from buyers.models import Buyer, OrderRequest
-from expenses.models import ExpenseRecord
-from inventory.models import Unit
+from expenses.models import ExpenseCategory, ExpenseRecord
+from inventory.models import InventoryItem, Unit
+from inventory.services import deduct_for_sale, receive_for_notice, sale_stock_block_reason
 from notifications.models import Notification
 from notifications.utils import log_activity, notify_team, notify_user
 from sales.models import SalesRecord
@@ -29,6 +32,7 @@ from .serializers_v2 import (
     ConvertSaleSerializer,
     DeliveryNoticePortalSerializer,
     DeliveryNoticeStaffSerializer,
+    FarmOrderCreateSerializer,
     FarmOrderResponseSerializer,
     OrderRequestPortalSerializer,
     OrderRequestStaffSerializer,
@@ -96,6 +100,7 @@ class OrderRequestPortalViewSet(viewsets.ModelViewSet):
             f"New order request {order.request_number}",
             f"{order.buyer.name} requested {order.quantity} {order.product_name}.",
             link=f"/sales/requests/{order.pk}/",
+            target=f"order_request:{order.pk}",
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -112,7 +117,8 @@ class OrderRequestPortalViewSet(viewsets.ModelViewSet):
         order.status = "cancelled"
         order.save()
         notify_team("order_request", f"Request {order.request_number} cancelled",
-                    f"{order.buyer.name} cancelled the request.", link="/sales/requests/")
+                    f"{order.buyer.name} cancelled the request.", link="/sales/requests/",
+                    target=f"order_request:{order.pk}")
         return Response(self.get_serializer(order).data)
 
     @action(detail=True, methods=["post"])
@@ -125,7 +131,7 @@ class OrderRequestPortalViewSet(viewsets.ModelViewSet):
         order.save()
         notify_team("order_request", f"Quote accepted for {order.request_number}",
                     f"{order.buyer.name} accepted the quote. Ready to record the sale.",
-                    link=f"/sales/requests/{order.pk}/")
+                    link=f"/sales/requests/{order.pk}/", target=f"order_request:{order.pk}")
         return Response(self.get_serializer(order).data)
 
     @action(detail=True, methods=["post"])
@@ -136,7 +142,8 @@ class OrderRequestPortalViewSet(viewsets.ModelViewSet):
         order.status = "rejected"
         order.save()
         notify_team("order_request", f"Quote declined for {order.request_number}",
-                    f"{order.buyer.name} declined the quote.", link=f"/sales/requests/{order.pk}/")
+                    f"{order.buyer.name} declined the quote.", link=f"/sales/requests/{order.pk}/",
+                    target=f"order_request:{order.pk}")
         return Response(self.get_serializer(order).data)
 
 
@@ -196,8 +203,9 @@ class DeliveryNoticePortalViewSet(viewsets.ModelViewSet):
         notify_team(
             "delivery_notice",
             f"Delivery from {notice.supplier.name}",
-            f"{notice.quantity} {notice.description} expected on {notice.expected_date}.",
+            f"{notice.quantity_label} expected on {notice.expected_date}.",
             link="/expenses/deliveries/",
+            target=f"delivery_notice:{notice.pk}",
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -214,21 +222,21 @@ class DeliveryNoticePortalViewSet(viewsets.ModelViewSet):
         notice.save()
         notify_team("delivery_notice", f"Delivery cancelled: {notice.description}",
                     f"{notice.supplier.name} cancelled the announced delivery. {note or ''}".strip(),
-                    link="/expenses/deliveries/")
+                    link="/expenses/deliveries/", target=f"delivery_notice:{notice.pk}")
         return Response(self.get_serializer(notice).data)
 
     @action(detail=True, methods=["post"])
     def respond(self, request, pk=None):
         notice = self.get_object()
-        if not notice.is_farm_order_open:
+        if not notice.can_supplier_respond:
             return Response({"detail": "This farm order can no longer be updated."}, status=status.HTTP_400_BAD_REQUEST)
         serializer = FarmOrderResponseSerializer(notice, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        notice = serializer.save()
+        notice = serializer.save(status="confirmed")
         notify_team("delivery_notice", f"Supplier confirmed delivery: {notice.description}",
                     f"{notice.supplier.name} confirmed the farm order for {notice.expected_date}."
                     + (f" Note: {notice.supplier_note}" if notice.supplier_note else ""),
-                    link="/expenses/deliveries/")
+                    link="/expenses/deliveries/", target=f"delivery_notice:{notice.pk}")
         return Response(self.get_serializer(notice).data)
 
 
@@ -258,7 +266,7 @@ class InternalOrderRequestViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=["post"])
     def quote(self, request, pk=None):
         order = self.get_object()
-        if not order.can_quote():
+        if not (order.can_quote() or order.can_requote()):
             return Response({"detail": "Request is not quotable in its current status."}, status=status.HTTP_400_BAD_REQUEST)
         serializer = QuoteActionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -268,7 +276,7 @@ class InternalOrderRequestViewSet(viewsets.ReadOnlyModelViewSet):
         order.save()
         notify_user(order.buyer.user, "order_request", f"Quote ready for {order.request_number}",
                     f"The farm quoted {order.quoted_unit_price} per unit.",
-                    link=f"/portal/buyer/requests/{order.pk}/")
+                    link=f"/portal/buyer/requests/{order.pk}/", target=f"order_request:{order.pk}")
         return Response(self.get_serializer(order).data)
 
     @action(detail=True, methods=["post"])
@@ -283,7 +291,7 @@ class InternalOrderRequestViewSet(viewsets.ReadOnlyModelViewSet):
         order.save()
         notify_user(order.buyer.user, "order_request", f"Request {order.request_number} declined",
                     order.staff_note or "The farm could not fulfil this request.",
-                    link=f"/portal/buyer/requests/{order.pk}/")
+                    link=f"/portal/buyer/requests/{order.pk}/", target=f"order_request:{order.pk}")
         return Response(self.get_serializer(order).data)
 
     @action(detail=True, methods=["post"])
@@ -305,57 +313,127 @@ class InternalOrderRequestViewSet(viewsets.ReadOnlyModelViewSet):
         reason = credit_block_reason(order.buyer, unpaid) if data["payment_status"] != "paid" else None
         if reason and not elevated:
             return Response({"detail": f"Credit limit exceeded — {reason}"}, status=status.HTTP_400_BAD_REQUEST)
-        record = serializer.save(recorded_by=request.user, buyer=order.buyer)
+        stock_reason = sale_stock_block_reason(data["product_type"], data["quantity"])
+        if stock_reason:
+            return Response({"detail": f"Insufficient stock — {stock_reason}"}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            record = serializer.save(recorded_by=request.user, buyer=order.buyer)
+            order.sales_record = record
+            order.status = "converted"
+            order.save()
+            deduct_for_sale(record, user=request.user)
         if reason:
             log_activity(request.user, "update", "OrderRequest", order.pk, order.request_number, f"Credit limit override at conversion: {reason}")
-        order.sales_record = record
-        order.status = "converted"
-        order.save()
         notify_user(order.buyer.user, "order_request", f"Order {order.request_number} recorded as sold",
                     f"Sale of {record.quantity} {record.product_name} for {record.total_amount} has been recorded.",
-                    link=f"/portal/buyer/requests/{order.pk}/")
+                    link=f"/portal/buyer/requests/{order.pk}/", target=f"order_request:{order.pk}")
         return Response(self.get_serializer(order).data, status=status.HTTP_201_CREATED)
 
 
-class InternalDeliveryNoticeViewSet(viewsets.ReadOnlyModelViewSet):
+class InternalDeliveryNoticeViewSet(mixins.CreateModelMixin, viewsets.ReadOnlyModelViewSet):
+    """Staff reads the delivery queue and places farm-origin purchase orders."""
+
     permission_classes = [IsInternalUser]
     serializer_class = DeliveryNoticeStaffSerializer
+    http_method_names = ["get", "post", "head", "options"]
 
     def get_queryset(self):
-        qs = DeliveryNotice.objects.select_related("supplier", "supply_item").order_by("-expected_date")
+        qs = DeliveryNotice.objects.select_related("supplier", "supply_item").order_by("-created_at")
         state = self.request.query_params.get("status")
-        if state:
+        if state == "open":
+            # The web queue's "awaiting the farm" set; clients need it for one request.
+            qs = qs.filter(status__in=["announced", "confirmed"])
+        elif state:
             qs = qs.filter(status=state)
         return qs
+
+    def create(self, request, *args, **kwargs):
+        order = FarmOrderCreateSerializer(data=request.data, context={"request": request})
+        order.is_valid(raise_exception=True)
+        notice = order.save(origin="farm", status="announced", created_by=request.user)
+        notify_user(
+            notice.supplier.user,
+            "delivery_notice",
+            f"The farm ordered: {notice.description}",
+            f"{notice.quantity_label} requested for {notice.expected_date}. "
+            "Confirm or adjust the date in your portal.",
+            link="/portal/supplier/deliveries/",
+            target=f"delivery_notice:{notice.pk}",
+        )
+        log_activity(request.user, "create", "DeliveryNotice", notice.pk, str(notice), "Farm ordered from supplier")
+        return Response(self.get_serializer(notice).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])
     def receive(self, request, pk=None):
         notice = self.get_object()
-        if notice.status != "announced":
+        if not notice.awaits_farm_action:
             return Response({"detail": "Notice is not open."}, status=status.HTTP_400_BAD_REQUEST)
         serializer = ReceiveExpenseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        record = serializer.save(recorded_by=request.user, supplier=notice.supplier)
-        notice.status = "received"
-        notice.expense_record = record
-        notice.received_by = request.user
-        notice.save()
+        booked = serializer.validated_data.pop("inventory_item", None)
+        with transaction.atomic():
+            record = serializer.save(recorded_by=request.user, supplier=notice.supplier)
+            notice.status = "received"
+            notice.expense_record = record
+            notice.received_by = request.user
+            if booked:
+                notice.inventory_item = booked
+            notice.save()
+            receive_for_notice(notice, user=request.user)
         notify_user(notice.supplier.user, "delivery_notice", f"Delivery received: {notice.description}",
                     f"The farm booked {record.description} for {record.amount}.",
-                    link="/portal/supplier/history/")
+                    link="/portal/supplier/history/", target=f"delivery_notice:{notice.pk}")
         return Response(self.get_serializer(notice).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
         notice = self.get_object()
-        if notice.status != "announced":
+        if not notice.awaits_farm_action:
             return Response({"detail": "Notice is not open."}, status=status.HTTP_400_BAD_REQUEST)
         notice.status = "rejected"
         notice.save()
         notify_user(notice.supplier.user, "delivery_notice", f"Delivery rejected: {notice.description}",
                     request.data.get("note") or "The farm could not accept this delivery.",
-                    link="/portal/supplier/deliveries/")
+                    link="/portal/supplier/deliveries/", target=f"delivery_notice:{notice.pk}")
         return Response(self.get_serializer(notice).data)
+
+
+class InternalOptionsView(APIView):
+    """Pick-lists the staff forms need, so no client hardcodes database rows.
+
+    Suppliers are limited to the ones a farm order may actually go to, and catalog
+    items to those suppliers, mirroring FarmDeliveryOrderForm's querysets.
+    """
+
+    permission_classes = [IsInternalUser]
+
+    def get(self, request):
+        suppliers = list(
+            Supplier.objects.filter(is_active=True, verification_status="approved")
+            .order_by("name")
+            .values("id", "name")
+        )
+        items = list(
+            SupplyItem.objects.filter(is_active=True, supplier__in=[s["id"] for s in suppliers])
+            .order_by("name")
+            .values("id", "supplier", "name", "category", "unit_price")
+        )
+        inventory_items = list(
+            InventoryItem.objects.filter(is_active=True)
+            .order_by("name")
+            .values("id", "name", "quantity", "sales_product_type")
+        )
+        return Response(
+            {
+                "expense_categories": list(ExpenseCategory.objects.order_by("name").values("id", "name")),
+                "payment_methods": [
+                    {"value": value, "label": label} for value, label in ExpenseRecord.PAYMENT_METHOD_CHOICES
+                ],
+                "suppliers": suppliers,
+                "supply_items": items,
+                "inventory_items": inventory_items,
+            }
+        )
 
 
 class PendingVerificationsView(APIView):
@@ -440,7 +518,9 @@ class PortalNotificationListView(ListAPIView):
     serializer_class = PortalNotificationSerializer
 
     def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user)
+        # Unread first (is_read ascending puts False ahead of True) so a client's first
+        # page is always what still needs attention, newest first inside each half.
+        return Notification.objects.filter(user=self.request.user).order_by("is_read", "-created_at")
 
 
 class PortalNotificationReadView(APIView):
@@ -453,3 +533,27 @@ class PortalNotificationReadView(APIView):
         notification.is_read = True
         notification.save(update_fields=["is_read"])
         return Response(PortalNotificationSerializer(notification).data)
+
+
+class PortalSyncStateView(APIView):
+    """Cheap change cursors so mobile clients can poll without re-fetching every list.
+
+    Clients compare against their last-seen values and refetch only the
+    collections whose cursor moved.
+    """
+
+    permission_classes = [IsVerifiedPortalUser]
+
+    def get(self, request):
+        user = request.user
+        data = {
+            "unread": Notification.objects.filter(user=user, is_read=False).count(),
+        }
+        if user.role == "buyer":
+            data["orders"] = OrderRequest.objects.filter(buyer=user.buyer).aggregate(m=Max("updated_at"))["m"]
+            data["sales"] = SalesRecord.objects.filter(buyer=user.buyer).aggregate(m=Max("updated_at"))["m"]
+        else:
+            data["items"] = SupplyItem.objects.filter(supplier=user.supplier).aggregate(m=Max("updated_at"))["m"]
+            data["notices"] = DeliveryNotice.objects.filter(supplier=user.supplier).aggregate(m=Max("updated_at"))["m"]
+            data["purchases"] = ExpenseRecord.objects.filter(supplier=user.supplier).aggregate(m=Max("updated_at"))["m"]
+        return Response(data)

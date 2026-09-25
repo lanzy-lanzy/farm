@@ -1,19 +1,111 @@
 {% extends "portal/base.html" %}
-{% block title %}Profile{% endblock %}
+{% block title %}My Profile{% endblock %}
+{% block page_title %}Profile{% endblock %}
 {% block content %}
-<div class="max-w-lg mx-auto space-y-4">
-    <h1 class="text-xl font-bold text-gray-800 dark:text-white">My Profile</h1>
-    <div class="flex items-center gap-2 text-sm">
-        <span class="text-gray-500">Account status:</span>
-        <span class="pill pill-{{ buyer.verification_status }}">{{ buyer.get_verification_status_display }}</span>
-        {% if buyer.credit_limit %}<span class="text-gray-500">Credit limit: ₱{{ buyer.credit_limit|floatformat:2 }}</span>{% endif %}
+<div class="space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h1 class="text-xl font-bold text-gray-800">My Profile</h1>
+            <p class="text-sm text-gray-500 mt-1">How the farm reaches you, and what your account is allowed to do.</p>
+        </div>
+        <button hx-get="{% url 'portal:buyer_profile_update' %}" hx-target="#modal-container" hx-swap="innerHTML"
+                type="button" class="btn btn-primary self-start sm:self-auto cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            <span>Edit My Details</span>
+        </button>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <form method="post">
-            {% csrf_token %}
-            {% include "portal/_form_fields.html" %}
-            <button type="submit" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg transition-colors">Save Changes</button>
-        </form>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="panel">
+            <div class="panel-head">
+                <h2 class="panel-title">Contact Details</h2>
+                <span class="panel-hint">Yours to keep current</span>
+            </div>
+            <dl class="divide-y divide-gray-100">
+                <div class="row">
+                    <dt class="text-sm text-gray-500 shrink-0">Business / name</dt>
+                    <dd class="text-sm font-semibold text-gray-800 text-right truncate">{{ buyer.name }}</dd>
+                </div>
+                <div class="row">
+                    <dt class="text-sm text-gray-500 shrink-0">Contact person</dt>
+                    <dd class="text-sm text-gray-800 text-right">{{ buyer.contact_person|default:"—" }}</dd>
+                </div>
+                <div class="row">
+                    <dt class="text-sm text-gray-500 shrink-0">Phone</dt>
+                    <dd class="text-sm text-gray-800 text-right">{{ buyer.phone|default:"—" }}</dd>
+                </div>
+                <div class="row">
+                    <dt class="text-sm text-gray-500 shrink-0">Email</dt>
+                    <dd class="text-sm text-gray-800 text-right break-all">{{ buyer.email|default:"—" }}</dd>
+                </div>
+                <div class="row row-col gap-1 items-start">
+                    <dt class="text-sm text-gray-500">Address</dt>
+                    <dd class="text-sm text-gray-800">{{ buyer.address|default:"Not on file — the farm asks for it when scheduling a pickup." }}</dd>
+                </div>
+                <div class="row">
+                    <dt class="text-sm text-gray-500 shrink-0">Account type</dt>
+                    <dd class="text-sm text-gray-800 text-right">{{ buyer.get_buyer_type_display }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="stat">
+                    <p class="label">Verification</p>
+                    <p class="mt-1.5"><span class="pill pill-{{ buyer.verification_status }}">{{ buyer.get_verification_status_display }}</span></p>
+                    <p class="meta">{% if buyer.verified_at %}Approved {{ buyer.verified_at|date:"j M Y" }}{% else %}Set by farm staff{% endif %}</p>
+                </div>
+                <div class="stat">
+                    <p class="label">Outstanding Balance</p>
+                    <p class="value" {% if buyer.outstanding_balance > 0 %}style="color:#b45309"{% endif %}>₱{{ buyer.outstanding_balance|floatformat:2 }}</p>
+                    <p class="meta">Across {{ buyer.sales_records.count }} recorded sales</p>
+                </div>
+                <div class="stat">
+                    <p class="label">Credit Limit</p>
+                    <p class="value">{% if buyer.credit_limit %}₱{{ buyer.credit_limit|floatformat:0 }}{% else %}None{% endif %}</p>
+                    <p class="meta">{% if buyer.credit_limit %}Caps unpaid orders{% else %}Prepayment or cash on delivery{% endif %}</p>
+                </div>
+                <div class="stat">
+                    <p class="label">Member Since</p>
+                    <p class="value">{{ buyer.created_at|date:"M Y" }}</p>
+                    <p class="meta">{{ buyer.order_requests.count }} requests raised</p>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head">
+                    <h2 class="panel-title">Account Settings</h2>
+                </div>
+                <div class="row">
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium text-gray-800">Sign-in password</p>
+                        <p class="text-xs text-gray-500">Choose something you use nowhere else.</p>
+                    </div>
+                    <a href="{% url 'portal:password_change' %}" class="btn btn-ghost shrink-0">Change</a>
+                </div>
+                <div class="row">
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium text-gray-800">Login name</p>
+                        <p class="text-xs text-gray-500">Set by the farm &mdash; ask staff to change it.</p>
+                    </div>
+                    <span class="text-sm font-mono text-gray-600 shrink-0">{{ user.username }}</span>
+                </div>
+                {% if buyer.notes %}
+                <div class="row row-col items-start gap-1">
+                    <dt class="text-sm text-gray-500">Notes from the farm</dt>
+                    <dd class="text-sm text-gray-700 italic">&ldquo;{{ buyer.notes }}&rdquo;</dd>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
+
+    {% if buyer.verification_status != 'approved' %}
+    <div class="panel p-4 text-sm text-gray-600">
+        <strong class="text-gray-800">Your account is {{ buyer.get_verification_status_display|lower }}.</strong>
+        Order requests are saved, but the farm only quotes approved buyers.
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

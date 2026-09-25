@@ -11,7 +11,7 @@ from django.utils.dateparse import parse_date
 from flocks.models import FlockBatch
 from inventory.models import InventoryItem
 from eggs.models import EggProduction
-from mortality.models import MortalityRecord
+from deaths.models import DeathRecord
 from sales.models import SalesRecord
 from expenses.models import ExpenseRecord
 
@@ -122,17 +122,17 @@ def production_report_print(request):
 
 
 # --------------------------------------------------------------------------- #
-#  Mortality
+#  Deaths
 # --------------------------------------------------------------------------- #
-def _mortality_context(start=None, end=None):
+def _death_context(start=None, end=None):
     if start is None or end is None:
         start, end = _period()
-    records = MortalityRecord.objects.filter(date_recorded__range=(start, end))
+    records = DeathRecord.objects.filter(date_recorded__range=(start, end))
     total_mortality = records.aggregate(total=Sum("quantity"))["total"] or 0
     return {
         "records": records,
         "total_mortality": total_mortality,
-        "report_title": "Mortality Report",
+        "report_title": "Deaths Report",
         "report_subtitle": "Death records and causes",
         "date_range": _range_label(start, end),
         "start_date": start,
@@ -141,18 +141,18 @@ def _mortality_context(start=None, end=None):
 
 
 @internal_only
-def mortality_report(request):
-    return render(request, "reports/mortality_report.html", _mortality_context())
+def death_report(request):
+    return render(request, "reports/death_report.html", _death_context())
 
 
 @internal_only
-def mortality_report_print(request):
+def death_report_print(request):
     start, end = _requested_period(request)
-    ctx = {**_mortality_context(start, end), **_farm_context(request)}
-    ctx["back_url"] = reverse("reports:mortality_report")
-    ctx["print_url"] = reverse("reports:mortality_report_print")
+    ctx = {**_death_context(start, end), **_farm_context(request)}
+    ctx["back_url"] = reverse("reports:death_report")
+    ctx["print_url"] = reverse("reports:death_report_print")
     ctx["show_date_filter"] = True
-    return render(request, "reports/mortality_print.html", ctx)
+    return render(request, "reports/death_print.html", ctx)
 
 
 # --------------------------------------------------------------------------- #
@@ -331,10 +331,10 @@ def export_production_excel(request):
 
 
 @internal_only
-def export_mortality_excel(request):
-    records = _mortality_context()["records"]
+def export_death_excel(request):
+    records = _death_context()["records"]
     rows = [[r.date_recorded, str(r.flock.batch_number), r.quantity, r.cause] for r in records]
-    return _export_to_excel(rows, ["Date", "Flock", "Quantity", "Cause"], "mortality_report")
+    return _export_to_excel(rows, ["Date", "Flock", "Quantity", "Cause"], "death_report")
 
 
 @internal_only

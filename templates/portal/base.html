@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }" :class="{ 'dark': darkMode }">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,11 +10,160 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}?v={{ static_version }}">
     <style>
         [x-cloak] { display: none !important; }
+
+        /* ---------- Portal theme tokens (per role) ---------- */
+        .role-buyer    { --brand: #0d9488; --brand-2: #0ea5e9; --brand-ink: #ecfeff; }
+        .role-supplier { --brand: #059669; --brand-2: #65a30d; --brand-ink: #f0fdf4; }
+
+        /* ---------- Forest-glass sidebar, tinted by role ---------- */
+        .side {
+            --accent: #a3e635; --accent-soft: #6ee7b7; --glow: rgba(163, 230, 53, .5);
+            --tint-a: rgba(16, 185, 129, .16); --tint-b: rgba(163, 230, 53, .09);
+        }
+        .side--buyer {
+            --accent: #7dd3fc; --accent-soft: #5eead4; --glow: rgba(56, 189, 248, .5);
+            --tint-a: rgba(14, 165, 233, .2); --tint-b: rgba(45, 212, 191, .1);
+        }
+        .side {
+            background:
+                radial-gradient(130% 55% at 0% 0%, var(--tint-a), transparent 62%),
+                radial-gradient(120% 40% at 100% 100%, var(--tint-b), transparent 60%),
+                linear-gradient(180deg, #072a1b 0%, #04170e 55%, #030f0a 100%);
+            border-right: 1px solid rgba(255, 255, 255, .08);
+            color: #dcefe3;
+            /* Off-canvas drawer, pinned as a sticky rail from lg up. Deliberately
+               plain CSS: Tailwind's responsive utilities for this layout are not
+               all present in the precompiled styles.css. */
+            position: fixed; top: 0; bottom: 0; left: 0; width: 16.5rem; z-index: 60;
+            transform: translateX(-100%);
+            transition: transform .32s cubic-bezier(.22, 1, .36, 1);
+        }
+        .side.is-open { transform: translateX(0); box-shadow: 0 0 60px rgba(0, 0, 0, .5); }
+        @media (min-width: 1024px) {
+            .side { position: sticky; height: 100vh; bottom: auto; transform: none; box-shadow: none; z-index: 30; }
+            .side-overlay { display: none !important; }
+        }
+        .side-brand {
+            height: 4.5rem; flex-shrink: 0;
+            display: flex; align-items: center; gap: .7rem;
+            padding: 0 1.35rem;
+            border-bottom: 1px solid rgba(255, 255, 255, .07);
+        }
+        .side-brand .mark {
+            width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+            display: grid; place-items: center; color: var(--accent);
+            background: linear-gradient(140deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .04));
+            border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
+        }
+        .side-brand .txt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+        .side-brand .name { font-family: 'Sora', system-ui, sans-serif; font-weight: 700; font-size: 1.02rem; letter-spacing: -.01em; color: #f2faf5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .side-brand .sub { font-size: .58rem; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: color-mix(in srgb, var(--accent) 62%, #ceecdc); }
+        .side-nav { flex: 1; overflow-y: auto; padding: .5rem 0 1rem; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .14) transparent; }
+        .side-nav::-webkit-scrollbar { width: 8px; }
+        .side-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .12); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+        .side-label { font-size: .6rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: rgba(206, 236, 220, .38); padding: .95rem 1.4rem .4rem; }
+        .side-link {
+            position: relative; display: flex; align-items: center; gap: .8rem;
+            margin: 2px .65rem; padding: .62rem .85rem; border-radius: 12px;
+            border: 0; background: transparent; text-align: left; width: calc(100% - 1.3rem);
+            font-family: 'Inter', system-ui, sans-serif; font-size: .9rem; font-weight: 500;
+            color: rgba(220, 242, 230, .72); text-decoration: none; cursor: pointer;
+            transition: color .2s ease, background .2s ease, transform .2s ease;
+        }
+        .side-link svg { width: 20px; height: 20px; flex-shrink: 0; color: rgba(206, 236, 220, .5); transition: color .2s ease; }
+        .side-link span { flex: 1; min-width: 0; }
+        .side-link:hover { color: #f2faf5; background: rgba(255, 255, 255, .05); transform: translateX(3px); }
+        .side-link:hover svg { color: var(--accent-soft); }
+        .side-link.is-active {
+            color: #eafff3;
+            background: linear-gradient(100deg, color-mix(in srgb, var(--accent) 26%, transparent), rgba(255, 255, 255, .04));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+        }
+        .side-link.is-active svg { color: var(--accent); }
+        .side-link.is-active::before {
+            content: ''; position: absolute; left: -.65rem; top: 50%; transform: translateY(-50%);
+            width: 3px; height: 58%; border-radius: 0 3px 3px 0;
+            background: linear-gradient(var(--accent), var(--accent-soft)); box-shadow: 0 0 12px var(--glow);
+        }
+        .nav-badge { margin-left: auto; background: #ef4444; color: #fff; font-size: .65rem; font-weight: 700; border-radius: 999px; min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; box-shadow: 0 0 0 3px rgba(239, 68, 68, .18); }
+        .side-cta {
+            display: flex; align-items: center; justify-content: center; gap: .5rem;
+            margin: .9rem .65rem 0; padding: .66rem .85rem; border-radius: 12px;
+            /* Rendered as <button> on the dialog-trigger variants: reset UA chrome and match the links' box. */
+            border: 0; width: calc(100% - 1.3rem); cursor: pointer;
+            font-family: 'Inter', system-ui, sans-serif; font-size: .86rem; font-weight: 700;
+            color: #04202b; text-decoration: none;
+            background: linear-gradient(120deg, var(--accent), var(--accent-soft));
+            box-shadow: 0 8px 20px -10px var(--glow);
+            transition: transform .2s var(--ease-out, ease), box-shadow .2s ease, filter .2s ease;
+        }
+        .side-cta:hover { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 12px 26px -10px var(--glow); }
+        .side-foot { flex-shrink: 0; padding: .85rem; border-top: 1px solid rgba(255, 255, 255, .07); }
+        .side-foot .side-link { margin: 0; width: 100%; }
+        .side-logout:hover { color: #ffe4e6 !important; background: rgba(244, 63, 94, .16) !important; }
+        .side-logout:hover svg { color: #fb7185 !important; }
+
+        /* ---------- Portal content kit ---------- */
+        /* width (not just max-width) keeps this flex item from shrink-wrapping to
+           oversized content, e.g. a wide catalog table, which would otherwise make
+           the whole page scroll sideways instead of the table's own wrapper. */
+        .portal-main { max-width: 74rem; width: 100%; min-width: 0; margin-inline: auto; padding: 1.35rem 1rem 0; }
+        .hero {
+            position: relative; overflow: hidden; border-radius: 22px; color: #f0fdf9;
+            padding: 1.6rem 1.5rem;
+            background: linear-gradient(125deg, var(--brand) 0%, color-mix(in srgb, var(--brand-2) 80%, #065f46) 100%);
+            box-shadow: 0 18px 40px -26px rgba(4, 23, 14, .8);
+        }
+        .hero::after {
+            content: ''; position: absolute; right: -70px; top: -90px; width: 260px; height: 260px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, .22), transparent 66%);
+        }
+        .hero h1 { font-family: 'Sora', system-ui, sans-serif; font-weight: 700; font-size: 1.5rem; color: #fff; letter-spacing: -.015em; }
+        .panel {
+            background: #fff; border-radius: 18px; border: 1px solid rgba(15, 60, 40, .08);
+            box-shadow: 0 1px 2px rgba(4, 23, 14, .05), 0 14px 30px -24px rgba(4, 23, 14, .4);
+        }
+        .panel-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .95rem 1.15rem; border-bottom: 1px solid rgba(15, 60, 40, .08); }
+        .panel-title { font-family: 'Sora', system-ui, sans-serif; font-weight: 700; font-size: .97rem; color: #0f2419; }
+        .panel-hint { font-size: .74rem; color: #6b7f76; }
+        .panel-body { padding: 1.15rem; }
+        .stat {
+            position: relative; overflow: hidden; background: #fff; border-radius: 16px; padding: .95rem 1.05rem .95rem 1.25rem;
+            border: 1px solid rgba(15, 60, 40, .08);
+            box-shadow: 0 1px 2px rgba(4, 23, 14, .05), 0 14px 30px -26px rgba(4, 23, 14, .35);
+        }
+        .stat::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(var(--brand), var(--brand-2)); }
+        .stat .label { font-size: .6rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #6b8878; }
+        .stat .value { font-family: 'Sora', system-ui, sans-serif; font-weight: 700; font-size: 1.42rem; color: #0f2419; margin-top: .15rem; }
+        .stat .meta { font-size: .72rem; color: #78907f; margin-top: .1rem; }
+        .btn { display: inline-flex; align-items: center; gap: .45rem; padding: .55rem 1.05rem; border-radius: 12px; font-size: .84rem; font-weight: 600; text-decoration: none; border: 0; cursor: pointer; transition: transform .2s ease, box-shadow .2s ease, background .2s ease; font-family: 'Inter', system-ui, sans-serif; }
+        .btn-primary { color: #fff; background: linear-gradient(120deg, var(--brand), var(--brand-2)); box-shadow: 0 10px 22px -14px rgba(4, 23, 14, .9); }
+        .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
+        .btn-ghost { color: #14532d; background: var(--brand-ink); }
+        .btn-ghost:hover { background: color-mix(in srgb, var(--brand-ink) 60%, #fff); }
+        .btn-light { color: #ecfeff; background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .34); }
+        .btn-light:hover { background: rgba(255, 255, 255, .26); }
+        .empty { text-align: center; padding: 2.2rem 1rem; color: #7b8f85; font-size: .88rem; }
+        .empty strong { display: block; font-family: 'Sora', sans-serif; font-size: .95rem; color: #33574a; margin-bottom: .25rem; }
+        .chip { display: inline-flex; align-items: center; gap: .35rem; padding: .28rem .7rem; border-radius: 999px; font-size: .72rem; font-weight: 600; background: rgba(255, 255, 255, .16); color: #fff; border: 1px solid rgba(255, 255, 255, .3); }
+        .row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem 1.15rem; border-bottom: 1px solid rgba(15, 60, 40, .07); }
+        .row:last-child { border-bottom: 0; }
+        .row-col { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+        /* Below Tailwind's sm breakpoint, list rows stack so actions keep full width. */
+        @media (max-width: 639.98px) {
+            .row--stack { flex-direction: column; align-items: stretch; }
+            .row--stack .btn, .row--stack form { width: 100%; }
+            .row--stack .btn { justify-content: center; }
+        }
+
+        /* ---------- Status pills (custom; styles.css is precompiled Tailwind) ---------- */
         .pill { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: .72rem; font-weight: 600; }
         .pill-submitted, .pill-announced { background: #dbeafe; color: #1e40af; }
+        .pill-confirmed { background: #ccfbf1; color: #115e59; }
         .pill-under_review, .pill-pending { background: #fef3c7; color: #92400e; }
         .pill-quoted { background: #e9d5ff; color: #6b21a8; }
         .pill-accepted, .pill-received, .pill-approved { background: #dcfce7; color: #166534; }
@@ -33,66 +182,135 @@
         .stepper span.done { background: #a7f3d0; color: #065f46; }
         .stepper span.current { background: #059669; color: #fff; }
         .stepper span.dead { background: #fecaca; color: #7f1d1d; }
-        .portal-nav a { padding: .45rem .9rem; border-radius: 10px; font-size: .88rem; font-weight: 500; color: #4b5563; text-decoration: none; white-space: nowrap; flex-shrink: 0; }
-        .portal-nav a:hover { background: #ecfdf5; color: #047857; }
-        .portal-nav a.active { background: #d1fae5; color: #065f46; }
         .form-input {
             width: 100%; padding: .625rem 1rem; border: 1px solid #d1d5db; border-radius: .75rem;
             font-size: .9rem; color: #1f2937; background: #fff; transition: border-color .2s, box-shadow .2s;
         }
-        .form-input:focus { outline: none; border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, .25); }
-        .dark .form-input { background: #374151; border-color: #4b5563; color: #f9fafb; }
+        .form-input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 25%, transparent); }
+        .portal-bg { background: #f2f7f3; }
+        /* Dialogs must clear the off-canvas drawer (.side is z-60 on small screens). */
+        #modal-container { position: relative; z-index: 70; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .side-link, .side-link svg, .side-cta, .btn { transition: none; }
+            .side-link:hover, .side-cta:hover, .btn-primary:hover { transform: none; }
+        }
     </style>
 </head>
-<body class="bg-green-50 dark:bg-gray-900 min-h-screen">
-    <div x-data="{ menuOpen: false }">
-        <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-30">
-            <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="w-9 h-9 rounded-xl grid place-items-center text-emerald-600 bg-emerald-100 dark:bg-emerald-900/40 font-bold">T</span>
-                    <div class="leading-tight">
-                        <div class="font-bold text-gray-800 dark:text-white" style="font-family:'Sora',sans-serif;">Tambulig Poultry</div>
-                        <div class="text-[.62rem] uppercase tracking-widest text-emerald-700 font-semibold">{% if user.role == 'buyer' %}Buyer Portal{% else %}Supplier Portal{% endif %}</div>
+<body class="portal-bg min-h-screen {% if user.role == 'supplier' %}role-supplier{% else %}role-buyer{% endif %}">
+    <div x-data="{ sidebarOpen: false }" class="flex">
+        <!-- Sidebar overlay (mobile) -->
+        <div x-show="sidebarOpen" @click="sidebarOpen = false" class="side-overlay fixed inset-0 bg-black/50 z-50"></div>
+
+        <!-- Role-specific sidebar -->
+        <aside :class="sidebarOpen ? 'is-open' : ''"
+               class="side {% if user.role == 'buyer' %}side--buyer{% endif %} flex flex-col">
+            <div class="side-brand">
+                <span class="mark" aria-hidden="true">
+                    {% if user.role == 'buyer' %}
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                    {% else %}
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.535a1 1 0 01.949.684L19 14a1 1 0 01-1 1h-5z"/></svg>
+                    {% endif %}
+                </span>
+                <span class="txt">
+                    <span class="name">Tambulig</span>
+                    <span class="sub">{% if user.role == 'buyer' %}Buyer Portal{% else %}Supplier Portal{% endif %}</span>
+                </span>
+            </div>
+            {% if portal_partner %}
+            <a href="{% if user.role == 'buyer' %}{% url 'portal:buyer_profile' %}{% else %}{% url 'portal:supplier_profile' %}{% endif %}" class="side-link" style="margin-top: .85rem" title="Account status">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-1.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                <span>{{ portal_partner.get_verification_status_display }} account</span>
+                {% if portal_partner.verification_status != 'approved' %}<span class="nav-badge">!</span>{% endif %}
+            </a>
+            {% endif %}
+            {% if user.role == 'buyer' %}
+            <button type="button" hx-get="{% url 'portal:buyer_request_create' %}" hx-target="#modal-container" hx-swap="innerHTML"
+                    @click="sidebarOpen = false" class="side-cta cursor-pointer">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+                <span>New Order Request</span>
+            </button>
+            {% else %}
+            <button type="button" hx-get="{% url 'portal:supplier_delivery_create' %}" hx-target="#modal-container" hx-swap="innerHTML"
+                    @click="sidebarOpen = false" class="side-cta cursor-pointer">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+                <span>Announce Delivery</span>
+            </button>
+            {% endif %}
+            <nav class="side-nav">
+                {% include "portal/_nav_links.html" %}
+            </nav>
+            <div class="side-foot">
+                <a href="{% url 'portal:password_change' %}" class="side-link">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                    <span>Change Password</span>
+                </a>
+                <form method="post" action="{% url 'accounts:logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="side-link side-logout">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        <span>Logout</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Main column -->
+        <div class="flex-1 flex flex-col min-h-screen min-w-0">
+            <header class="bg-white shadow-sm h-16 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
+                <div class="flex items-center gap-3 min-w-0">
+                    <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden text-gray-500 hover:text-gray-700 cursor-pointer" aria-label="Open navigation">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                    <div class="min-w-0">
+                        <div class="font-bold text-gray-800 truncate" style="font-family:'Sora',sans-serif; font-size:.98rem;">{% block page_title %}{% firstof portal_partner.name portal_partner.contact_person "Portal" %}{% endblock %}</div>
+                        <div class="text-[.62rem] uppercase tracking-widest font-semibold" style="color:var(--brand);">{% if user.role == 'buyer' %}Buyer Portal{% else %}Supplier Portal{% endif %}</div>
                     </div>
                 </div>
-                <nav class="portal-nav hidden md:flex items-center gap-1">{% include "portal/_nav_links.html" %}</nav>
-                <div class="flex items-center gap-2">
-                    <a href="{% url 'notifications:notification_list' %}" class="relative p-2 text-gray-500 hover:text-emerald-700" title="Notifications">
+                <div class="flex items-center gap-3">
+                    <a href="{% url 'notifications:notification_list' %}" class="relative text-gray-500 hover:text-emerald-700 transition-colors" title="Notifications">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                         {% if unread_notifications %}
-                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">{{ unread_notifications }}</span>
+                        <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">{{ unread_notifications }}</span>
                         {% endif %}
                     </a>
-                    <button @click="menuOpen = !menuOpen" class="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 rounded-full pl-3 pr-2 py-1.5 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                        <span class="font-medium">{{ user.first_name|default:user.username }}</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>
-                    <div x-show="menuOpen" @click.away="menuOpen = false" x-cloak x-transition class="absolute right-4 top-14 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-1 z-50">
-                        <a href="{% url 'portal:password_change' %}" class="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700">Change Password</a>
-                        <form method="post" action="{% url 'accounts:logout' %}">
-                            {% csrf_token %}
-                            <button type="submit" class="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-gray-700">Logout</button>
-                        </form>
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open" class="flex items-center gap-1.5 bg-gray-100 rounded-full pl-3 pr-2 py-1.5 text-sm text-gray-700 cursor-pointer">
+                            <span class="font-medium">{{ user.first_name|default:user.username }}</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div x-show="open" @click.away="open = false" x-cloak x-transition class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-50">
+                            <a href="{% if user.role == 'buyer' %}{% url 'portal:buyer_profile' %}{% else %}{% url 'portal:supplier_profile' %}{% endif %}" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-green-50">My Profile</a>
+                            <a href="{% url 'portal:password_change' %}" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-green-50">Change Password</a>
+                            <form method="post" action="{% url 'accounts:logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Logout</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </header>
-        <nav class="portal-nav md:hidden flex items-center gap-1 px-4 pt-3 overflow-x-auto">{% include "portal/_nav_links.html" %}</nav>
-        <main class="max-w-5xl mx-auto p-4">
-            {% if messages %}
-            <div class="my-4 space-y-2">
-                {% for message in messages %}
-                <div class="flex items-center space-x-2 p-4 rounded-xl shadow-sm {% if message.tags == 'success' %}bg-green-100 text-green-800 border-l-4 border-green-500{% elif message.tags == 'error' %}bg-red-100 text-red-800 border-l-4 border-red-500{% else %}bg-blue-100 text-blue-800 border-l-4 border-blue-500{% endif %}">
-                    <span class="flex-1">{{ message }}</span>
+            </header>
+
+            <main class="flex-1 portal-main">
+                {% if messages %}
+                <div class="mb-4 space-y-2">
+                    {% for message in messages %}
+                    <div class="flex items-center space-x-2 p-4 rounded-xl shadow-sm {% if message.tags == 'success' %}bg-green-100 text-green-800 border-l-4 border-green-500{% elif message.tags == 'error' %}bg-red-100 text-red-800 border-l-4 border-red-500{% else %}bg-blue-100 text-blue-800 border-l-4 border-blue-500{% endif %}">
+                        <span class="flex-1">{{ message }}</span>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% block content %}{% endblock %}
-        </main>
-        <footer class="max-w-5xl mx-auto px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-            &copy; {% now "Y" %} Tambulig Poultry Farm &mdash; Zamboanga del Sur
-        </footer>
+                {% endif %}
+                {% block content %}{% endblock %}
+            </main>
+            <footer class="px-4 py-6 text-center text-sm text-gray-500">
+                &copy; {% now "Y" %} Tambulig Poultry Farm &mdash; Zamboanga del Sur
+            </footer>
+        </div>
     </div>
+    {# Modal container for HTMX dialogs (mirrors templates/base.html). #}
+    {# A page that deep-links an open dialog renders it here through the modal_slot block. #}
+    <div id="modal-container" hx-target="this" hx-swap="innerHTML">{% block modal_slot %}{% endblock %}</div>
 </body>
 </html>

@@ -36,9 +36,9 @@
                 <td class="num">{{ item.quantity }} {{ item.unit }}</td>
                 <td>{{ item.expiration_date|default:"N/A" }}</td>
                 <td>
-                    {% if item in expired %}<span class="value neg" style="font-size:12px;">Expired</span>
-                    {% elif item in low_stock %}<span class="value warn" style="font-size:12px;">Low Stock</span>
-                    {% else %}<span class="value pos" style="font-size:12px;">In Stock</span>{% endif %}
+                    {% if item in expired %}<span class="status neg">Expired</span>
+                    {% elif item in low_stock %}<span class="status warn">Low Stock</span>
+                    {% else %}<span class="status ok">In Stock</span>{% endif %}
                 </td>
             </tr>
             {% endfor %}

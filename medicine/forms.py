@@ -30,3 +30,19 @@ class MedicineRecordForm(forms.ModelForm):
             "next_schedule": forms.DateInput(attrs={"class": "form-input", "type": "date"}),
             "remarks": forms.Textarea(attrs={"class": "form-input", "rows": 3}),
         }
+
+    def clean(self):
+        cleaned = super().clean()
+        item = cleaned.get("medicine_item")
+        quantity = cleaned.get("quantity_used")
+        if (
+            self.instance.pk is None
+            and item is not None
+            and quantity is not None
+            and item.quantity < quantity
+        ):
+            self.add_error(
+                "quantity_used",
+                f"Only {item.quantity} {item.unit.abbreviation} of {item.name} in stock.",
+            )
+        return cleaned

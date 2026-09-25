@@ -1,0 +1,24 @@
+{% extends "partials/modal.html" %}
+{% block modal_title %}Confirm Farm Order{% endblock %}
+{% block modal_content %}
+<p class="text-sm text-gray-500 mb-5">
+    The farm ordered <span class="font-semibold text-gray-700">{{ notice.quantity }} &times; {{ notice.description }}</span>.
+    Keep the requested date or propose one you can actually meet &mdash; the farm sees your answer straight away.
+</p>
+<form hx-post="{% url 'portal:supplier_delivery_respond' notice.pk %}"
+      hx-target="#modal-container" hx-swap="innerHTML"
+      class="grid grid-cols-1 sm:grid-cols-2 gap-x-5">
+    {% csrf_token %}
+    {% include "portal/_form_fields.html" %}
+    <div class="sm:col-span-2 flex items-center justify-between pt-4 mt-2 border-t border-gray-200">
+        <p class="text-xs text-gray-400"><span class="text-red-500">*</span> Required field</p>
+        <div class="flex items-center space-x-3">
+            <button type="button" onclick="this.closest('#modal-overlay').remove()" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer">Not Now</button>
+            <button type="submit" class="btn btn-primary cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Confirm Delivery</span>
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}

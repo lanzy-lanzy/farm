@@ -1,11 +1,11 @@
 from django import forms
 
-from .models import MortalityRecord
+from .models import DeathRecord
 
 
-class MortalityRecordForm(forms.ModelForm):
+class DeathRecordForm(forms.ModelForm):
     class Meta:
-        model = MortalityRecord
+        model = DeathRecord
         fields = [
             "flock",
             "date_recorded",

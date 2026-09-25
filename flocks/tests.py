@@ -34,8 +34,8 @@ class FlockModelTests(TestCase):
     def test_remaining_stock(self):
         self.assertEqual(self.flock.remaining_stock(), 100)
 
-    def test_mortality_count_zero(self):
-        self.assertEqual(self.flock.mortality_count(), 0)
+    def test_death_count_zero(self):
+        self.assertEqual(self.flock.death_count(), 0)
 
 
 class FlockViewTests(TestCase):

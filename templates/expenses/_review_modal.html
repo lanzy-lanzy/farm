@@ -17,6 +17,20 @@
         {% for error in field.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
     </div>
     {% endfor %}
+    <div class="border-t border-gray-100 dark:border-gray-700 pt-4">
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-white mb-1">Stock booking</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Where the delivered quantity lands in permanent stock. Leave the dropdown as-is to keep the catalog mapping (shown preselected when one exists) or book nothing.</p>
+        {% if booking_form.non_field_errors %}
+        <div class="text-sm text-red-600 mb-2">{% for error in booking_form.non_field_errors %}{{ error }}<br>{% endfor %}</div>
+        {% endif %}
+        {% for field in booking_form %}
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for error in field.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+        </div>
+        {% endfor %}
+    </div>
     <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
         <button type="button" onclick="this.closest('#modal-overlay').remove()"
                 class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl font-medium cursor-pointer transition-colors">Cancel</button>

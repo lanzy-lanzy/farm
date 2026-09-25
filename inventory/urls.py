@@ -6,6 +6,8 @@ app_name = "inventory"
 
 urlpatterns = [
     path("", views.inventory_list, name="inventory_list"),
+    # Standalone print / Save-as-PDF preview of the current filtered list.
+    path("print/", views.inventory_print, name="inventory_print"),
     path("create/", views.inventory_create, name="inventory_create"),
     path("<int:pk>/", views.inventory_detail, name="inventory_detail"),
     path("<int:pk>/edit/", views.inventory_update, name="inventory_update"),

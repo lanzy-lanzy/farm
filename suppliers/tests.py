@@ -39,6 +39,97 @@ class SupplierPortalTests(TestCase):
         response = self.client.get(reverse("portal:supplier_catalog_update", args=[item.pk]))
         self.assertEqual(response.status_code, 404)
 
+    def test_catalog_page_is_the_single_unified_view(self):
+        SupplyItem.objects.create(supplier=self.supplier, name="Layer feed 50kg", unit_price=1150)
+        self.client.force_login(self.supplier_user)
+        response = self.client.get(reverse("portal:supplier_catalog"))
+        self.assertContains(response, "Layer feed 50kg")
+        self.assertContains(response, "<table")
+        self.assertNotContains(response, 'id="modal-overlay"')
+        # Every catalog action targets the shared HTMX modal container.
+        self.assertContains(response, 'hx-target="#modal-container"')
+
+    def test_portal_shell_leaves_no_raw_template_comment_on_the_page(self):
+        # Django comments must stay on one line; a multi-line {# #} renders as visible text.
+        self.client.force_login(self.supplier_user)
+        response = self.client.get(reverse("portal:supplier_home"))
+        self.assertNotIn("{#", response.content.decode())
+
+    def test_create_renders_modal_fragment_over_htmx(self):
+        self.client.force_login(self.supplier_user)
+        response = self.client.get(
+            reverse("portal:supplier_catalog_create"), headers={"hx-request": "true"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="modal-overlay"')
+        self.assertNotContains(response, "<!DOCTYPE html")
+
+    def test_plain_get_on_create_reuses_the_catalog_page(self):
+        self.client.force_login(self.supplier_user)
+        response = self.client.get(reverse("portal:supplier_catalog_create"))
+        self.assertRedirects(response, reverse("portal:supplier_catalog") + "?add=1")
+
+    def test_add_query_string_renders_the_open_modal(self):
+        self.client.force_login(self.supplier_user)
+        response = self.client.get(reverse("portal:supplier_catalog"), {"add": "1"})
+        self.assertContains(response, 'id="modal-overlay"')
+        self.assertContains(response, 'hx-post="{}"'.format(reverse("portal:supplier_catalog_create")))
+
+    def test_edit_query_string_renders_the_modal_prefilled(self):
+        item = SupplyItem.objects.create(supplier=self.supplier, name="Oyster shell", unit_price=45)
+        self.client.force_login(self.supplier_user)
+        response = self.client.get(reverse("portal:supplier_catalog"), {"edit": item.pk})
+        self.assertContains(response, 'id="modal-overlay"')
+        self.assertContains(response, 'value="Oyster shell"')
+
+    def test_htmx_create_closes_the_modal_instead_of_navigating(self):
+        self.client.force_login(self.supplier_user)
+        response = self.client.post(
+            reverse("portal:supplier_catalog_create"),
+            {
+                "name": "Vitamin pack",
+                "category": "Medicine",
+                "unit_price": "80",
+                "availability": "in_stock",
+            },
+            headers={"hx-request": "true"},
+        )
+        self.assertContains(response, "modal-overlay")
+        self.assertTrue(SupplyItem.objects.filter(supplier=self.supplier, name="Vitamin pack").exists())
+
+    def test_invalid_htmx_create_returns_the_form_with_errors(self):
+        self.client.force_login(self.supplier_user)
+        response = self.client.post(
+            reverse("portal:supplier_catalog_create"),
+            {"name": "", "availability": "in_stock"},
+            headers={"hx-request": "true"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "This field is required.")
+        self.assertContains(response, 'id="modal-overlay"')
+
+    def test_detail_modal_scoped_to_owner(self):
+        item = SupplyItem.objects.create(supplier=self.supplier, name="Fish meal")
+        self.client.force_login(self.supplier_user)
+        response = self.client.get(
+            reverse("portal:supplier_catalog_detail", args=[item.pk]), headers={"hx-request": "true"}
+        )
+        self.assertContains(response, "Fish meal")
+        self.assertContains(response, "Last Updated")
+
+    def test_htmx_delete_removes_item(self):
+        item = SupplyItem.objects.create(supplier=self.supplier, name="Old feed")
+        self.client.force_login(self.supplier_user)
+        confirm = self.client.get(
+            reverse("portal:supplier_catalog_delete", args=[item.pk]), headers={"hx-request": "true"}
+        )
+        self.assertContains(confirm, 'Remove "Old feed"?')
+        response = self.client.post(
+            reverse("portal:supplier_catalog_delete", args=[item.pk]), headers={"hx-request": "true"}
+        )
+        self.assertContains(response, "modal-overlay")
+        self.assertFalse(SupplyItem.objects.filter(pk=item.pk).exists())
+
     def test_delivery_notice_flow(self):
         item = SupplyItem.objects.create(supplier=self.supplier, name="Layer feed 50kg", unit_price=1150)
         self.client.force_login(self.supplier_user)
@@ -72,6 +163,24 @@ class SupplierPortalTests(TestCase):
         self.client.force_login(self.supplier_user)
         response = self.client.get(reverse("portal:supplier_deliveries"))
         self.assertNotContains(response, "hidden batch")
+
+
+class DeliveryNoticeLabelTests(TestCase):
+    def setUp(self):
+        self.supplier = Supplier.objects.create(name="Davao Feeds")
+
+    def _notice(self, description, quantity):
+        return DeliveryNotice.objects.create(
+            supplier=self.supplier, description=description, quantity=quantity, expected_date="2026-10-01",
+        )
+
+    def test_quantity_label_leads_with_a_count_only_when_the_text_lacks_one(self):
+        self.assertEqual(self._notice("Farm reorder: layer feed", 20).quantity_label, "20 Farm reorder: layer feed")
+        self.assertEqual(self._notice("25 sacks grower mash", 25).quantity_label, "25 sacks grower mash")
+
+    def test_quantity_label_drops_pointless_decimals(self):
+        self.assertEqual(self._notice("corn", 25).quantity_label, "25 corn")
+        self.assertEqual(self._notice("corn", 2.5).quantity_label, "2.5 corn")
 
 
 class SupplierAccountTests(TestCase):
@@ -177,9 +286,31 @@ class FarmProcurementTests(TestCase):
         })
         self.assertEqual(response.status_code, 302)
         notice.refresh_from_db()
+        self.assertEqual(notice.status, "confirmed")
         self.assertEqual(str(notice.expected_date), "2026-10-03")
         self.assertEqual(notice.supplier_note, "Stock arriving Tuesday")
         self.assertTrue(self.staff.notifications.filter(title__contains="confirmed").exists())
+
+    def test_confirmed_farm_order_leaves_the_waiting_list_but_stays_open(self):
+        self._farm_order()
+        notice = DeliveryNotice.objects.get(supplier=self.supplier)
+        self.client.force_login(self.supplier_user)
+        self.client.post(reverse("portal:supplier_delivery_respond", args=[notice.pk]), {
+            "expected_date": "2026-10-04", "supplier_note": "truck available",
+        })
+        home = self.client.get(reverse("portal:supplier_home"))
+        self.assertNotIn(notice.pk, [n.pk for n in home.context["farm_orders"]])
+        self.assertEqual(home.context["open_deliveries"], 1)
+        notice.refresh_from_db()
+        self.assertEqual(notice.status, "confirmed")
+        # still adjustable until the farm books it
+        again = self.client.post(reverse("portal:supplier_delivery_respond", args=[notice.pk]), {
+            "expected_date": "2026-10-09",
+        })
+        self.assertEqual(again.status_code, 302)
+        notice.refresh_from_db()
+        self.assertEqual(str(notice.expected_date), "2026-10-09")
+        self.assertEqual(notice.status, "confirmed")
 
     def test_supplier_cannot_respond_to_own_announcement(self):
         self.client.force_login(self.supplier_user)

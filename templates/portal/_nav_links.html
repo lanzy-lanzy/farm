@@ -1,12 +1,84 @@
+{% comment %}
+Role-specific portal sidebar navigation.
+
+Rendered inside <nav class="side-nav"> by templates/portal/base.html, so it
+mirrors the markup contract of the internal sidebar in templates/base.html:
+`.side-label` group headers, `.side-link` items (with `.is-active`), and
+`.nav-badge` for work that needs the signed-in partner's response.
+
+`portal_badge_requests` / `portal_badge_deliveries` come from
+config.context_processors.portal_context.
+
+"New ..." and "Announce Delivery" are HTMX dialog triggers rather than links: they load a
+form partial into #modal-container without leaving the page, and close the drawer on
+small screens. Their plain-URL equivalents still work without JavaScript.
+{% endcomment %}
 {% if user.role == 'buyer' %}
-    <a href="{% url 'portal:buyer_home' %}" class="{% if request.resolver_match.url_name == 'buyer_home' %}active{% endif %}">Home</a>
-    <a href="{% url 'portal:buyer_requests' %}" class="{% if 'request' in request.resolver_match.url_name %}active{% endif %}">My Requests</a>
-    <a href="{% url 'portal:buyer_request_create' %}" class="{% if request.resolver_match.url_name == 'buyer_request_create' %}active{% endif %}">New Request</a>
-    <a href="{% url 'portal:buyer_profile' %}" class="{% if request.resolver_match.url_name == 'buyer_profile' %}active{% endif %}">Profile</a>
+    <div class="side-label">Overview</div>
+    <a href="{% url 'portal:buyer_home' %}" class="side-link {% if request.resolver_match.url_name == 'buyer_home' %}is-active{% endif %}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+        <span>Dashboard</span>
+    </a>
+    <div class="side-label">My Orders</div>
+    <button type="button" hx-get="{% url 'portal:buyer_request_create' %}" hx-target="#modal-container" hx-swap="innerHTML"
+            @click="sidebarOpen = false" class="side-link">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        <span>New Request</span>
+    </button>
+    <a href="{% url 'portal:buyer_requests' %}" class="side-link {% if 'request' in request.resolver_match.url_name %}is-active{% endif %}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+        <span>Request History</span>
+        {% if portal_badge_requests %}<span class="nav-badge">{{ portal_badge_requests }}</span>{% endif %}
+    </a>
+    <div class="side-label">Account</div>
+    <a href="{% url 'notifications:notification_list' %}" class="side-link {% if request.resolver_match.url_name == 'notification_list' %}is-active{% endif %}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+        <span>Notifications</span>
+        {% if unread_notifications %}<span class="nav-badge">{{ unread_notifications }}</span>{% endif %}
+    </a>
+    <a href="{% url 'portal:buyer_profile' %}" class="side-link {% if request.resolver_match.url_name == 'buyer_profile' %}is-active{% endif %}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+        <span>Profile</span>
+    </a>
 {% elif user.role == 'supplier' %}
-    <a href="{% url 'portal:supplier_home' %}" class="{% if request.resolver_match.url_name == 'supplier_home' %}active{% endif %}">Home</a>
-    <a href="{% url 'portal:supplier_catalog' %}" class="{% if 'catalog' in request.resolver_match.url_name %}active{% endif %}">Catalog</a>
-    <a href="{% url 'portal:supplier_deliveries' %}" class="{% if 'deliver' in request.resolver_match.url_name %}active{% endif %}">Deliveries</a>
-    <a href="{% url 'portal:supplier_history' %}" class="{% if request.resolver_match.url_name == 'supplier_history' %}active{% endif %}">History</a>
-    <a href="{% url 'portal:supplier_profile' %}" class="{% if request.resolver_match.url_name == 'supplier_profile' %}active{% endif %}">Profile</a>
+    <div class="side-label">Overview</div>
+    <a href="{% url 'portal:supplier_home' %}" class="side-link {% if request.resolver_match.url_name == 'supplier_home' %}is-active{% endif %}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+        <span>Dashboard</span>
+    </a>
+    <div class="side-label">Supply Catalog</div>
+    <a href="{% url 'portal:supplier_catalog' %}" class="side-link {% if request.resolver_match.url_name == 'supplier_catalog' %}is-active{% endif %}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+        <span>My Catalog</span>
+    </a>
+    <button type="button" hx-get="{% url 'portal:supplier_catalog_create' %}" hx-target="#modal-container" hx-swap="innerHTML"
+            @click="sidebarOpen = false" class="side-link">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        <span>Add Supply Item</span>
+    </button>
+    <div class="side-label">Deliveries</div>
+    <button type="button" hx-get="{% url 'portal:supplier_delivery_create' %}" hx-target="#modal-container" hx-swap="innerHTML"
+            @click="sidebarOpen = false" class="side-link">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.535a1 1 0 01.949.684L19 14a1 1 0 01-1 1h-5z"></path></svg>
+        <span>Announce Delivery</span>
+    </button>
+    <a href="{% url 'portal:supplier_deliveries' %}" class="side-link {% if 'deliver' in request.resolver_match.url_name %}is-active{% endif %}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+        <span>Delivery Notices</span>
+        {% if portal_badge_deliveries %}<span class="nav-badge">{{ portal_badge_deliveries }}</span>{% endif %}
+    </a>
+    <div class="side-label">Account</div>
+    <a href="{% url 'portal:supplier_history' %}" class="side-link {% if request.resolver_match.url_name == 'supplier_history' %}is-active{% endif %}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        <span>Purchase History</span>
+    </a>
+    <a href="{% url 'notifications:notification_list' %}" class="side-link {% if request.resolver_match.url_name == 'notification_list' %}is-active{% endif %}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+        <span>Notifications</span>
+        {% if unread_notifications %}<span class="nav-badge">{{ unread_notifications }}</span>{% endif %}
+    </a>
+    <a href="{% url 'portal:supplier_profile' %}" class="side-link {% if request.resolver_match.url_name == 'supplier_profile' %}is-active{% endif %}">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+        <span>My Business</span>
+    </a>
 {% endif %}

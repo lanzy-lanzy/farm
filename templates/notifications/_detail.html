@@ -1,0 +1,57 @@
+{% extends "partials/modal.html" %}
+{% block modal_title %}Notification{% endblock %}
+{% block modal_content %}
+<div class="flex items-start gap-3 mb-5">
+    {% include "notifications/_badge.html" with notification=notification %}
+    <div class="min-w-0">
+        <h3 class="text-base font-semibold text-gray-800 dark:text-white">{{ notification.title }}</h3>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            {{ notification.created_at|date:"j M Y, H:i" }} &middot; {{ notification.created_at|timesince }} ago
+        </p>
+    </div>
+    <span class="ml-auto shrink-0 pill {% if notification.is_read %}pill-inactive{% else %}pill-under_review{% endif %}">{% if notification.is_read %}Read{% else %}Unread{% endif %}</span>
+</div>
+
+<dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm border-t border-gray-200 dark:border-gray-700 pt-4">
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Type</dt>
+        <dd class="mt-1 text-gray-800 dark:text-white">{{ notification.get_notification_type_display }}</dd>
+    </div>
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Goes to</dt>
+        <dd class="mt-1">
+            {% if notification.link %}<code class="font-mono text-gray-800 dark:text-gray-200 break-all">{{ notification.link }}</code>{% else %}<span class="text-gray-400 dark:text-gray-500">No linked page</span>{% endif %}
+        </dd>
+    </div>
+    <div class="sm:col-span-2">
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Message</dt>
+        <dd class="mt-1 text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{{ notification.message }}</dd>
+    </div>
+</dl>
+
+<div class="flex flex-wrap items-center justify-between gap-2 pt-4 mt-5 border-t border-gray-200 dark:border-gray-700">
+    <div class="flex items-center gap-2">
+        <button type="button" onclick="this.closest('#modal-overlay').remove()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors cursor-pointer">Close</button>
+        {% if notification.is_read %}
+        <form hx-post="{% url 'notifications:notification_mark_unread' notification.pk %}" hx-target="#modal-container" hx-swap="innerHTML">
+            {% csrf_token %}
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">Mark unread</button>
+        </form>
+        {% else %}
+        <form hx-post="{% url 'notifications:notification_mark_read' notification.pk %}" hx-target="#modal-container" hx-swap="innerHTML">
+            {% csrf_token %}
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">Mark read</button>
+        </form>
+        {% endif %}
+    </div>
+    <div class="flex items-center gap-2">
+        <button hx-get="{% url 'notifications:notification_update' notification.pk %}" hx-target="#modal-container" hx-swap="innerHTML" type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">Edit</button>
+        {% if notification.link %}
+        <a href="{% url 'notifications:notification_mark_read' notification.pk %}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-xl shadow-lg shadow-green-900/30 transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+            Open &amp; process
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

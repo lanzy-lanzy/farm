@@ -1,0 +1,47 @@
+{% extends "partials/modal.html" %}
+{% block modal_title %}{{ item.name }}{% endblock %}
+{% block modal_content %}
+<dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Category</dt>
+        <dd class="text-sm text-gray-800 mt-1">{{ item.category|default:"Not specified" }}</dd>
+    </div>
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Price</dt>
+        <dd class="text-sm font-bold text-gray-800 mt-1">{% if item.unit_price %}₱{{ item.unit_price|floatformat:2 }}{% else %}Price on request{% endif %}</dd>
+    </div>
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Unit</dt>
+        <dd class="text-sm text-gray-800 mt-1">{{ item.unit.name|default:"Not set" }}</dd>
+    </div>
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Availability</dt>
+        <dd class="mt-1"><span class="pill {% if item.availability == 'in_stock' %}pill-accepted{% elif item.availability == 'made_to_order' %}pill-under_review{% else %}pill-quoted{% endif %}">{{ item.get_availability_display }}</span></dd>
+    </div>
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Status</dt>
+        <dd class="mt-1">
+            {% if item.is_active %}
+            <span class="pill pill-approved">Active &mdash; visible to the farm</span>
+            {% else %}
+            <span class="pill pill-inactive">Hidden from the farm</span>
+            {% endif %}
+        </dd>
+    </div>
+    <div>
+        <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Last Updated</dt>
+        <dd class="text-sm text-gray-800 mt-1">{{ item.updated_at|date:"j M Y, H:i" }}</dd>
+    </div>
+</dl>
+<div class="flex items-center justify-between pt-5 mt-6 border-t border-gray-200">
+    <p class="text-xs text-gray-400">Added {{ item.created_at|date:"j M Y" }}</p>
+    <div class="flex items-center space-x-3">
+        <button type="button" onclick="this.closest('#modal-overlay').remove()" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer">Close</button>
+        <button hx-get="{% url 'portal:supplier_catalog_update' item.pk %}" hx-target="#modal-container" hx-swap="innerHTML"
+                class="btn btn-primary cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            <span>Edit Item</span>
+        </button>
+    </div>
+</div>
+{% endblock %}

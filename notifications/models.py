@@ -22,6 +22,8 @@ class Notification(models.Model):
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     link = models.CharField(max_length=500, blank=True, null=True)
+    # Machine-readable deep-link target for mobile clients, e.g. "order_request:12".
+    target = models.CharField(max_length=64, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

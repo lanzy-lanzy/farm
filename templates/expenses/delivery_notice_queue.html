@@ -48,7 +48,7 @@
                     </td>
                     <td class="px-5 py-4 whitespace-nowrap"><span class="pill pill-{{ notice.status }}">{{ notice.get_status_display }}</span></td>
                     <td class="px-5 py-4 text-right">
-                        {% if notice.status == 'announced' %}
+                        {% if notice.awaits_farm_action %}
                         <a href="{% url 'expenses:delivery_notice_review' notice.pk %}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-3.5 py-1.5 rounded-lg no-underline transition-colors">Receive / Reject</a>
                         {% else %}
                         <button hx-get="{% url 'expenses:delivery_notice_review' notice.pk %}?form=view" hx-target="#modal-container" hx-swap="innerHTML"

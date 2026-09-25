@@ -133,6 +133,7 @@ New decorators/mixins in `accounts/access.py` (shared by web + API):
 | `name`, `category` | e.g. "Layer feeds 50kg"; align category with `inventory` categories where sensible |
 | `unit_price`, `unit` | `FK` to existing `inventory.Unit` |
 | `availability` | `[in_stock, made_to_order, seasonal]` |
+| `inventory_item` | `FK(inventory.InventoryItem, null=True)` — stock row this item adds to on receive; mapped by staff (Django admin), never editable by the supplier |
 | `is_active`, `updated_at` | |
 
 **`suppliers.DeliveryNotice`** — supplier-initiated "goods on the way" notice:
@@ -140,7 +141,8 @@ New decorators/mixins in `accounts/access.py` (shared by web + API):
 | Field | notes |
 |---|---|
 | `supplier` | FK |
-| `supply_item` | FK (nullable if ad-hoc) |
+| `supply_item` | FK (nullable — ad-hoc orders and supplier notices use free-text `description` only) |
+| `inventory_item` | `FK(InventoryItem, null=True)` — permanent stock row this delivery was booked into, decided at receive; overrides the `SupplyItem.inventory_item` default |
 | `description`, `quantity`, `expected_date` | |
 | `status` | `[announced, received, rejected]` |
 | `expense_record` | `OneToOne(ExpenseRecord, null=True)` — set when staff books the purchase |
@@ -152,8 +154,9 @@ New decorators/mixins in `accounts/access.py` (shared by web + API):
 
 ```
 User(role=buyer)     1──1 Buyer 1──* OrderRequest *──1 SalesRecord
-User(role=supplier)  1──1 Supplier 1──* SupplyItem
+User(role=supplier)  1──1 Supplier 1──* SupplyItem *──1 InventoryItem (optional stock mapping)
                              Supplier 1──* DeliveryNotice *──1 ExpenseRecord
+InventoryItem.sales_product_type (optional, unique) ← sales of that product deduct this item
 ```
 
 ---
@@ -200,14 +203,16 @@ submitted → under_review → quoted → accepted → converted
 2. **Staff** sees it on the Sales page as a badge/list (`OrderRequest.status=submitted`), moves to `under_review`, optionally sets `quoted_unit_price` → status `quoted`.
 3. **Buyer** reviews quote in portal → `accepted` (commit) or `rejected`.
 4. **Staff** clicks **"Record sale"** on the accepted request: prefills the existing `SalesRecord` form with product/qty/price/buyer. Saving the `SalesRecord` sets `OrderRequest.sales_record` and status `converted`. Payment status remains managed entirely inside `SalesRecord` as today.
-5. Notifications: reuse `notifications` app to ping staff on `submitted`, buyer on `quoted`/`converted`.
-6. Fallback: staff can still record a `SalesRecord` directly without any request (walk-in cash sale) — the request flow is additive, not mandatory.
+5. **Inventory deduction:** if an active `InventoryItem` carries `sales_product_type` matching the sold product, conversion (and direct `SalesRecord` creation) books an `"out"` `InventoryTransaction` (`reference="Sales Record #<pk>"`) via `inventory.services.deduct_for_sale` inside one `transaction.atomic`, then runs the low-stock check. Selling more than the mapped stock is refused for every role (product types without a mapped item, e.g. fresh eggs, are simply untracked).
+6. Notifications: reuse `notifications` app to ping staff on `submitted`, buyer on `quoted`/`converted`.
+7. Fallback: staff can still record a `SalesRecord` directly without any request (walk-in cash sale) — the request flow is additive, not mandatory.
 
 ### 3.5 Transaction initiation — Supplier → Farm (purchases)
 
 1. **Supplier** maintains `SupplyItem` catalog (price, availability).
 2. **Supplier** files a `DeliveryNotice` (what, how much, expected date).
-3. **Staff** reviews on the Expenses/Inventory side: on arrival, records the existing `ExpenseRecord` (+ inventory receive if applicable) and links `DeliveryNotice.expense_record`, status `received`.
+3. **Staff** reviews on the Expenses/Inventory side: on arrival, records the existing `ExpenseRecord` and links `DeliveryNotice.expense_record`, status `received` — in one `transaction.atomic`. Stock booking is resolved in order: explicit `DeliveryNotice.inventory_item` chosen at receive (the modal's "Stock booking" block: pick an existing item **or** create a new one with name/unit/category — duplicate names are refused and point at the existing row) → the mapped `SupplyItem.inventory_item` → no stock movement. Booked quantities create an `"in"` `InventoryTransaction` (`reference="Delivery Notice #<pk>"`) via `inventory.services.receive_for_notice`; unmapped deliveries change nothing in stock.
+3b. **Ad-hoc orders** (no catalog row): `FarmDeliveryOrderForm` accepts a blank `supply_item` with a free-text `description`; no temporary `SupplyItem` is ever created, so supplier catalogs and `InventoryItem` names stay clean. The permanent stock row is decided only at receive.
 4. `payment_terms` on the Supplier pre-fills `ExpenseRecord.payment_status`.
 5. Staff may also file orders to suppliers directly (current behavior); notices are supplier-initiated only.
 
@@ -227,14 +232,14 @@ submitted → under_review → quoted → accepted → converted
 |---|---|---|
 | `buyers/<pk>/account/create/` | `buyer_create_account` | staff/admin; POST only; form: email, optional name |
 | `buyers/<pk>/account/deactivate/` | `buyer_deactivate_account` | flips user + buyer active flags |
-| **new `portal/buyer/` namespace** | `portal_home`, `order_request_list/create/detail/cancel`, `profile_edit`, `password_change` | guarded by `external_portal_required("buyer")`; list/detail querysets filtered by `request.user.buyer` |
+| **new `portal/buyer/` namespace** | `buyer_home`, `order_request_list/create/detail/respond/cancel`, `buyer_profile`, `buyer_profile_update`, `password_change` | guarded by `external_portal_required("buyer")`; list/detail querysets filtered by `request.user.buyer`; create/detail/cancel/respond/update all answer HTMX with dialog partials and plain GETs with pages |
 | **new `orders/` internal views** (can live in `sales/`) | `order_request_queue`, `order_request_review` (quote/reject), `order_request_convert` (prefill SalesRecord form) | staff+ only |
 
 **`suppliers/`**
 | Route | View |
 |---|---|
 | `suppliers/<pk>/account/create/`, `.../deactivate/` | same pattern as buyers |
-| `portal/supplier/` | `portal_home`, `catalog_list/create/update/delete` (HTMX modals), `delivery_notice_list/create`, `purchase_history`, `profile_edit` |
+| `portal/supplier/` | `supplier_home`, `catalog_list/create/detail/update/delete`, `delivery_notice_list/create/respond/cancel`, `purchase_history`, `supplier_profile`, `supplier_profile_update` — every mutation is a dialog partial under HTMX, with a plain-page fallback |
 | internal | `delivery_notice_queue` (staff: mark received/rejected → link expense) |
 
 **`accounts/`**
@@ -272,12 +277,23 @@ class IsVerifiedPartyAndScoped(BasePermission)  # buyer/supplier: CRUD only obje
 | `GET/POST/PATCH/DELETE /api/v2/portal/supply-items/` | CRUD own | supplier |
 | `GET/POST /api/v2/portal/delivery-notices/` | GET, POST | supplier |
 | `GET /api/v2/portal/purchase-history/` | GET | supplier |
-| `GET /api/v2/internal/order-requests/?status=`, `POST .../{id}/quote/`, `POST .../{id}/convert/` | staff | staff+ |
-| `POST /api/v2/internal/verifications/{buyer\|supplier}/{id}/approve\|reject/` | staff | admin/owner |
+| `GET /api/v2/internal/order-requests/?status=`, `POST .../{id}/quote/`, `POST .../{id}/reject/`, `POST .../{id}/convert/` | as noted | staff |
+| `GET/POST /api/v2/internal/delivery-notices/` (queue + farm orders), `POST .../{id}/receive/`, `POST .../{id}/reject/` | as noted | staff |
+| `POST /api/v2/internal/verifications/{buyer\|supplier}/{id}/approve\|reject/` | POST | admin/owner |
 | `GET /api/v2/internal/verifications/pending/` | GET | admin/owner |
+| `GET /api/v2/internal/options/` | GET | staff |
+
+Receive note: `POST .../delivery-notices/{id}/receive/` accepts the expense payload plus an optional
+`inventory_item` PK to book the delivered quantity into a specific stock row (ad-hoc deliveries with no
+catalog mapping); the stock booking and the expense/notice updates run in one transaction.
 
 **API conventions to follow (already established in `api/`):**
 - Token + Session auth both accepted; pagination `PAGE_SIZE=50`.
+- Every tabular list (web views, portal, API v1/v2) is newest-first: chronological models order by
+  their date/`created_at` field descending (DeliveryNotice by `-created_at` since 2026-09-25);
+  lookup catalogs (inventory items, suppliers, buyers, units) stay alphabetical; deliberate
+  exceptions: notifications put unread first (newest within each group), upcoming medicine
+  schedules and low-stock lists lead with the most urgent.
 - `obtain_auth_token` reused for portal login; registration returns 201 without token until verified (`is_active=False` → DRF `TokenAuthentication` already rejects inactive users — verify + rely on that).
 - Status transitions validated in serializer `validate_status` / model methods, not in views.
 - Never expose farm-internal fields (notes, `created_by` of other records, other buyers) — per-serializer field whitelists, `get_queryset()` filter for every list/detail.
@@ -297,26 +313,30 @@ class IsVerifiedPartyAndScoped(BasePermission)  # buyer/supplier: CRUD only obje
 
 ### 5.1 Two visual shells
 - **Internal shell:** unchanged dashboard/sidebar look.
-- **Portal shell (`portal/base.html`):** simplified top-nav for external users — no farm sidebar, no farm KPIs. Familiar styling so approved accounts feel like "part of the system", but a clearly different name in the header ("Buyer Portal — Tambulig Poultry").
+- **Portal shell (`portal/base.html`):** a *partner* sidebar — same forest-glass rail as the internal shell, but tinted per role (buyer = cyan, supplier = emerald) and containing only that role's own screens. No farm KPIs, no farm records, no admin entry points. The header still names the space clearly ("Buyer Portal — Tambulig Poultry").
+  - Nav items live in `portal/_nav_links.html` (grouped, with active state); the sidebar also carries the account-verification chip, one primary CTA ("New Order Request" / "Announce Delivery"), and Change Password + Logout.
+  - `config.context_processors.portal_context` supplies `portal_partner` plus the "needs your response" badges (buyer: `status=quoted` requests; supplier: `origin=farm, status=announced` notices).
+  - Below `lg` the rail becomes an off-canvas drawer toggled by the hamburger. Portal pages are light-mode only.
+  - *History:* this replaces the original simplified top-nav design; the top-nav was dropped because partners needed the same one-glance access to their queue that internal staff have.
 
 ### 5.2 Buyer portal screens
-- **Home:** verification badge, outstanding balance summary (count/total of `payment_status != paid` own sales), last 5 orders.
-- **New order request:** single-page form (product type chips → product name, quantity with unit hint, desired date picker). Show recent re-orders ("Order again" prefills) — buyers buy the same things repeatedly.
-- **My requests:** status timeline per request (`submitted → quoted → accepted → converted`) as horizontal stepper; quote shown with Accept/Decline buttons (HTMX POST, no page reload).
-- **Profile:** editable contact card + read-only account status row.
+- **Home (`portal/buyer/home.html`):** hero with verification + buyer-type chips and the two entry CTAs (the create CTA opens the dialog); four stat cards (outstanding balance, open requests, *needs your response*, requests on record); a **"Quotes waiting for you"** panel listing `status=quoted` requests with the quoted line total, staff note, expiry pill and inline Accept/Decline; recent requests + recent purchases panels; and a "How an order request moves" stepper explainer.
+- **New order request:** HTMX dialog (`_request_form.html`) opened from the sidebar CTA, the nav, the hero and the list header. `portal:buyer_request_create` serves the partial to `HX-Request` GETs and the standalone `request_form.html` page otherwise, so the flow still works with JavaScript off. Fields: product type chips → product name, quantity with unit hint, desired date picker.
+- **My requests:** responsive table (Request / Product / Qty / Needed By / Status / Actions). Every row action is a dialog: the request number and the eye icon open `_request_detail.html`, `Respond` appears only on quotable rows, and the red X opens `_request_cancel.html`. Accept/Decline are HTMX posts carrying a hidden `action` input; they close the dialog and reload so the flash message is visible. `portal:buyer_request_detail` also renders a full page (`request_detail.html`) for notification deep links and no-JS use.
+- **Profile:** read-only contact card, four stat cards (verification, outstanding balance, credit limit, member since) and an account-settings panel. "Edit My Details" opens `_profile_form.html`, posted to `portal:buyer_profile_update`.
 
 ### 5.3 Supplier portal screens
-- **Catalog:** card grid of `SupplyItem`s with inline price edit (HTMX modal reuse of `_form.html` pattern).
-- **Delivery notice:** short form (item dropdown from own catalog or free text, quantity, date).
-- **Purchase history:** table of farm purchases from them with payment status; filter by month.
-
-### 5.4 Internal screens
-- **Order request queue (Sales page):** kanban-lite table with status pills; row actions *Quote / Reject / Record sale*; unread requests surfaced by the existing notifications bell.
-- **Verification queue (admin):** pending list with buyer/supplier detail expand, one-click Approve/Reject-with-reason.
-- **Buyer/Supplier detail pages:** new "Account" panel — linked user, status badge, create/deactivate/reset actions.
+- **Home (`portal/supplier/home.html`):** hero with payment-terms / verification / supplies chips; four stat cards (catalog items incl. hidden count, open deliveries, *needs your confirmation*, purchases this month); a **"Farm orders waiting for you"** panel whose date + note form posts by HTMX to `portal:supplier_delivery_respond` (quick action, no page leave); recent delivery notices and a catalog snapshot panel; and a "How deliveries work" explainer covering both notice origins.
+- **Catalog:** one page (`catalog_list.html`) hosting the full CRUD — table rows open detail / edit / remove dialogs, and `?add=1` / `?edit=<pk>` deep links land on the page and open the dialog once Alpine has booted.
+- **Deliveries:** responsive notice table (Delivery / Source / Quantity / Expected / Status / Actions). Announce opens `_delivery_form.html`, a farm order opens `_delivery_respond.html` to confirm or move the date, and an own announcement opens `_delivery_cancel.html` with an optional reason. Rows the supplier can no longer act on read "Closed". `delivery_form.html` remains the no-JS fallback page.
+- **My Business:** read-only details + stats (verification, payment terms, active listings, deliveries received) with the edit form in `_profile_form.html` → `portal:supplier_profile_update`.
+- **Purchase history:** responsive table of farm purchases from them with a month filter and total cards.
 
 ### 5.5 Cross-cutting
-- Reuse existing HTMX modal conventions (fragment responses + reload script) — no new JS framework.
+- **Modal contract (both portals):** trigger carries `hx-get`/`hx-post` + `hx-target="#modal-container" hx-swap="innerHTML"`; the partial extends `partials/modal.html` (overlay, Escape and click-away close); invalid submissions return 200 and re-render the partial with field errors; success returns `config.htmx.modal_closed()` — a guarded script that removes `#modal-overlay` if one is open and reloads, which is what lets the same view answer dashboard posts that have no dialog. `is_htmx(request)` picks partial vs. page. No response-targets extension, no new JS framework.
+- `#modal-container` sits at `z-index: 70` so dialogs clear the `z-60` off-canvas drawer on phones.
+- **Responsive kit:** tables are `.panel.overflow-hidden > .overflow-x-auto > table.w-full.min-w-[..]`, secondary columns collapse with `hidden md:table-cell` / `lg:table-cell`, stat grids are `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`, and `.row--stack` stacks list rows (full-width buttons) below `sm`.
+- **Notifications:** portal rows link through `notifications:notification_mark_read`, which flips `is_read` and redirects to `notification.link`, so one click marks the item read and lands the partner on the page that acts on it (a quote goes to the request detail, where Accept/Decline are in the action band). Follow-up, not done: supplier delivery notices still link to the deliveries list rather than the individual notice, because the per-row `target` value belongs to work in flight elsewhere.
 - **Tailwind caveat (project-known):** `styles.css` is precompiled Tailwind; any new utility classes require `npm run build`. Prefer existing classes or a small custom `<style>` block for new components (steppers, pills).
 - Money display: `₱` with 2 decimals everywhere; balance figures right-aligned; unpaid/pending in amber, converted/received in green.
 - Empty states matter: brand-new buyer with no orders should see guidance ("Your first step: request eggs or chicken"), not a blank table.

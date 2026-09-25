@@ -292,7 +292,7 @@ def generate_diagrams():
         ("Feeding", (510, 110, 780, 230)),
         ("Medicine", (820, 110, 1090, 230)),
         ("Eggs", (1210, 110, 1480, 230)),
-        ("Mortality", (1210, 350, 1480, 470)),
+        ("Deaths", (1210, 350, 1480, 470)),
         ("Sales and Expenses", (1210, 590, 1480, 710)),
         ("Reports", (820, 590, 1090, 710)),
         ("People and Settings", (510, 590, 780, 710)),
@@ -472,7 +472,7 @@ def chapter_one(doc):
             ("Inventory Item", "A feed, medicine, vaccine, vitamin, equipment, or supply item tracked by category, unit, quantity, supplier, cost, expiration date, and reorder level."),
             ("Feeding Record", "A daily or scheduled entry that deducts feed usage from inventory and links the usage to a flock batch."),
             ("Medicine Record", "A record of medicine, vaccine, or vitamin use, including dosage, route, date administered, next schedule, and linked inventory item."),
-            ("Mortality Record", "A record of chicken deaths by flock, date, quantity, cause, symptoms, action taken, and remarks."),
+            ("Death Record", "A record of chicken deaths by flock, date, quantity, cause, symptoms, action taken, and remarks."),
             ("Activity Log", "A system-generated trace of important create, update, delete, and view actions for audit visibility."),
         ],
         [2100, 7000],
@@ -490,7 +490,7 @@ def chapter_two(doc):
     add_paragraph(
         doc,
         "The project uses Django as its backend framework. Django documentation describes models as the single definitive source of information about stored data, including fields and behavior [3]. "
-        "The app follows that pattern through separate Django apps for accounts, dashboard, flocks, inventory, feeding, medicine, eggs, mortality, sales, expenses, suppliers, buyers, reports, notifications, and settings.",
+        "The app follows that pattern through separate Django apps for accounts, dashboard, flocks, inventory, feeding, medicine, eggs, deaths, sales, expenses, suppliers, buyers, reports, notifications, and settings.",
     )
     add_heading(doc, "Hardware Specification", 2)
     add_table(
@@ -610,7 +610,7 @@ def chapter_three(doc):
             ("FeedingRecord", "Records feed used by flock and date/time.", "Save method creates stock-out inventory transaction."),
             ("MedicineRecord", "Records medicine, vaccine, vitamin use and next schedule.", "Optional inventory transaction for used item."),
             ("EggProduction", "Records good, cracked, rejected, and total eggs.", "Save method calculates total eggs."),
-            ("MortalityRecord", "Records death quantity, cause, symptoms, action, and remarks.", "Save method adjusts flock current quantity."),
+            ("DeathRecord", "Records death quantity, cause, symptoms, action, and remarks.", "Save method adjusts flock current quantity."),
             ("SalesRecord", "Records product type, buyer, quantity, unit price, total, payment status, and balance.", "Save method calculates total amount."),
             ("ExpenseRecord", "Records farm costs by category, amount, date, payment method, and receipt.", "Supports profit/loss report."),
             ("Supplier / Buyer", "Stores contact and transaction-related people records.", "Linked to inventory items or sales records."),

@@ -11,7 +11,7 @@ from .views import (
     InventoryItemViewSet,
     LowStockInventoryView,
     MedicineViewSet,
-    MortalityViewSet,
+    DeathViewSet,
     NotificationUnreadCountView,
     NotificationViewSet,
     SalesViewSet,
@@ -24,7 +24,7 @@ router = DefaultRouter()
 router.register("flocks", FlockViewSet, basename="flocks")
 router.register("inventory", InventoryItemViewSet, basename="inventory")
 router.register("eggs", EggProductionViewSet, basename="eggs")
-router.register("mortality", MortalityViewSet, basename="mortality")
+router.register("deaths", DeathViewSet, basename="deaths")
 router.register("feeding", FeedingViewSet, basename="feeding")
 router.register("medicine", MedicineViewSet, basename="medicine")
 router.register("sales", SalesViewSet, basename="sales")

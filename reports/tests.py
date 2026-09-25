@@ -19,8 +19,8 @@ class ReportViewTests(TestCase):
         response = self.client.get(reverse("reports:production_report"))
         self.assertEqual(response.status_code, 200)
 
-    def test_mortality_report_view(self):
-        response = self.client.get(reverse("reports:mortality_report"))
+    def test_death_report_view(self):
+        response = self.client.get(reverse("reports:death_report"))
         self.assertEqual(response.status_code, 200)
 
     def test_sales_report_view(self):

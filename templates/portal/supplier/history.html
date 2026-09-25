@@ -1,39 +1,83 @@
 {% extends "portal/base.html" %}
 {% block title %}Purchase History{% endblock %}
+{% block page_title %}Purchases{% endblock %}
 {% block content %}
 <div class="space-y-4">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 class="text-xl font-bold text-gray-800 dark:text-white">Farm Purchases from You</h1>
-        <form method="get" class="flex items-center gap-2">
-            <input type="month" name="month" value="{{ month }}" class="form-input text-sm">
-            <button type="submit" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium">Filter</button>
+        <div>
+            <h1 class="text-xl font-bold text-gray-800">Farm Purchases from You</h1>
+            <p class="text-sm text-gray-500 mt-1">
+                Every delivery the farm has recorded and paid or owes.
+                <span class="inline-flex items-center ml-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">{{ records|length }} {% if records|length == 1 %}record{% else %}records{% endif %}</span>
+            </p>
+        </div>
+        <form method="get" class="flex flex-wrap items-center gap-2">
+            <label class="sr-only" for="id_month">Month</label>
+            <input type="month" id="id_month" name="month" value="{{ month }}" class="form-input text-sm w-auto py-2">
+            <button type="submit" class="btn btn-ghost cursor-pointer">Filter</button>
             {% if month %}<a href="{% url 'portal:supplier_history' %}" class="text-sm text-gray-500 hover:underline">Clear</a>{% endif %}
         </form>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <table class="w-full">
-            <thead>
-                <tr class="bg-gray-50 dark:bg-gray-700/50">
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Description</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Category</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Amount</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                {% for record in records %}
-                <tr>
-                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{{ record.expense_date }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{{ record.description }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">{{ record.category.name }}</td>
-                    <td class="px-4 py-3 text-sm text-right font-semibold text-gray-800 dark:text-white">₱{{ record.amount|floatformat:2 }}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" class="px-4 py-10 text-center text-sm text-gray-500">No recorded purchases{% if month %} for this month{% endif %}.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="stat">
+            <p class="label">{% if month %}{{ month }} Total{% else %}Total Recorded{% endif %}</p>
+            <p class="value">₱{{ total|floatformat:2 }}</p>
+            <p class="meta">{% if month %}For the month you filtered{% else %}Across every recorded delivery{% endif %}</p>
+        </div>
+        <div class="stat">
+            <p class="label">Records Shown</p>
+            <p class="value">{{ records|length }}</p>
+            <p class="meta">Staff record these when goods arrive and are checked in</p>
+        </div>
     </div>
-    <p class="text-right text-sm text-gray-600 dark:text-gray-300">Total: <span class="font-bold text-green-700">₱{{ total|floatformat:2 }}</span></p>
+
+    <div class="panel overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[32rem] text-left">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                        <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
+                        <th scope="col" class="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Category</th>
+                        <th scope="col" class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for record in records %}
+                    <tr class="hover:bg-emerald-50/40 transition-colors">
+                        <td class="px-5 py-4 text-sm text-gray-700 whitespace-nowrap">
+                            {{ record.expense_date }}
+                            <span class="text-xs text-gray-400">{{ record.expense_date|date:"D" }}</span>
+                        </td>
+                        <td class="px-5 py-4">
+                            <p class="text-sm text-gray-800 truncate max-w-[18rem]">{{ record.description }}</p>
+                            <p class="text-xs text-gray-400 md:hidden">{{ record.category.name|default:"Uncategorised" }}</p>
+                        </td>
+                        <td class="px-5 py-4 hidden md:table-cell">
+                            <span class="text-sm text-gray-600">{{ record.category.name|default:"—" }}</span>
+                        </td>
+                        <td class="px-5 py-4 text-right whitespace-nowrap">
+                            <span class="text-sm font-bold text-gray-800">₱{{ record.amount|floatformat:2 }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-5 py-14 text-center">
+                            <p class="font-semibold text-gray-700">No recorded purchases{% if month %} for this month{% endif %}</p>
+                            <p class="text-sm text-gray-500 mt-1 max-w-md mx-auto">Once the farm checks in a delivery, the amount you were paid appears here.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if records %}
+        <div class="px-5 py-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs text-gray-400">
+            <span>Amounts are what farm staff recorded on receipt.</span>
+            <span class="font-semibold text-gray-600">Total: ₱{{ total|floatformat:2 }}</span>
+        </div>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}

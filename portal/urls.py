@@ -36,10 +36,12 @@ urlpatterns = [
     path("buyer/requests/<int:pk>/respond/", buyer_views.order_request_respond, name="buyer_request_respond"),
     path("buyer/requests/<int:pk>/cancel/", buyer_views.order_request_cancel, name="buyer_request_cancel"),
     path("buyer/profile/", buyer_views.buyer_profile, name="buyer_profile"),
-    # Supplier portal
+    path("buyer/profile/edit/", buyer_views.buyer_profile_update, name="buyer_profile_update"),
+    # Supplier portal — catalog and delivery CRUD live on one page each, driven by HTMX modals
     path("supplier/", supplier_views.supplier_home, name="supplier_home"),
     path("supplier/catalog/", supplier_views.catalog_list, name="supplier_catalog"),
     path("supplier/catalog/create/", supplier_views.catalog_create, name="supplier_catalog_create"),
+    path("supplier/catalog/<int:pk>/", supplier_views.catalog_detail, name="supplier_catalog_detail"),
     path("supplier/catalog/<int:pk>/edit/", supplier_views.catalog_update, name="supplier_catalog_update"),
     path("supplier/catalog/<int:pk>/delete/", supplier_views.catalog_delete, name="supplier_catalog_delete"),
     path("supplier/deliveries/", supplier_views.delivery_notice_list, name="supplier_deliveries"),
@@ -48,4 +50,5 @@ urlpatterns = [
     path("supplier/deliveries/<int:pk>/respond/", supplier_views.delivery_notice_respond, name="supplier_delivery_respond"),
     path("supplier/history/", supplier_views.purchase_history, name="supplier_history"),
     path("supplier/profile/", supplier_views.supplier_profile, name="supplier_profile"),
+    path("supplier/profile/edit/", supplier_views.supplier_profile_update, name="supplier_profile_update"),
 ]

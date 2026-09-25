@@ -1,55 +1,200 @@
 {% extends "base.html" %}
 {% block title %}Inventory{% endblock %}
 {% block content %}
+<style>
+    /* ---------- HTMX loading indicator (hidden unless a request is in flight) ---------- */
+    #htmx-progress {
+        position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 100;
+        background: transparent; overflow: hidden; pointer-events: none;
+    }
+    #htmx-progress::before {
+        content: ""; display: block; height: 100%; width: 33%; margin-left: -33%;
+        background: linear-gradient(90deg, transparent, #16a34a, transparent);
+        opacity: 0; transition: opacity .15s ease;
+    }
+    body.htmx-request #htmx-progress::before { opacity: 1; animation: htmx-slide 1s linear infinite; }
+    @keyframes htmx-slide { to { transform: translateX(300%); } }
+
+    /* ---------- Print: strip the app chrome, keep the data ---------- */
+    @media print {
+        aside, header.sticky, footer, #modal-container, #htmx-progress,
+        .no-print { display: none !important; }
+        main { padding: 0 !important; }
+        .print-panel { box-shadow: none !important; border-color: #d1d5db !important; }
+        tr { page-break-inside: avoid; }
+        thead { display: table-header-group; }
+    }
+</style>
+<div id="htmx-progress" aria-hidden="true"></div>
+
 <div class="space-y-6">
+    {# ---------- Header ---------- #}
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
             <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Inventory</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage feeds, medicines, and supplies</p>
         </div>
-        <button hx-get="{% url 'inventory:inventory_create' %}" hx-target="#modal-container" hx-swap="innerHTML" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-green-900/30 hover:shadow-xl transition-all duration-200 cursor-pointer inline-flex items-center space-x-2 self-start">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-            <span>Add Item</span>
-        </button>
+        <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <button type="button" onclick="window.print()" title="Print the current page" class="no-print inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-colors cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                <span>Print</span>
+            </button>
+            <a href="{{ print_url }}" target="_blank" rel="noopener" title="Opens a print preview of ALL filtered items - choose 'Save as PDF' to export" class="no-print inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-700 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span>Export PDF</span>
+            </a>
+            <button hx-get="{% url 'inventory:inventory_create' %}" hx-target="#modal-container" hx-swap="innerHTML" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-green-900/30 hover:shadow-xl transition-all duration-200 cursor-pointer inline-flex items-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                <span>Add Item</span>
+            </button>
+        </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    {# ---------- Summary statistics (reflect the rows in scope) ---------- #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 flex items-center gap-4">
+            <span class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" aria-hidden="true">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+            </span>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Items</p>
+                <p class="text-2xl font-bold text-gray-800 dark:text-white leading-tight">{{ stat_total }}</p>
+            </div>
+        </div>
+        <a href="?{% if query %}{{ query }}&{% endif %}status=low_stock" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 flex items-center gap-4 hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md transition-all no-underline" title="Show only low-stock items">
+            <span class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400" aria-hidden="true">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </span>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Low Stock</p>
+                <p class="text-2xl font-bold text-orange-600 dark:text-orange-400 leading-tight">{{ stat_low_stock }}</p>
+            </div>
+        </a>
+        <a href="?{% if query %}{{ query }}&{% endif %}status=expired" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 flex items-center gap-4 hover:border-red-300 dark:hover:border-red-700 hover:shadow-md transition-all no-underline" title="Show only expired items">
+            <span class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" aria-hidden="true">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </span>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Expired</p>
+                <p class="text-2xl font-bold text-red-600 dark:text-red-400 leading-tight">{{ stat_expired }}</p>
+            </div>
+        </a>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 flex items-center gap-4">
+            <span class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" aria-hidden="true">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </span>
+            <div class="min-w-0">
+                <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Value</p>
+                <p class="text-2xl font-bold text-gray-800 dark:text-white leading-tight truncate">₱{{ stat_total_value|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+
+    {# ---------- Search & filter bar ---------- #}
+    <form method="get" action="{% url 'inventory:inventory_list' %}" class="no-print bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4" role="search" aria-label="Filter inventory items">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] gap-3 items-end">
+            <div>
+                <label for="id_search" class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">Search</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400" aria-hidden="true">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </span>
+                    <input type="search" id="id_search" name="search" value="{{ search }}" placeholder="Item name&hellip;" autocomplete="off"
+                           class="form-input pl-9 text-sm">
+                </div>
+            </div>
+            <div>
+                <label for="id_category" class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">Category</label>
+                <select id="id_category" name="category" onchange="this.form.submit()" class="form-input text-sm sm:w-44">
+                    <option value="">All categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.pk }}" {% if category == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="id_status" class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">Status</label>
+                <select id="id_status" name="status" onchange="this.form.submit()" class="form-input text-sm sm:w-36">
+                    <option value="">All statuses</option>
+                    <option value="in_stock" {% if status == 'in_stock' %}selected{% endif %}>In Stock</option>
+                    <option value="low_stock" {% if status == 'low_stock' %}selected{% endif %}>Low Stock</option>
+                    <option value="expired" {% if status == 'expired' %}selected{% endif %}>Expired</option>
+                </select>
+            </div>
+            <noscript><button type="submit" class="px-4 py-2.5 text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-xl transition-colors cursor-pointer">Apply</button></noscript>
+            {% if has_filters %}
+            <a href="{% url 'inventory:inventory_list' %}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                Clear
+            </a>
+            {% endif %}
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-2.5">
+            {{ stat_total }} item{{ stat_total|pluralize }} in scope{% if has_filters %} &middot; filters applied{% endif %}{% if paginator.num_pages > 1 %} &middot; page {{ page_obj.number }} of {{ paginator.num_pages }}{% endif %}
+        </p>
+    </form>
+
+    {# ---------- Items table ---------- #}
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden print-panel">
         <div class="overflow-x-auto">
-            <table class="w-full">
+            <table class="w-full min-w-[48rem]">
+                <caption class="sr-only">Inventory items with quantity, cost and stock status</caption>
                 <thead>
-                    <tr class="bg-gray-50 dark:bg-gray-700/50">
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quantity</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cost</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                        <th class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                    <tr class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                        <th scope="col" class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                        <th scope="col" class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Category</th>
+                        <th scope="col" class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quantity</th>
+                        <th scope="col" class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Cost / Unit</th>
+                        <th scope="col" class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Expiry</th>
+                        <th scope="col" class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider no-print">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                     {% for item in items %}
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                         <td class="px-5 py-4">
-                            <span class="font-medium text-gray-800 dark:text-white">{{ item.name }}</span>
+                            <a href="{% url 'inventory:inventory_detail' item.pk %}" class="font-medium text-gray-800 dark:text-white hover:text-green-700 dark:hover:text-green-400 hover:underline">{{ item.name }}</a>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 lg:hidden">{{ item.category.name }}{% if item.supplier %} &middot; {{ item.supplier.name }}{% endif %}</p>
                         </td>
-                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">{{ item.category.name }}</td>
-                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">{{ item.quantity }} {{ item.unit.abbreviation }}</td>
-                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">₱{{ item.cost_per_unit }}</td>
+                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300 hidden lg:table-cell">
+                            {{ item.category.name }}
+                            {% if item.supplier %}<p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ item.supplier.name }}</p>{% endif %}
+                        </td>
+                        <td class="px-5 py-4 text-right whitespace-nowrap">
+                            <span class="font-medium text-gray-800 dark:text-white">{{ item.quantity|floatformat:-2 }}</span>
+                            <span class="text-gray-500 dark:text-gray-400 text-sm">{{ item.unit.abbreviation }}</span>
+                            <p class="text-xs text-gray-400 dark:text-gray-500">reorder at {{ item.reorder_level|floatformat:-2 }}</p>
+                        </td>
+                        <td class="px-5 py-4 text-right text-gray-600 dark:text-gray-300 hidden md:table-cell whitespace-nowrap">₱{{ item.cost_per_unit|floatformat:2 }}</td>
+                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300 hidden md:table-cell whitespace-nowrap">{{ item.expiration_date|date:"j M Y"|default:"&mdash;" }}</td>
                         <td class="px-5 py-4">
-                            {% if item.is_low_stock %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">Low Stock</span>
-                            {% elif item.is_expired %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">Expired</span>
+                            {% if item.is_expired %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 ring-1 ring-inset ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500" aria-hidden="true"></span>Expired
+                            </span>
+                            {% elif item.is_low_stock %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 ring-1 ring-inset ring-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:ring-orange-800">
+                                <span class="w-1.5 h-1.5 rounded-full bg-orange-500" aria-hidden="true"></span>Low Stock
+                            </span>
                             {% else %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">OK</span>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-800">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true"></span>In Stock
+                            </span>
                             {% endif %}
                         </td>
-                        <td class="px-5 py-4 text-right">
-                            <div class="flex items-center justify-end space-x-2">
-                                <button hx-get="{% url 'inventory:inventory_update' item.pk %}" hx-target="#modal-container" hx-swap="innerHTML" class="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors cursor-pointer" title="Edit">
+                        <td class="px-5 py-4 text-right no-print">
+                            <div class="flex items-center justify-end space-x-1">
+                                <a href="{% url 'inventory:transaction_create_item' item.pk %}" title="Record stock in / out" aria-label="Record a stock movement for {{ item.name }}" class="p-2 text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m4 6H8m0 0l4 4m-4-4l4-4"></path></svg>
+                                </a>
+                                <a href="{% url 'inventory:inventory_detail' item.pk %}" title="View details" aria-label="View details for {{ item.name }}" class="p-2 text-gray-500 dark:text-gray-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                </a>
+                                <button hx-get="{% url 'inventory:inventory_update' item.pk %}" hx-target="#modal-container" hx-swap="innerHTML" aria-label="Edit {{ item.name }}" title="Edit" class="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors cursor-pointer">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                 </button>
-                                <button hx-get="{% url 'inventory:inventory_delete' item.pk %}" hx-target="#modal-container" hx-swap="innerHTML" class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors cursor-pointer" title="Delete">
+                                <button hx-get="{% url 'inventory:inventory_delete' item.pk %}" hx-target="#modal-container" hx-swap="innerHTML" aria-label="Delete {{ item.name }}" title="Delete" class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors cursor-pointer">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                 </button>
                             </div>
@@ -57,17 +202,58 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="px-5 py-12 text-center">
-                            <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
-                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        <td colspan="7" class="px-5 py-16 text-center">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-2xl mb-4">
+                                <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                             </div>
-                            <p class="text-gray-500 dark:text-gray-400 text-sm">No items found</p>
+                            {% if has_filters %}
+                            <p class="font-semibold text-gray-700 dark:text-gray-200">No items match your filters</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-4">Try a different search term, category or status.</p>
+                            <a href="{% url 'inventory:inventory_list' %}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors">Clear all filters</a>
+                            {% else %}
+                            <p class="font-semibold text-gray-700 dark:text-gray-200">No inventory items yet</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-4">Add feeds, medicines and supplies to start tracking stock.</p>
+                            <button hx-get="{% url 'inventory:inventory_create' %}" hx-target="#modal-container" hx-swap="innerHTML" class="inline-flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-xl text-sm font-medium shadow-md shadow-green-900/20 transition-all cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                Add your first item
+                            </button>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        {# ---------- Pagination ---------- #}
+        {% if paginator.num_pages > 1 %}
+        <nav class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/20 no-print" aria-label="Inventory pagination">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Showing {{ page_obj.start_index }}&ndash;{{ page_obj.end_index }} of {{ paginator.count }} items
+            </p>
+            <div class="flex items-center gap-1">
+                {% if page_obj.has_previous %}
+                <a href="?{% if query %}{{ query }}&{% endif %}page={{ page_obj.previous_page_number }}" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" rel="prev">&larr; Prev</a>
+                {% else %}
+                <span aria-disabled="true" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-300 dark:text-gray-600 border border-gray-200 dark:border-gray-700 rounded-lg cursor-not-allowed" aria-hidden="true">&larr; Prev</span>
+                {% endif %}
+                {% with last=paginator.num_pages current=page_obj.number %}
+                {% for n in paginator.page_range %}
+                    {% if n <= 2 or n >= last|add:"-1" or n >= current|add:"-2" and n <= current|add:"2" %}
+                    <a href="?{% if query %}{{ query }}&{% endif %}page={{ n }}" class="min-w-[2.25rem] text-center inline-block px-2 py-1.5 text-xs font-medium rounded-lg transition-colors {% if n == current %}bg-green-700 text-white shadow-sm{% else %}text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700{% endif %}" {% if n == current %}aria-current="page"{% endif %}>{{ n }}</a>
+                    {% elif n == 3 or n == last|add:"-2" %}
+                    <span class="px-1 text-gray-400 dark:text-gray-500 text-xs select-none" aria-hidden="true">&hellip;</span>
+                    {% endif %}
+                {% endfor %}
+                {% endwith %}
+                {% if page_obj.has_next %}
+                <a href="?{% if query %}{{ query }}&{% endif %}page={{ page_obj.next_page_number }}" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" rel="next">Next &rarr;</a>
+                {% else %}
+                <span aria-disabled="true" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-300 dark:text-gray-600 border border-gray-200 dark:border-gray-700 rounded-lg cursor-not-allowed" aria-hidden="true">Next &rarr;</span>
+                {% endif %}
+            </div>
+        </nav>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

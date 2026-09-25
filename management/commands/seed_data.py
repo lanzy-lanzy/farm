@@ -10,7 +10,7 @@ from inventory.models import InventoryItem, InventoryCategory, Unit
 from feeding.models import FeedingRecord
 from medicine.models import MedicineRecord
 from eggs.models import EggProduction
-from mortality.models import MortalityRecord
+from deaths.models import DeathRecord
 from sales.models import SalesRecord
 from expenses.models import ExpenseRecord, ExpenseCategory
 from suppliers.models import Supplier

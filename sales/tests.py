@@ -258,3 +258,80 @@ class OnBehalfAndConvertTests(TestCase):
         self.assertFalse(SalesRecord.objects.exists())
         order.refresh_from_db()
         self.assertEqual(order.status, "accepted")
+
+
+class SaleStockDeductionTests(TestCase):
+    """Sales against a mapped product type deduct inventory; oversells are blocked."""
+
+    def setUp(self):
+        self.staff = make_user("stockstaff", "staff")
+        self.owner = make_user("stockowner", "owner")
+        self.buyer = Buyer.objects.create(name="Tray Tina")
+        from inventory.models import InventoryCategory, InventoryItem, InventoryTransaction, Unit
+
+        unit = Unit.objects.create(name="Piece", abbreviation="pcs")
+        category = InventoryCategory.objects.create(name="Farm products")
+        self.item = InventoryItem.objects.create(
+            category=category, name="Eggs stock", quantity=Decimal("20"),
+            unit=unit, reorder_level=Decimal("5"), sales_product_type="eggs",
+        )
+        self.InventoryTransaction = InventoryTransaction
+
+    def _make_accepted(self, quantity="10"):
+        return OrderRequest.objects.create(
+            buyer=self.buyer, product_type="eggs", product_name="Eggs",
+            quantity=Decimal(quantity), requested_date=timezone.localdate(),
+            status="accepted", quoted_unit_price=Decimal("8.00"),
+        )
+
+    def test_direct_sale_deducts_stock(self):
+        self.client.force_login(self.staff)
+        response = self.client.post(
+            reverse("sales:sales_create"),
+            sales_form_data(quantity="10", amount_paid="80.00"),
+        )
+        self.assertEqual(response.status_code, 302)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.quantity, Decimal("10"))
+        sale = SalesRecord.objects.get()
+        txn = self.InventoryTransaction.objects.get(item=self.item)
+        self.assertEqual((txn.transaction_type, str(txn.reference)), ("out", f"Sales Record #{sale.pk}"))
+
+    def test_conversion_deducts_stock(self):
+        order = self._make_accepted()
+        self.client.force_login(self.staff)
+        response = self.client.post(
+            reverse("sales:order_request_convert", args=[order.pk]),
+            sales_form_data(quantity="10", unit_price="8.00", amount_paid="80.00"),
+        )
+        self.assertEqual(response.status_code, 302)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.quantity, Decimal("10"))
+
+    def test_oversell_blocks_conversion_even_for_owner(self):
+        order = self._make_accepted(quantity="50")
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse("sales:order_request_convert", args=[order.pk]),
+            sales_form_data(quantity="50", unit_price="8.00", amount_paid="400.00"),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Insufficient stock")
+        self.assertFalse(SalesRecord.objects.exists())
+        order.refresh_from_db()
+        self.assertEqual(order.status, "accepted")
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.quantity, Decimal("20"))
+
+    def test_unmapped_product_type_deducts_nothing(self):
+        self.item.sales_product_type = None
+        self.item.save()
+        self.client.force_login(self.staff)
+        response = self.client.post(
+            reverse("sales:sales_create"),
+            sales_form_data(quantity="10", amount_paid="80.00"),
+        )
+        self.assertEqual(response.status_code, 302)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.quantity, Decimal("20"))
+        self.assertFalse(self.InventoryTransaction.objects.exists())

@@ -1,24 +1,54 @@
 {% extends "portal/base.html" %}
 {% block title %}Notifications{% endblock %}
+{% block page_title %}Notifications{% endblock %}
 {% block content %}
 <div class="space-y-4">
-    <h1 class="text-xl font-bold text-gray-800 dark:text-white">Notifications</h1>
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+        <div>
+            <h1 class="text-xl font-bold text-gray-800">Notifications</h1>
+            <p class="text-sm text-gray-500 mt-1">Each one takes you straight to the page where you act on it.</p>
+        </div>
+        {% if unread_notifications %}
+        <span class="pill pill-quoted self-start sm:self-auto">{{ unread_notifications }} unread</span>
+        {% endif %}
+    </div>
+
+    <div class="panel overflow-hidden">
         {% for notification in notifications %}
-        <div class="p-4 {% if not notification.is_read %}bg-emerald-50 dark:bg-emerald-900/20{% endif %}">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <h3 class="font-medium text-gray-800 dark:text-white">{{ notification.title }}</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ notification.message }}</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ notification.created_at|timesince }} ago</p>
+        {# Hitting the mark-read route flags it and redirects to notification.link — the action page. #}
+        <a href="{% url 'notifications:notification_mark_read' notification.pk %}"
+           class="row row--stack no-underline {% if not notification.is_read %}bg-emerald-50/70{% else %}bg-white{% endif %} hover:bg-emerald-50">
+            <div class="flex items-start gap-3 min-w-0">
+                <span class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-xl {% if notification.notification_type == 'order_request' %}bg-violet-100 text-violet-600{% elif notification.notification_type == 'delivery_notice' %}bg-amber-100 text-amber-600{% else %}bg-emerald-100 text-emerald-600{% endif %}">
+                    {% if notification.notification_type == 'order_request' %}
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    {% elif notification.notification_type == 'delivery_notice' %}
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h11v10H3zM14 10h4l3 3v4h-7zM6.5 20a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm12 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg>
+                    {% else %}
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    {% endif %}
+                </span>
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-800">{{ notification.title }}</p>
+                    <p class="text-sm text-gray-500 mt-0.5">{{ notification.message }}</p>
+                    <p class="text-xs text-gray-400 mt-1.5">{{ notification.created_at|date:"j M Y, H:i" }} &middot; {{ notification.created_at|timesince }} ago</p>
                 </div>
-                {% if not notification.is_read %}
-                <a href="{% url 'notifications:notification_mark_read' notification.pk %}" class="text-emerald-600 hover:text-emerald-800 text-sm whitespace-nowrap">Mark read</a>
-                {% endif %}
+            </div>
+            <div class="flex items-center gap-2 shrink-0 justify-end">
+                {% if not notification.is_read %}<span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>{% endif %}
+                <span class="text-xs font-semibold whitespace-nowrap" style="color: var(--brand);">
+                    {% if notification.link %}Open &amp; mark read{% else %}Mark read{% endif %}
+                </span>
+            </div>
+        </a>
+        {% empty %}
+        <div class="panel-body">
+            <div class="empty">
+                <strong>Nothing to act on</strong>
+                Quotes, cancellations and account updates land here as soon as the farm posts them.
+                <div class="mt-4"><a href="{% url 'portal:home' %}" class="btn btn-ghost">Back to my dashboard</a></div>
             </div>
         </div>
-        {% empty %}
-        <div class="p-6 text-center text-gray-500 dark:text-gray-400">No notifications yet</div>
         {% endfor %}
     </div>
 </div>

@@ -1,0 +1,48 @@
+{% extends "reports/_print_base.html" %}
+{% block report_body %}
+    <div class="cards">
+        <div class="card"><div class="label">Total Items</div><div class="value">{{ stat_total }}</div></div>
+        <div class="card"><div class="label">Low Stock</div><div class="value warn">{{ stat_low_stock }}</div></div>
+        <div class="card"><div class="label">Expired</div><div class="value neg">{{ stat_expired }}</div></div>
+        <div class="card"><div class="label">Total Value</div><div class="value pos">&#8369;{{ stat_total_value|floatformat:2 }}</div></div>
+    </div>
+
+    {% if items %}
+    <table class="data">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th class="num">Quantity</th>
+                <th class="num">Cost / Unit</th>
+                <th>Expiry</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.category.name|default:"-" }}</td>
+                <td class="num">{{ item.quantity }} {{ item.unit.abbreviation }}</td>
+                <td class="num">&#8369;{{ item.cost_per_unit|floatformat:2 }}</td>
+                <td>{{ item.expiration_date|date:"Y-m-d"|default:"N/A" }}</td>
+                <td>
+                    {% if item.is_expired %}<span class="status neg">Expired</span>
+                    {% elif item.is_low_stock %}<span class="status warn">Low Stock</span>
+                    {% else %}<span class="status ok">In Stock</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3">Total value on hand &mdash; {{ stat_total }} item{{ stat_total|pluralize }}</td>
+                <td class="num" colspan="3">&#8369;{{ stat_total_value|floatformat:2 }}</td>
+            </tr>
+        </tfoot>
+    </table>
+    {% else %}
+    <div class="empty">No inventory items match the selected filters.</div>
+    {% endif %}
+{% endblock %}

@@ -8,7 +8,7 @@ from buyers.models import OrderRequest
 from flocks.models import FlockBatch
 from inventory.models import InventoryItem
 from eggs.models import EggProduction
-from mortality.models import MortalityRecord
+from deaths.models import DeathRecord
 from sales.models import SalesRecord
 from expenses.models import ExpenseRecord
 from notifications.models import Notification, ActivityLog
@@ -51,7 +51,7 @@ def index(request):
         production_date__gte=month_ago
     ).aggregate(total=Sum("total_eggs"))["total"] or 0
 
-    total_mortality = MortalityRecord.objects.filter(
+    total_mortality = DeathRecord.objects.filter(
         date_recorded__gte=month_ago
     ).aggregate(total=Sum("quantity"))["total"] or 0
 
@@ -84,7 +84,7 @@ def index(request):
         status__in=["submitted", "under_review", "quoted", "accepted"]
     ).count()
 
-    open_deliveries = DeliveryNotice.objects.filter(status="announced").count()
+    open_deliveries = DeliveryNotice.objects.filter(status__in=["announced", "confirmed"]).count()
 
     recent_activities = ActivityLog.objects.all()[:10]
     recent_notifications = Notification.objects.filter(
@@ -100,7 +100,7 @@ def index(request):
         )["total"] or 0
         egg_chart_data.append({"date": date.strftime("%b %d"), "eggs": egg_prod})
 
-        mort_count = MortalityRecord.objects.filter(date_recorded=date).aggregate(
+        mort_count = DeathRecord.objects.filter(date_recorded=date).aggregate(
             total=Sum("quantity")
         )["total"] or 0
         mortality_chart_data.append({"date": date.strftime("%b %d"), "deaths": mort_count})

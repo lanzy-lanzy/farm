@@ -1,12 +1,12 @@
 {% for field in form %}
 <div class="mb-4">
-    <label class="flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5" for="{{ field.id_for_label }}">
+    <label class="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1.5" for="{{ field.id_for_label }}">
         {{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}
     </label>
     {{ field }}
-    {% if field.help_text %}<p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">{{ field.help_text }}</p>{% endif %}
+    {% if field.help_text %}<p class="text-xs text-gray-400 mt-1.5">{{ field.help_text }}</p>{% endif %}
     {% for error in field.errors %}
-    <p class="flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400 mt-1.5">
+    <p class="flex items-center gap-1.5 text-sm text-red-600 mt-1.5">
         <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86l-8.54 14.7A1 1 0 002.63 20h18.74a1 1 0 00.88-1.44l-8.54-14.7a1 1 0 00-1.72 0z"></path></svg>
         {{ error }}
     </p>
@@ -14,7 +14,7 @@
 </div>
 {% endfor %}
 {% if form.non_field_errors %}
-<div class="mb-4 p-3.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm rounded-xl flex items-start gap-2">
+<div class="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl flex items-start gap-2">
     <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
     <div>{{ form.non_field_errors }}</div>
 </div>

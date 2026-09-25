@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}{% if record %}Edit{% else %}Add{% endif %} Mortality Record{% endblock %}
+{% block title %}{% if record %}Edit{% else %}Add{% endif %} Death Record{% endblock %}
 {% block content %}
 <div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-6">{% if record %}Edit{% else %}Add New{% endif %} Mortality Record</h1>
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-6">{% if record %}Edit{% else %}Add New{% endif %} Death Record</h1>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <form method="post" class="space-y-4">
             {% csrf_token %}
@@ -15,7 +15,7 @@
             {% endfor %}
             <div class="flex space-x-4">
                 <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg">Save</button>
-                <a href="{% url 'mortality:mortality_list' %}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg">Cancel</a>
+                <a href="{% url 'deaths:death_list' %}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg">Cancel</a>
             </div>
         </form>
     </div>

@@ -1,7 +1,7 @@
 {% extends "partials/modal.html" %}
-{% block modal_title %}{% if record %}Edit Record{% else %}Add Mortality Record{% endif %}{% endblock %}
+{% block modal_title %}{% if record %}Edit Record{% else %}Add Death Record{% endif %}{% endblock %}
 {% block modal_content %}
-<form hx-post="{% if record %}{% url 'mortality:mortality_update' record.pk %}{% else %}{% url 'mortality:mortality_create' %}{% endif %}" 
+<form hx-post="{% if record %}{% url 'deaths:death_update' record.pk %}{% else %}{% url 'deaths:death_create' %}{% endif %}" 
       hx-target="#modal-container" hx-swap="innerHTML" hx-target-4*="#modal-container" class="space-y-4">
     {% csrf_token %}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

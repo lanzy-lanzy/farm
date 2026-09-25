@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 
@@ -96,6 +98,14 @@ class SupplyItem(models.Model):
     availability = models.CharField(
         max_length=20, choices=AVAILABILITY_CHOICES, default="in_stock"
     )
+    inventory_item = models.ForeignKey(
+        "inventory.InventoryItem",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="supply_items",
+        help_text="Farm stock row this item adds to when a delivery is received (set by staff).",
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -112,6 +122,7 @@ class SupplyItem(models.Model):
 class DeliveryNotice(models.Model):
     STATUS_CHOICES = [
         ("announced", "Announced"),
+        ("confirmed", "Confirmed"),
         ("received", "Received"),
         ("rejected", "Rejected"),
     ]
@@ -133,6 +144,14 @@ class DeliveryNotice(models.Model):
         null=True,
         blank=True,
         related_name="delivery_notices",
+    )
+    inventory_item = models.ForeignKey(
+        "inventory.InventoryItem",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="delivery_notices",
+        help_text="Stock row this delivery was booked into (decided at receive; overrides the catalog default).",
     )
     description = models.CharField(max_length=300)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
@@ -166,7 +185,7 @@ class DeliveryNotice(models.Model):
     class Meta:
         verbose_name = "Delivery Notice"
         verbose_name_plural = "Delivery Notices"
-        ordering = ["-expected_date"]
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.supplier.name} - {self.description} ({self.expected_date})"
@@ -178,3 +197,21 @@ class DeliveryNotice(models.Model):
     @property
     def is_farm_order_open(self):
         return self.origin == "farm" and self.status == "announced"
+
+    @property
+    def can_supplier_respond(self):
+        """A farm order the supplier may still confirm or re-date (not yet booked or rejected)."""
+        return self.origin == "farm" and self.status in ("announced", "confirmed")
+
+    @property
+    def awaits_farm_action(self):
+        """Still on the farm's desk: nothing received or rejected yet."""
+        return self.status in ("announced", "confirmed")
+
+    @property
+    def quantity_label(self):
+        """"<quantity> <description>", without doubling a count the description already leads with."""
+        text = self.description.strip()
+        if self.quantity is None or text[:1].isdigit():
+            return text
+        return f"{Decimal(str(self.quantity)).normalize():f} {text}"

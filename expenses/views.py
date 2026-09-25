@@ -2,9 +2,12 @@ from decimal import Decimal
 
 from django.contrib import messages
 from accounts.access import admin_or_owner_required, internal_only
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse
 
+from inventory.forms import StockBookingForm
+from inventory.services import receive_for_notice
 from .forms import ExpenseRecordForm, ExpenseCategoryForm
 from .models import ExpenseRecord, ExpenseCategory
 from notifications.utils import log_activity, notify_user
@@ -106,7 +109,7 @@ def delivery_notice_queue(request):
     status_filter = request.GET.get("status", "")
     if status_filter:
         notices = notices.filter(status=status_filter)
-    open_count = DeliveryNotice.objects.filter(status="announced").count()
+    open_count = DeliveryNotice.objects.filter(status__in=["announced", "confirmed"]).count()
     return render(
         request,
         "expenses/delivery_notice_queue.html",
@@ -137,8 +140,9 @@ def delivery_notice_create(request):
                 notice.supplier.user,
                 "delivery_notice",
                 f"The farm ordered: {notice.description}",
-                f"{notice.quantity} {notice.description} requested for {notice.expected_date}. Confirm or adjust the date in your portal.",
+                f"{notice.quantity_label} requested for {notice.expected_date}. Confirm or adjust the date in your portal.",
                 link="/portal/supplier/deliveries/",
+                target=f"delivery_notice:{notice.pk}",
             )
             log_activity(request.user, "create", "DeliveryNotice", notice.pk, notice.__str__(), "Farm ordered from supplier")
             messages.success(request, f"Order sent to {notice.supplier.name}.")
@@ -165,16 +169,23 @@ def delivery_notice_review(request, pk):
         if notice.supply_item and notice.supply_item.unit_price is not None:
             amount = (notice.supply_item.unit_price * notice.quantity).quantize(Decimal("0.01"))
         return {
-            "description": f"{notice.quantity} {notice.description} from {notice.supplier.name}",
+            "description": f"{notice.quantity_label} from {notice.supplier.name}",
             "amount": amount,
             "expense_date": notice.expected_date,
         }
+
+    def booking_initial():
+        mapped = (
+            notice.inventory_item_id
+            or (notice.supply_item.inventory_item_id if notice.supply_item_id else None)
+        )
+        return {"inventory_item": mapped} if mapped else {}
 
     if request.method == "GET" and is_htmx(request) and request.GET.get("form") in ("receive", "reject", "view"):
         modal_form = request.GET.get("form")
         if modal_form == "view":
             return render(request, "expenses/_delivery_detail_modal.html", {"notice": notice})
-        if notice.status != "announced":
+        if not notice.awaits_farm_action:
             return redirect("expenses:delivery_notice_review", pk=notice.pk)
         return render(
             request,
@@ -183,6 +194,7 @@ def delivery_notice_review(request, pk):
                 "notice": notice,
                 "modal_form": modal_form,
                 "form": ExpenseRecordForm(initial=receive_initial()) if modal_form == "receive" else None,
+                "booking_form": StockBookingForm(initial=booking_initial()) if modal_form == "receive" else None,
             },
         )
 
@@ -197,6 +209,7 @@ def delivery_notice_review(request, pk):
                 f"Delivery rejected: {notice.description}",
                 request.POST.get("note", "").strip() or "The farm could not accept this delivery.",
                 link="/portal/supplier/deliveries/",
+                target=f"delivery_notice:{notice.pk}",
             )
             messages.success(request, "Delivery notice rejected.")
             if is_htmx(request):
@@ -205,15 +218,21 @@ def delivery_notice_review(request, pk):
                 )
             return redirect("expenses:delivery_notice_queue")
         form = ExpenseRecordForm(request.POST, request.FILES)
-        if form.is_valid():
-            record = form.save(commit=False)
-            record.recorded_by = request.user
-            record.supplier = notice.supplier
-            record.save()
-            notice.status = "received"
-            notice.expense_record = record
-            notice.received_by = request.user
-            notice.save()
+        booking = StockBookingForm(request.POST)
+        if form.is_valid() and booking.is_valid():
+            with transaction.atomic():
+                booked = booking.book(user=request.user)
+                record = form.save(commit=False)
+                record.recorded_by = request.user
+                record.supplier = notice.supplier
+                record.save()
+                notice.status = "received"
+                notice.expense_record = record
+                notice.received_by = request.user
+                if booked:
+                    notice.inventory_item = booked
+                notice.save()
+                receive_for_notice(notice, user=request.user)
             log_activity(request.user, "create", "ExpenseRecord", record.pk, record.__str__(), f"Received delivery from {notice.supplier.name}")
             notify_user(
                 notice.supplier.user,
@@ -221,6 +240,7 @@ def delivery_notice_review(request, pk):
                 f"Delivery received: {notice.description}",
                 f"The farm booked {record.description} for {record.amount}.",
                 link="/portal/supplier/history/",
+                target=f"delivery_notice:{notice.pk}",
             )
             messages.success(request, "Delivery received and expense recorded.")
             if is_htmx(request):
@@ -232,12 +252,22 @@ def delivery_notice_review(request, pk):
             return render(
                 request,
                 "expenses/_review_modal.html",
-                {"notice": notice, "modal_form": "receive", "form": form},
+                {
+                    "notice": notice,
+                    "modal_form": "receive",
+                    "form": form,
+                    "booking_form": booking,
+                },
             )
     else:
         form = ExpenseRecordForm(initial=receive_initial())
     return render(
         request,
         "expenses/delivery_notice_review.html",
-        {"notice": notice, "form": form, "categories": categories},
+        {
+            "notice": notice,
+            "form": form,
+            "booking_form": StockBookingForm(initial=booking_initial()),
+            "categories": categories,
+        },
     )

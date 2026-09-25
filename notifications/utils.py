@@ -6,19 +6,20 @@ from .models import Notification, ActivityLog
 User = get_user_model()
 
 
-def create_notification(user, notification_type, title, message, link=None):
+def create_notification(user, notification_type, title, message, link=None, target=None):
     notification, created = Notification.objects.get_or_create(
         user=user,
         notification_type=notification_type,
         title=title,
         message=message,
         link=link,
+        target=target,
         is_read=False,
     )
     return notification
 
 
-def notify_team(notification_type, title, message, link=None):
+def notify_team(notification_type, title, message, link=None, target=None):
     """Notify all internal (farm) users about an event from the buyer/supplier portal."""
     users = User.objects.filter(is_active=True, role__in=["admin", "owner", "staff"])
     for user in users:
@@ -28,10 +29,11 @@ def notify_team(notification_type, title, message, link=None):
             title=title,
             message=message,
             link=link,
+            target=target,
         )
 
 
-def notify_user(user, notification_type, title, message, link=None):
+def notify_user(user, notification_type, title, message, link=None, target=None):
     if user is not None and user.is_active:
         create_notification(
             user=user,
@@ -39,6 +41,7 @@ def notify_user(user, notification_type, title, message, link=None):
             title=title,
             message=message,
             link=link,
+            target=target,
         )
 
 
