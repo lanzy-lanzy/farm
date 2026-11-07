@@ -2,6 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views_v2 import (
+    BuyerProductCatalogView,
     ChangePasswordView,
     DeliveryNoticePortalViewSet,
     InternalDeliveryNoticeViewSet,
@@ -40,6 +41,7 @@ urlpatterns = [
     path("portal/sales-history/", SalesHistoryView.as_view(), name="api-v2-portal-sales-history"),
     path("portal/purchase-history/", PurchaseHistoryView.as_view(), name="api-v2-portal-purchase-history"),
     path("portal/units/", SupplyUnitsView.as_view(), name="api-v2-portal-units"),
+    path("portal/products/", BuyerProductCatalogView.as_view(), name="api-v2-portal-products"),
     path("internal/options/", InternalOptionsView.as_view(), name="api-v2-internal-options"),
     path("internal/verifications/pending/", PendingVerificationsView.as_view(), name="api-v2-verifications-pending"),
     path(

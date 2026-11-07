@@ -15,7 +15,7 @@ from inventory.models import InventoryItem, Unit
 from inventory.services import deduct_for_sale, receive_for_notice, sale_stock_block_reason
 from notifications.models import Notification
 from notifications.utils import log_activity, notify_team, notify_user
-from sales.models import SalesRecord
+from sales.models import Product, SalesRecord
 from sales.views import credit_block_reason
 from suppliers.models import DeliveryNotice, Supplier, SupplyItem
 
@@ -28,6 +28,7 @@ from .permissions import (
 )
 from .serializers_v2 import (
     BuyerPortalProfileSerializer,
+    BuyerProductSerializer,
     ChangePasswordSerializer,
     ConvertSaleSerializer,
     DeliveryNoticePortalSerializer,
@@ -182,6 +183,16 @@ class SupplyUnitsView(APIView):
     def get(self, request):
         units = Unit.objects.all().order_by("name")
         return Response(SupplyUnitSerializer(units, many=True).data)
+
+
+class BuyerProductCatalogView(APIView):
+    """Active farm products with prices, for the buyer order-request picker."""
+
+    permission_classes = [IsVerifiedBuyer]
+
+    def get(self, request):
+        products = Product.objects.filter(is_active=True).order_by("product_type", "name")
+        return Response(BuyerProductSerializer(products, many=True).data)
 
 
 class DeliveryNoticePortalViewSet(viewsets.ModelViewSet):

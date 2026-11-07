@@ -5,7 +5,7 @@ from expenses.models import ExpenseRecord
 from inventory.models import InventoryItem, Unit
 from inventory.services import stock_target_for_notice
 from notifications.models import Notification
-from sales.models import SalesRecord
+from sales.models import Product, SalesRecord
 from suppliers.models import DeliveryNotice, Supplier, SupplyItem
 
 
@@ -136,6 +136,12 @@ class SupplyUnitSerializer(serializers.ModelSerializer):
     class Meta:
         model = Unit
         fields = ["id", "name", "abbreviation"]
+
+
+class BuyerProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ["id", "name", "product_type", "unit_label", "unit_price"]
 
 
 class DeliveryNoticePortalSerializer(serializers.ModelSerializer):

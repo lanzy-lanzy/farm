@@ -60,3 +60,25 @@ class SalesRecord(models.Model):
 
     def balance(self):
         return self.total_amount - self.amount_paid
+
+
+class Product(models.Model):
+    """Farm catalog offered to buyer portal accounts; pre-fills order requests."""
+
+    name = models.CharField(max_length=200)
+    product_type = models.CharField(max_length=20, choices=SalesRecord.PRODUCT_CHOICES)
+    unit_label = models.CharField(
+        max_length=50, default="pc", help_text='What one quantity unit means, e.g. "tray", "kg", "sack".'
+    )
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Product"
+        verbose_name_plural = "Products"
+        ordering = ["product_type", "name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.unit_label})"

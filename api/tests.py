@@ -5,6 +5,7 @@ from rest_framework.authtoken.models import Token
 
 from buyers.models import Buyer, OrderRequest
 from notifications.models import Notification
+from sales.models import Product
 from suppliers.models import DeliveryNotice, Supplier, SupplyItem
 
 User = get_user_model()
@@ -44,6 +45,19 @@ class ApiV2PortalTests(AuthMixin, APITestCase):
         self.as_user(self.staff)
         forbidden = self.client.get(reverse("portal-order-requests-list"))
         self.assertEqual(forbidden.status_code, 403)
+
+    def test_buyer_product_catalog_lists_only_active(self):
+        active = Product.objects.create(name="Eggs (tray)", product_type="eggs", unit_label="tray", unit_price=560)
+        Product.objects.create(name="Old stock", product_type="eggs", unit_price=1, is_active=False)
+        self.as_user(self.buyer_user)
+        response = self.client.get(reverse("api-v2-portal-products"))
+        self.assertEqual(response.status_code, 200)
+        rows = response.json()
+        self.assertEqual([r["id"] for r in rows], [active.pk])
+        self.assertEqual(rows[0]["unit_label"], "tray")
+        self.assertEqual(float(rows[0]["unit_price"]), 560.0)
+        self.as_user(self.supplier_user)
+        self.assertEqual(self.client.get(reverse("api-v2-portal-products")).status_code, 403)
 
     def test_staff_quote_convert_and_buyer_accept_cycle(self):
         order = OrderRequest.objects.create(buyer=self.buyer, product_type="eggs", product_name="Eggs", quantity=10, requested_date="2026-09-28")
