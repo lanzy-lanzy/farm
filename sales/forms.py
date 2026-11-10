@@ -1,7 +1,7 @@
 from django import forms
 
 from buyers.models import Buyer, OrderRequest
-from .models import SalesRecord
+from .models import Product, SalesRecord
 
 
 class SalesRecordForm(forms.ModelForm):
@@ -31,6 +31,44 @@ class SalesRecordForm(forms.ModelForm):
             "amount_paid": forms.NumberInput(attrs={"class": "form-input", "step": "0.01"}),
             "notes": forms.Textarea(attrs={"class": "form-input", "rows": 3}),
         }
+
+
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ["name", "product_type", "unit_label", "unit_price", "is_active"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"class": "form-input", "placeholder": "e.g. Eggs (tray)"}
+            ),
+            "product_type": forms.Select(attrs={"class": "form-input"}),
+            "unit_label": forms.TextInput(
+                attrs={"class": "form-input", "placeholder": "tray, kg, pc"}
+            ),
+            "unit_price": forms.NumberInput(
+                attrs={"class": "form-input", "step": "0.01", "min": "0"}
+            ),
+            "is_active": forms.CheckboxInput(
+                attrs={
+                    "class": "h-4 w-4 rounded border-gray-300 text-green-700 focus:ring-green-600"
+                }
+            ),
+        }
+
+    def clean_name(self):
+        name = self.cleaned_data["name"].strip()
+        duplicates = Product.objects.filter(name__iexact=name)
+        if self.instance.pk:
+            duplicates = duplicates.exclude(pk=self.instance.pk)
+        if duplicates.exists():
+            raise forms.ValidationError("A product with this name already exists.")
+        return name
+
+    def clean_unit_price(self):
+        price = self.cleaned_data["unit_price"]
+        if price is None or price <= 0:
+            raise forms.ValidationError("Unit price must be greater than zero.")
+        return price
 
 
 class OrderRequestQuoteForm(forms.ModelForm):

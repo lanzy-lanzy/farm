@@ -4,12 +4,18 @@ from django.contrib import messages
 from accounts.access import admin_or_owner_required, internal_only
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.http import HttpResponse
 
 from inventory.services import deduct_for_sale, sale_stock_block_reason
-from .forms import OrderRequestOnBehalfForm, OrderRequestQuoteForm, SalesRecordForm
-from .models import SalesRecord
+from .forms import (
+    OrderRequestOnBehalfForm,
+    OrderRequestQuoteForm,
+    ProductForm,
+    SalesRecordForm,
+)
+from .models import Product, SalesRecord
 from buyers.models import OrderRequest
 from flocks.models import FlockBatch
 from buyers.models import Buyer
@@ -187,6 +193,89 @@ def sales_delete(request, pk):
         return redirect("sales:sales_list")
     template = "sales/_delete.html" if is_htmx(request) else "sales/sales_confirm_delete.html"
     return render(request, template, {"record": record})
+
+
+@internal_only
+def product_list(request):
+    products = Product.objects.select_related("created_by")
+    return render(request, "sales/product_list.html", {"products": products})
+
+
+@admin_or_owner_required
+def product_create(request):
+    if request.method == "POST":
+        form = ProductForm(request.POST)
+        if form.is_valid():
+            product = form.save(commit=False)
+            product.created_by = request.user
+            product.save()
+            log_activity(
+                request.user, "create", "Product", product.pk, product.__str__(),
+                "Created product",
+            )
+            messages.success(
+                request,
+                f'Product "{product.name}" added.'
+                + ("" if product.is_active else " It is inactive, so buyers will not see it."),
+            )
+            if is_htmx(request):
+                return HttpResponse(
+                    '<script>document.getElementById("modal-overlay").remove();window.location.reload()</script>'
+                )
+            return redirect("sales:product_list")
+    else:
+        form = ProductForm()
+    template = "sales/_product_form.html" if is_htmx(request) else "sales/product_form.html"
+    return render(request, template, {"form": form})
+
+
+@admin_or_owner_required
+def product_update(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    if request.method == "POST":
+        old_price = product.unit_price
+        form = ProductForm(request.POST, instance=product)
+        if form.is_valid():
+            updated = form.save()
+            diff = (
+                f" (₱{old_price:,.2f} → ₱{updated.unit_price:,.2f})"
+                if old_price != updated.unit_price
+                else ""
+            )
+            log_activity(
+                request.user, "update", "Product", product.pk, product.__str__(),
+                f"Updated product{diff}",
+            )
+            messages.success(request, f'Product "{product.name}" updated.')
+            if is_htmx(request):
+                return HttpResponse(
+                    '<script>document.getElementById("modal-overlay").remove();window.location.reload()</script>'
+                )
+            return redirect("sales:product_list")
+    else:
+        form = ProductForm(instance=product)
+    template = "sales/_product_form.html" if is_htmx(request) else "sales/product_form.html"
+    return render(request, template, {"form": form, "product": product})
+
+
+@admin_or_owner_required
+def product_toggle(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    if request.method != "POST":
+        return redirect("sales:product_list")
+    product.is_active = not product.is_active
+    product.save()
+    state = "activated" if product.is_active else "deactivated"
+    log_activity(
+        request.user, "update", "Product", product.pk, product.__str__(),
+        f"Product {state}",
+    )
+    messages.success(request, f'Product "{product.name}" {state}.')
+    if is_htmx(request):
+        response = HttpResponse(status=204)
+        response["HX-Redirect"] = reverse("sales:product_list")
+        return response
+    return redirect("sales:product_list")
 
 
 @internal_only

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Products{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Farm Products</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Catalog and prices shown to buyers in the mobile app</p>
+        </div>
+        {% if user.is_admin_user or user.is_owner %}
+        <button hx-get="{% url 'sales:product_create' %}" hx-target="#modal-container" hx-swap="innerHTML" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-green-900/30 hover:shadow-xl transition-all duration-200 cursor-pointer inline-flex items-center space-x-2 self-start">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            <span>Add Product</span>
+        </button>
+        {% endif %}
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 dark:bg-gray-700/50">
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Product</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit Price</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Created By</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Updated</th>
+                        <th class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    {% for product in products %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                        <td class="px-5 py-4 font-medium text-gray-800 dark:text-white">{{ product.name }}</td>
+                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">{{ product.get_product_type_display }}</td>
+                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">{{ product.unit_label }}</td>
+                        <td class="px-5 py-4 font-medium text-gray-800 dark:text-white">₱{{ product.unit_price|floatformat:2 }}</td>
+                        <td class="px-5 py-4">
+                            {% if product.is_active %}
+                            <span class="pill pill-approved">Active</span>
+                            {% else %}
+                            <span class="pill pill-inactive">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">{{ product.created_by.username|default:"—" }}</td>
+                        <td class="px-5 py-4 text-gray-500 dark:text-gray-400 text-sm">{{ product.updated_at|date:"M j, Y" }}</td>
+                        <td class="px-5 py-4 text-right">
+                            <div class="flex items-center justify-end space-x-2">
+                                {% if user.is_admin_user or user.is_owner %}
+                                <button hx-get="{% url 'sales:product_update' product.pk %}" hx-target="#modal-container" hx-swap="innerHTML" class="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors cursor-pointer" title="Edit">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                </button>
+                                <form hx-post="{% url 'sales:product_toggle' product.pk %}" hx-swap="none"
+                                      hx-confirm="{% if product.is_active %}Deactivate {{ product.name }}? Buyers will no longer see it in the mobile app.{% else %}Activate {{ product.name }}? It will appear in the buyer app again.{% endif %}"
+                                      class="inline-flex">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="p-2 {% if product.is_active %}text-amber-600 hover:text-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/20{% else %}text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20{% endif %} rounded-lg transition-colors cursor-pointer"
+                                            title="{% if product.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                        {% if product.is_active %}
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+                                        {% else %}
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                        {% endif %}
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-xs text-gray-400 dark:text-gray-500 italic">Owner/Admin only</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-5 py-12 text-center">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
+                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                            </div>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm">No products yet</p>
+                            <p class="text-gray-400 dark:text-gray-500 text-xs mt-1">Active products appear in the buyer app's New request picker.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

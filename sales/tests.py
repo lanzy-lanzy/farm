@@ -8,7 +8,8 @@ from django.utils import timezone
 
 from buyers.models import Buyer, OrderRequest
 from notifications.models import ActivityLog
-from sales.models import SalesRecord
+from rest_framework.test import APIClient
+from sales.models import Product, SalesRecord
 
 User = get_user_model()
 
@@ -335,3 +336,104 @@ class SaleStockDeductionTests(TestCase):
         self.item.refresh_from_db()
         self.assertEqual(self.item.quantity, Decimal("20"))
         self.assertFalse(self.InventoryTransaction.objects.exists())
+
+
+class ProductCatalogManagementTests(TestCase):
+    """Farm catalog: internal users may read; only owner/admin may manage products."""
+
+    def setUp(self):
+        self.staff = make_user("pstaff", "staff")
+        self.owner = make_user("powner", "owner")
+        self.buyer_user = make_user("pbuyer", "buyer")
+        self.buyer = Buyer.objects.create(
+            name="Catalog Buyer", user=self.buyer_user, verification_status="approved"
+        )
+        self.product = Product.objects.create(
+            name="Eggs (tray)", product_type="eggs", unit_label="tray",
+            unit_price=Decimal("560.00"),
+        )
+
+    def test_staff_can_view_but_not_manage(self):
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.get(reverse("sales:product_list")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("sales:product_create")).status_code, 403)
+        self.assertEqual(
+            self.client.post(
+                reverse("sales:product_update", args=[self.product.pk]), {}
+            ).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.post(
+                reverse("sales:product_toggle", args=[self.product.pk])
+            ).status_code,
+            403,
+        )
+
+    def test_owner_creates_product_and_creator_is_tracked(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse("sales:product_create"),
+            {
+                "name": "Dressed chicken",
+                "product_type": "dressed",
+                "unit_label": "kg",
+                "unit_price": "280.00",
+                "is_active": "on",
+            },
+        )
+        self.assertRedirects(response, reverse("sales:product_list"))
+        product = Product.objects.get(name="Dressed chicken")
+        self.assertEqual(product.created_by, self.owner)
+        self.assertTrue(product.is_active)
+        self.assertTrue(
+            ActivityLog.objects.filter(
+                model_name="Product", action="create", object_id=product.pk
+            ).exists()
+        )
+
+    def test_duplicate_name_is_rejected(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse("sales:product_create"),
+            {
+                "name": "eggs (TRAY)",
+                "product_type": "eggs",
+                "unit_label": "tray",
+                "unit_price": "560.00",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A product with this name already exists.")
+        self.assertEqual(Product.objects.count(), 1)
+
+    def test_owner_edits_price(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse("sales:product_update", args=[self.product.pk]),
+            {
+                "name": "Eggs (tray)",
+                "product_type": "eggs",
+                "unit_label": "tray",
+                "unit_price": "575.00",
+                "is_active": "on",
+            },
+        )
+        self.assertRedirects(response, reverse("sales:product_list"))
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.unit_price, Decimal("575.00"))
+
+    def test_toggle_deactivation_removes_product_from_buyer_feed(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse("sales:product_toggle", args=[self.product.pk])
+        )
+        self.assertRedirects(response, reverse("sales:product_list"))
+        self.product.refresh_from_db()
+        self.assertFalse(self.product.is_active)
+
+        api = APIClient()
+        api.force_authenticate(user=self.buyer_user)
+        feed = api.get(reverse("api-v2-portal-products"))
+        self.assertEqual(feed.status_code, 200)
+        self.assertEqual(feed.json(), [])
