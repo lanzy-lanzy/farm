@@ -1,0 +1,63 @@
+{% comment %}
+  Shared action bar for the six report pages.
+
+  Print, PDF and Excel are deliberately three different buttons: printing goes
+  through the on-screen preview, the PDF is a server-rendered download, and Excel
+  gives the raw rows. Callers pass print_url / pdf_url / excel_url, and date_url
+  when the report supports a custom period.
+{% endcomment %}
+<div class="flex flex-wrap items-center gap-2">
+    <a href="{{ print_url }}" target="_blank" rel="noopener"
+       aria-label="Print this report. Opens a print preview first."
+       class="inline-flex items-center gap-2 rounded-xl border border-gray-300 dark:border-gray-600 px-3.5 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 transition-colors hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+        <span>Print preview</span>
+    </a>
+    <a href="{{ pdf_url }}"
+       aria-label="Export this report as a PDF file."
+       class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6M9 16.5h4"></path></svg>
+        <span>Export PDF</span>
+    </a>
+    <a href="{{ excel_url }}"
+       aria-label="Export this report rows as an Excel spreadsheet."
+       class="inline-flex items-center gap-2 rounded-xl bg-gray-100 dark:bg-gray-700 px-3.5 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 6h18M3 14h18M3 18h18M7 6v12"></path></svg>
+        <span>Export Excel</span>
+    </a>
+
+    {% if date_url %}
+    <div x-data="{ open: false, start: '', end: '' }" class="relative">
+        <button type="button" @click="open = !open"
+                class="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span>Custom period</span>
+        </button>
+        <div x-show="open" x-cloak @click.outside="open = false" x-transition
+             class="absolute left-0 sm:left-auto sm:right-0 mt-2 w-72 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-left shadow-lg z-30">
+            <p class="text-sm font-semibold text-gray-800 dark:text-white mb-3">Choose a period</p>
+            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">From</label>
+            <input type="date" x-model="start" class="form-input mb-3">
+            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">To</label>
+            <input type="date" x-model="end" class="form-input mb-3">
+            <a :href="'{{ date_url }}?start_date=' + start + '&amp;end_date=' + end" target="_blank" rel="noopener"
+               class="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-3 py-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                Preview &amp; print
+            </a>
+            <a :href="'{{ pdf_url }}?start_date=' + start + '&amp;end_date=' + end"
+               class="mt-2 flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-400 text-sm font-medium px-3 py-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6M9 16.5h4"></path></svg>
+                Export PDF for this period
+            </a>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">Leave blank for the default last 30 days.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <a href="{% url 'reports:reports_index' %}"
+       class="ml-auto inline-flex items-center gap-1.5 px-2 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-lg">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        <span>All reports</span>
+    </a>
+</div>

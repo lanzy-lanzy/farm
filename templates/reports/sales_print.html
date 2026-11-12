@@ -1,7 +1,7 @@
 {% extends "reports/_print_base.html" %}
 {% block report_body %}
     <div class="cards">
-        <div class="card"><div class="label">Total Sales</div><div class="value pos">${{ total_sales|floatformat:2 }}</div></div>
+        <div class="card"><div class="label">Total Sales</div><div class="value pos">₱{{ total_sales|floatformat:2 }}</div></div>
         <div class="card"><div class="label">Transactions</div><div class="value">{{ records|length }}</div></div>
     </div>
 
@@ -15,15 +15,15 @@
             {% for r in records %}
             <tr>
                 <td>{{ r.date_sold }}</td>
-                <td>{{ r.product|default:"-" }}</td>
+                <td>{{ r.product_name|default:"-" }}</td>
                 <td>{{ r.buyer.name|default:"-" }}</td>
                 <td class="num">{{ r.quantity }}</td>
-                <td class="num">${{ r.total_amount|floatformat:2 }}</td>
+                <td class="num">₱{{ r.total_amount|floatformat:2 }}</td>
             </tr>
             {% endfor %}
         </tbody>
         <tfoot>
-            <tr><td colspan="4">Total</td><td class="num">${{ total_sales|floatformat:2 }}</td></tr>
+            <tr><td colspan="4">Total</td><td class="num">₱{{ total_sales|floatformat:2 }}</td></tr>
         </tfoot>
     </table>
     {% else %}

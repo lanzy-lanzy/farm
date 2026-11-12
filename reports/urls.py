@@ -24,4 +24,10 @@ urlpatterns = [
     path("expenses/export-excel/", views.export_expense_excel, name="export_expense_excel"),
     path("inventory/export-excel/", views.export_inventory_excel, name="export_inventory_excel"),
     path("profit-loss/export-excel/", views.export_profit_loss_excel, name="export_profit_loss_excel"),
+    path("production/export-pdf/", views.export_production_pdf, name="export_production_pdf"),
+    path("deaths/export-pdf/", views.export_death_pdf, name="export_death_pdf"),
+    path("sales/export-pdf/", views.export_sales_pdf, name="export_sales_pdf"),
+    path("expenses/export-pdf/", views.export_expense_pdf, name="export_expense_pdf"),
+    path("inventory/export-pdf/", views.export_inventory_pdf, name="export_inventory_pdf"),
+    path("profit-loss/export-pdf/", views.export_profit_loss_pdf, name="export_profit_loss_pdf"),
 ]

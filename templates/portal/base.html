@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="{% static 'images/farm-logo-64.png' %}">
     <title>{% block title %}Portal{% endblock %} &middot; Tambulig Poultry</title>
     <script src="{% static 'js/htmx.min.js' %}"></script>
     <script defer src="{% static 'js/alpine.min.js' %}"></script>
@@ -53,12 +54,12 @@
             border-bottom: 1px solid rgba(255, 255, 255, .07);
         }
         .side-brand .mark {
-            width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
-            display: grid; place-items: center; color: var(--accent);
-            background: linear-gradient(140deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .04));
-            border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
+            width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+            display: grid; place-items: center; overflow: hidden;
+            background: #f6f3ea;
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 2px 10px rgba(0, 0, 0, .35);
         }
+        .side-brand .mark img { width: 100%; height: 100%; display: block; }
         .side-brand .txt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
         .side-brand .name { font-family: 'Sora', system-ui, sans-serif; font-weight: 700; font-size: 1.02rem; letter-spacing: -.01em; color: #f2faf5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .side-brand .sub { font-size: .58rem; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: color-mix(in srgb, var(--accent) 62%, #ceecdc); }
@@ -207,11 +208,7 @@
                class="side {% if user.role == 'buyer' %}side--buyer{% endif %} flex flex-col">
             <div class="side-brand">
                 <span class="mark" aria-hidden="true">
-                    {% if user.role == 'buyer' %}
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-                    {% else %}
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.535a1 1 0 01.949.684L19 14a1 1 0 01-1 1h-5z"/></svg>
-                    {% endif %}
+                    <img src="{% static 'images/farm-logo.png' %}?v={{ static_version }}" alt="">
                 </span>
                 <span class="txt">
                     <span class="name">Tambulig</span>

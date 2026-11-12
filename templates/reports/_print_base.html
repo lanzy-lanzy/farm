@@ -1,11 +1,15 @@
 {% comment %}
-  Standalone print / PDF-preview base for all reports.
+  Standalone print-preview base for all reports.
 
   Intentionally NOT extending base.html: the requirement is a clean, chrome-free
   layout (no sidebar, nav, or dark-mode toggle). It carries its own self-contained
   plain CSS instead of the precompiled Tailwind bundle, so print output never
   depends on `npm run build` or browser CSS caching. The on-screen toolbar is
-  hidden via @media print; the browser's native "Save as PDF" produces the file.
+  hidden via @media print.
+
+  This page is for paper. Downloadable PDFs are generated server-side by
+  reports/pdfs.py and linked here as a separate "Export PDF" action, so the two
+  outputs never share a button.
 
   Design goals: formal, archival-quality output - a serif letterhead for weight,
   a clean sans for data, tabular numerals, subtle borders/shading, repeating table
@@ -167,7 +171,7 @@
 <body>
     <div class="toolbar">
         <span class="tb-title">Print Preview &middot; {{ report_title }}
-            <span class="tb-hint">Tip: choose &ldquo;Save as PDF&rdquo; &amp; keep &ldquo;Headers and footers&rdquo; on for page numbers.</span>
+            <span class="tb-hint">Review the layout, then print. Keep &ldquo;Headers and footers&rdquo; on for page numbers.</span>
         </span>
         <span class="tb-actions">
             {% if show_date_filter %}
@@ -181,9 +185,15 @@
             </form>
             {% endif %}
             <a class="btn btn-ghost" href="{{ back_url }}">&larr; Back to report</a>
+            {% if pdf_url %}
+            <a class="btn btn-ghost" href="{{ pdf_url }}">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Export PDF
+            </a>
+            {% endif %}
             <button type="button" class="btn btn-primary" onclick="window.print()">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                Download PDF
+                Print
             </button>
         </span>
     </div>

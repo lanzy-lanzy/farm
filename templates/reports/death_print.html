@@ -17,7 +17,7 @@
                 <td>{{ r.date_recorded }}</td>
                 <td>{{ r.flock.batch_number }}</td>
                 <td class="num">{{ r.quantity }}</td>
-                <td>{{ r.cause|default:"-" }}</td>
+                <td>{{ r.cause_of_death|default:"-" }}</td>
             </tr>
             {% endfor %}
         </tbody>
