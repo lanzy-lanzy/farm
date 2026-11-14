@@ -47,9 +47,15 @@ variables individually):
 | `ALLOWED_HOSTS`        | your app host, e.g. `your-app.seenode.app` (no scheme) |
 | `CSRF_TRUSTED_ORIGINS` | `https://your-app.seenode.app` (with scheme)       |
 | `DATA_DIR`             | `/data`                                            |
-| `ADMIN_USERNAME`       | admin username for first boot                      |
-| `ADMIN_PASSWORD`       | strong password for first boot                     |
+| `ADMIN_USERNAME`       | admin username                                     |
+| `ADMIN_PASSWORD`       | admin password                                     |
 | `ADMIN_EMAIL`          | optional                                           |
+| `BUYER_USERNAME` / `BUYER_PASSWORD` | buyer portal login (linked to the `BUYER_CONTACT` buyer, default "Manila Egg Traders") |
+| `SUPPLIER_USERNAME` / `SUPPLIER_PASSWORD` | supplier portal login (linked to the `SUPPLIER_CONTACT` supplier, default "Agrivet Feed Supply") |
+
+The environment is the source of truth for these three logins: every boot
+recreates or re-syncs them, so a password changed in the app reverts on the next
+restart. To change one permanently, change it here and redeploy.
 
 Set `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` to the exact `*.seenode.app` host
 assigned after the first deploy (or a custom domain once configured).
@@ -58,13 +64,15 @@ assigned after the first deploy (or a custom domain once configured).
 
 `startup.sh` runs automatically on every start:
 
-1. `migrate` — creates the schema on the fresh volume database.
-2. `bootstrap_admin` — creates the admin user from `ADMIN_USERNAME` /
-   `ADMIN_PASSWORD` only while the user table is empty; afterwards it is a no-op.
-3. Gunicorn binds `0.0.0.0:8000`.
+1. Volume check — logs `WARNING: DATA_DIR=... is not on a persistent volume`
+   when `/data` is not mounted (the database would reset on every redeploy).
+2. `migrate` — creates the schema on the fresh volume database.
+3. `bootstrap_admin` — creates or re-syncs the admin, buyer and supplier
+   accounts from the environment variables above (safe to run every boot).
+4. Gunicorn binds `0.0.0.0:8000`.
 
 Log in at `https://<your-app>.seenode.app/login/`, then create owner/staff
-accounts from the app. Change the bootstrap password after first login.
+accounts from the app.
 
 ## Notes
 
