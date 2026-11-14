@@ -8,11 +8,33 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "django-insecure-#%qpiae_!(5v00-%c_+5upfb#h!w@$++evp@_t=ay35&1_^)i4"
+# Production values come from environment variables (Seenode dashboard).
+# Defaults keep local development working unchanged.
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY",
+    "django-insecure-#%qpiae_!(5v00-%c_+5upfb#h!w@$++evp@_t=ay35&1_^)i4",
+)
 
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "true").lower() in ("1", "true", "yes")
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get("ALLOWED_HOSTS", "*").split(",")
+    if host.strip()
+]
+
+# Needed for HTTPS form posts on the deployed domain, e.g.
+# CSRF_TRUSTED_ORIGINS=https://your-app.seenode.app
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
+# Persistent data directory. On Seenode, mount a storage volume at /data and
+# set DATA_DIR=/data so the SQLite database and uploaded media survive
+# redeploys. Locally it defaults to the project root (unchanged behavior).
+DATA_DIR = Path(os.environ.get("DATA_DIR", str(BASE_DIR)))
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -45,6 +67,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -82,7 +105,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": DATA_DIR / "db.sqlite3",
     }
 }
 
@@ -102,8 +125,20 @@ STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# WhiteNoise serves collected static files in production (no nginx needed).
+# CompressedStaticFilesStorage (no manifest) avoids hard failures on any
+# template-referenced file that is missing from the static dirs.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
+
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = DATA_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -136,3 +171,10 @@ REST_FRAMEWORK = {
 # ---- Buyer/supplier workflow ----
 # Days before an unanswered quote is considered stale and must be re-quoted.
 ORDER_REQUEST_QUOTE_STALE_DAYS = 7
+
+# ---- Production hardening (active when DEBUG=false) ----
+if not DEBUG:
+    # Seenode terminates TLS at its proxy and forwards this header.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True

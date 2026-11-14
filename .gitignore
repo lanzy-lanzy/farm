@@ -23,6 +23,7 @@ lan_server.state
 
 # Local-only credential notes (never commit demo logins to the public repo)
 LOGIN_CREDENTIALS.md
+.env
 
 # OS
 .DS_Store

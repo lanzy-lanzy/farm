@@ -11,7 +11,10 @@ dependencies = [
     "django-shortcuts>=1.6",
     "djangorestframework>=3.17.1",
     "fpdf2>=2.9.0",
+    "gunicorn>=23.0.0",
     "openpyxl>=3.1.5",
     "pillow>=12.2.0",
+    "tzdata>=2026.2",
     "weasyprint>=69.0",
+    "whitenoise>=6.8.0",
 ]

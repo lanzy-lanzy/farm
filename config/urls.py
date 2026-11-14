@@ -1,6 +1,8 @@
 from django.contrib import admin
+from django.conf import settings
 from django.shortcuts import redirect, render
-from django.urls import include, path
+from django.urls import include, path, re_path
+from django.views.static import serve
 
 
 def root_redirect(request):
@@ -31,4 +33,11 @@ urlpatterns = [
     path("reports/", include("reports.urls")),
     path("notifications/", include("notifications.urls")),
     path("settings/", include("settings_app.urls")),
+]
+
+# Uploaded media (profile pictures, receipts, farm logo). Served by Django in
+# both dev and production; fine at this app's scale. Files live on the
+# persistent volume when DATA_DIR is set.
+urlpatterns += [
+    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
 ]
