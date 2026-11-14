@@ -11,6 +11,10 @@ wheels/
 .venv
 .python-version
 
+# Local UI-verification tooling caches (headless browser binaries, uv cache)
+.pw-browsers/
+.uv-cache/
+
 # Node
 node_modules/
 

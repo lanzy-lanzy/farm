@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }" :class="{ 'dark': darkMode }">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,22 +19,25 @@
         .role-buyer    { --brand: #0d9488; --brand-2: #0ea5e9; --brand-ink: #ecfeff; }
         .role-supplier { --brand: #059669; --brand-2: #65a30d; --brand-ink: #f0fdf4; }
 
-        /* ---------- Forest-glass sidebar, tinted by role ---------- */
+        /* ---------- Cream sidebar, tinted by role (mirrors templates/base.html) ---------- */
         .side {
-            --accent: #a3e635; --accent-soft: #6ee7b7; --glow: rgba(163, 230, 53, .5);
-            --tint-a: rgba(16, 185, 129, .16); --tint-b: rgba(163, 230, 53, .09);
+            /* Role accents retuned for the cream surface; .dark restores the bright set. */
+            --accent: #16a34a; --accent-soft: #84cc16; --glow: rgba(22, 163, 74, .4);
+            --accent-ink: #14532d;
+            --tint-a: rgba(214, 182, 110, .16); --tint-b: rgba(132, 204, 22, .07);
         }
         .side--buyer {
-            --accent: #7dd3fc; --accent-soft: #5eead4; --glow: rgba(56, 189, 248, .5);
-            --tint-a: rgba(14, 165, 233, .2); --tint-b: rgba(45, 212, 191, .1);
+            --accent: #0d9488; --accent-soft: #0ea5e9; --glow: rgba(13, 148, 136, .4);
+            --accent-ink: #115e59;
+            --tint-a: rgba(14, 165, 233, .1); --tint-b: rgba(45, 212, 191, .08);
         }
         .side {
             background:
                 radial-gradient(130% 55% at 0% 0%, var(--tint-a), transparent 62%),
                 radial-gradient(120% 40% at 100% 100%, var(--tint-b), transparent 60%),
-                linear-gradient(180deg, #072a1b 0%, #04170e 55%, #030f0a 100%);
-            border-right: 1px solid rgba(255, 255, 255, .08);
-            color: #dcefe3;
+                linear-gradient(180deg, #fffef6 0%, #faf5e4 55%, #f3ecd6 100%);
+            border-right: 1px solid rgba(146, 119, 60, .18);
+            color: #57503b;
             /* Off-canvas drawer, pinned as a sticky rail from lg up. Deliberately
                plain CSS: Tailwind's responsive utilities for this layout are not
                all present in the precompiled styles.css. */
@@ -42,60 +45,62 @@
             transform: translateX(-100%);
             transition: transform .32s cubic-bezier(.22, 1, .36, 1);
         }
-        .side.is-open { transform: translateX(0); box-shadow: 0 0 60px rgba(0, 0, 0, .5); }
+        .side.is-open { transform: translateX(0); box-shadow: 0 0 60px rgba(23, 19, 12, .45); }
         @media (min-width: 1024px) {
-            .side { position: sticky; height: 100vh; bottom: auto; transform: none; box-shadow: none; z-index: 30; }
+            .side { position: sticky; height: 100vh; bottom: auto; transform: none; box-shadow: 8px 0 24px -14px rgba(63, 58, 42, .25); z-index: 30; }
             .side-overlay { display: none !important; }
         }
         .side-brand {
             height: 4.5rem; flex-shrink: 0;
-            display: flex; align-items: center; gap: .7rem;
-            padding: 0 1.35rem;
-            border-bottom: 1px solid rgba(255, 255, 255, .07);
+            display: flex; align-items: center; gap: .75rem;
+            padding: 0 1.4rem;
+            border-bottom: 1px solid rgba(146, 119, 60, .16);
         }
         .side-brand .mark {
             width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
             display: grid; place-items: center; overflow: hidden;
-            background: #f6f3ea;
-            box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 2px 10px rgba(0, 0, 0, .35);
+            background: #ffffff;
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 2px 8px rgba(63, 58, 42, .18);
         }
         .side-brand .mark img { width: 100%; height: 100%; display: block; }
         .side-brand .txt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
-        .side-brand .name { font-family: 'Sora', system-ui, sans-serif; font-weight: 700; font-size: 1.02rem; letter-spacing: -.01em; color: #f2faf5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .side-brand .sub { font-size: .58rem; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: color-mix(in srgb, var(--accent) 62%, #ceecdc); }
-        .side-nav { flex: 1; overflow-y: auto; padding: .5rem 0 1rem; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .14) transparent; }
+        .side-brand .name { font-family: 'Sora', system-ui, sans-serif; font-weight: 700; font-size: 1.02rem; letter-spacing: -.01em; color: #22372b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .side-brand .sub { font-size: .58rem; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: color-mix(in srgb, var(--accent) 55%, #57503b); }
+        .side-nav { flex: 1; overflow-y: auto; padding: .5rem 0 1rem; scrollbar-width: thin; scrollbar-color: rgba(146, 119, 60, .35) transparent; }
         .side-nav::-webkit-scrollbar { width: 8px; }
-        .side-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .12); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
-        .side-label { font-size: .6rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: rgba(206, 236, 220, .38); padding: .95rem 1.4rem .4rem; }
+        .side-nav::-webkit-scrollbar-thumb { background: rgba(146, 119, 60, .3); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+        .side-nav::-webkit-scrollbar-thumb:hover { background: rgba(146, 119, 60, .5); background-clip: padding-box; }
+        .side-label { font-size: .6rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #6f6749; padding: 1.05rem 1.5rem .45rem; }
         .side-link {
             position: relative; display: flex; align-items: center; gap: .8rem;
-            margin: 2px .65rem; padding: .62rem .85rem; border-radius: 12px;
-            border: 0; background: transparent; text-align: left; width: calc(100% - 1.3rem);
+            margin: 3px .75rem; padding: .65rem .9rem; border-radius: 12px;
+            border: 0; background: transparent; text-align: left; width: calc(100% - 1.5rem);
             font-family: 'Inter', system-ui, sans-serif; font-size: .9rem; font-weight: 500;
-            color: rgba(220, 242, 230, .72); text-decoration: none; cursor: pointer;
-            transition: color .2s ease, background .2s ease, transform .2s ease;
+            color: #57503b; text-decoration: none; cursor: pointer;
+            transition: color .2s ease, background .2s ease, transform .2s ease, box-shadow .2s ease;
         }
-        .side-link svg { width: 20px; height: 20px; flex-shrink: 0; color: rgba(206, 236, 220, .5); transition: color .2s ease; }
+        .side-link svg { width: 20px; height: 20px; flex-shrink: 0; color: #9a916f; transition: color .2s ease; }
         .side-link span { flex: 1; min-width: 0; }
-        .side-link:hover { color: #f2faf5; background: rgba(255, 255, 255, .05); transform: translateX(3px); }
-        .side-link:hover svg { color: var(--accent-soft); }
+        .side-link:hover { color: var(--accent-ink); background: color-mix(in srgb, var(--accent) 9%, transparent); transform: translateX(3px); }
+        .side-link:hover svg { color: var(--accent); }
+        .side-link:focus-visible, .side-cta:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 2px; }
         .side-link.is-active {
-            color: #eafff3;
-            background: linear-gradient(100deg, color-mix(in srgb, var(--accent) 26%, transparent), rgba(255, 255, 255, .04));
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+            color: var(--accent-ink); font-weight: 600;
+            background: linear-gradient(100deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent-soft) 9%, transparent));
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent), 0 1px 2px rgba(63, 58, 42, .06);
         }
         .side-link.is-active svg { color: var(--accent); }
         .side-link.is-active::before {
-            content: ''; position: absolute; left: -.65rem; top: 50%; transform: translateY(-50%);
+            content: ''; position: absolute; left: -.75rem; top: 50%; transform: translateY(-50%);
             width: 3px; height: 58%; border-radius: 0 3px 3px 0;
-            background: linear-gradient(var(--accent), var(--accent-soft)); box-shadow: 0 0 12px var(--glow);
+            background: linear-gradient(var(--accent), var(--accent-soft)); box-shadow: 0 0 10px var(--glow);
         }
         .nav-badge { margin-left: auto; background: #ef4444; color: #fff; font-size: .65rem; font-weight: 700; border-radius: 999px; min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; box-shadow: 0 0 0 3px rgba(239, 68, 68, .18); }
         .side-cta {
             display: flex; align-items: center; justify-content: center; gap: .5rem;
-            margin: .9rem .65rem 0; padding: .66rem .85rem; border-radius: 12px;
+            margin: .9rem .75rem 0; padding: .66rem .9rem; border-radius: 12px;
             /* Rendered as <button> on the dialog-trigger variants: reset UA chrome and match the links' box. */
-            border: 0; width: calc(100% - 1.3rem); cursor: pointer;
+            border: 0; width: calc(100% - 1.5rem); cursor: pointer;
             font-family: 'Inter', system-ui, sans-serif; font-size: .86rem; font-weight: 700;
             color: #04202b; text-decoration: none;
             background: linear-gradient(120deg, var(--accent), var(--accent-soft));
@@ -103,10 +108,54 @@
             transition: transform .2s var(--ease-out, ease), box-shadow .2s ease, filter .2s ease;
         }
         .side-cta:hover { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 12px 26px -10px var(--glow); }
-        .side-foot { flex-shrink: 0; padding: .85rem; border-top: 1px solid rgba(255, 255, 255, .07); }
+        .side-foot { flex-shrink: 0; padding: .85rem; border-top: 1px solid rgba(146, 119, 60, .16); }
         .side-foot .side-link { margin: 0; width: 100%; }
-        .side-logout:hover { color: #ffe4e6 !important; background: rgba(244, 63, 94, .16) !important; }
-        .side-logout:hover svg { color: #fb7185 !important; }
+        .side-logout:hover { color: #be123c !important; background: rgba(225, 29, 72, .09) !important; }
+        .side-logout:hover svg { color: #e11d48 !important; }
+
+        /* Warm-espresso variant: same cream family as the internal app, with the
+           original bright role accents restored for the dark surface. */
+        .dark .side {
+            --accent: #a3e635; --accent-soft: #6ee7b7; --glow: rgba(163, 230, 53, .5);
+            --accent-ink: #f3fae8;
+            --tint-a: rgba(214, 182, 110, .1); --tint-b: rgba(163, 230, 53, .06);
+            background:
+                radial-gradient(130% 55% at 0% 0%, var(--tint-a), transparent 62%),
+                radial-gradient(120% 40% at 100% 100%, var(--tint-b), transparent 60%),
+                linear-gradient(180deg, #2b2519 0%, #211c12 55%, #17130c 100%);
+            border-right-color: rgba(255, 244, 214, .1);
+            color: #ede6d2;
+        }
+        .dark .side--buyer {
+            --accent: #7dd3fc; --accent-soft: #5eead4; --glow: rgba(56, 189, 248, .5);
+            --accent-ink: #ecfeff;
+            --tint-a: rgba(56, 189, 248, .12); --tint-b: rgba(45, 212, 191, .07);
+        }
+        .dark .side.is-open { box-shadow: 0 0 60px rgba(0, 0, 0, .6); }
+        @media (min-width: 1024px) {
+            .dark .side { box-shadow: 8px 0 24px -14px rgba(0, 0, 0, .6); }
+        }
+        .dark .side-brand { border-bottom-color: rgba(255, 244, 214, .09); }
+        .dark .side-brand .mark { background: #f6f3ea; box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 2px 10px rgba(0, 0, 0, .35); }
+        .dark .side-brand .name { color: #f7f2e2; }
+        .dark .side-brand .sub { color: color-mix(in srgb, var(--accent) 62%, #ceecdc); }
+        .dark .side-nav { scrollbar-color: rgba(255, 244, 214, .18) transparent; }
+        .dark .side-nav::-webkit-scrollbar-thumb { background: rgba(255, 244, 214, .16); background-clip: padding-box; }
+        .dark .side-nav::-webkit-scrollbar-thumb:hover { background: rgba(255, 244, 214, .3); background-clip: padding-box; }
+        .dark .side-label { color: rgba(230, 220, 190, .55); }
+        .dark .side-link { color: rgba(237, 230, 210, .72); }
+        .dark .side-link svg { color: rgba(230, 220, 190, .5); }
+        .dark .side-link:hover { color: #f7f2e2; background: rgba(255, 251, 235, .06); }
+        .dark .side-link:hover svg { color: var(--accent-soft); }
+        .dark .side-link.is-active {
+            color: var(--accent-ink);
+            background: linear-gradient(100deg, color-mix(in srgb, var(--accent) 18%, transparent), rgba(255, 255, 255, .04));
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent), inset 0 1px 0 rgba(255, 255, 255, .06);
+        }
+        .dark .side-link.is-active svg { color: var(--accent); }
+        .dark .side-foot { border-top-color: rgba(255, 244, 214, .09); }
+        .dark .side-logout:hover { color: #ffe4e6 !important; background: rgba(244, 63, 94, .16) !important; }
+        .dark .side-logout:hover svg { color: #fb7185 !important; }
 
         /* ---------- Portal content kit ---------- */
         /* width (not just max-width) keeps this flex item from shrink-wrapping to
@@ -192,6 +241,50 @@
         /* Dialogs must clear the off-canvas drawer (.side is z-60 on small screens). */
         #modal-container { position: relative; z-index: 70; }
 
+        /* ---------- Warm-espresso chrome so dark mode reads as one surface ---------- */
+        .dark .portal-bg { background: #16120b; }
+        .dark .portal-top { background: #211c12; box-shadow: 0 1px 0 rgba(255, 244, 214, .08); }
+        .dark .portal-top-title { color: #f7f2e2; }
+        .dark .portal-icon-btn { color: rgba(237, 230, 210, .65); }
+        .dark .portal-icon-btn:hover { color: #f7f2e2; }
+        .dark .portal-user-btn { background: #2b2519; color: #ede6d2; }
+        .dark .portal-menu { background: #262019; border-color: rgba(255, 244, 214, .12); }
+        .dark .portal-menu a, .dark .portal-menu button { color: #ede6d2; }
+        .dark .portal-menu a:hover, .dark .portal-menu button:hover { background: rgba(255, 251, 235, .06); }
+        .dark .portal-menu .text-red-600 { color: #fb7185; }
+        .dark .portal-foot { color: rgba(230, 220, 190, .5); }
+        .dark .panel { background: #241e14; border-color: rgba(255, 244, 214, .09); box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 14px 30px -24px rgba(0, 0, 0, .6); }
+        .dark .panel-head { border-bottom-color: rgba(255, 244, 214, .09); }
+        .dark .panel-title { color: #f7f2e2; }
+        .dark .panel-hint { color: rgba(230, 220, 190, .55); }
+        .dark .stat { background: #241e14; border-color: rgba(255, 244, 214, .09); box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 14px 30px -26px rgba(0, 0, 0, .55); }
+        .dark .stat .label { color: rgba(230, 220, 190, .55); }
+        .dark .stat .value { color: #f7f2e2; }
+        .dark .stat .meta { color: rgba(230, 220, 190, .5); }
+        .dark .row { border-bottom-color: rgba(255, 244, 214, .07); }
+        .dark .empty { color: rgba(230, 220, 190, .55); }
+        .dark .empty strong { color: #ede6d2; }
+        .dark .btn-ghost { color: #d1fae5; background: rgba(16, 185, 129, .14); }
+        .dark .btn-ghost:hover { background: rgba(16, 185, 129, .22); }
+        .dark .form-input { background: #2b2519; border-color: rgba(255, 244, 214, .16); color: #f7f2e2; }
+        .dark .form-input::placeholder { color: rgba(230, 220, 190, .4); }
+        .dark .stepper span { background: #2b2519; color: rgba(230, 220, 190, .6); }
+        .dark .stepper span.done { background: rgba(16, 185, 129, .2); color: #a7f3d0; }
+        .dark .stepper span.current { background: #059669; color: #fff; }
+        .dark .stepper span.dead { background: rgba(244, 63, 94, .2); color: #fecaca; }
+        /* Tailwind gray utilities used across portal pages and HTMX dialog forms. */
+        .dark .portal-main .text-gray-800, .dark #modal-container .text-gray-800 { color: #f0ead8; }
+        .dark .portal-main .text-gray-700, .dark #modal-container .text-gray-700 { color: rgba(237, 230, 210, .85); }
+        .dark .portal-main .text-gray-600, .dark #modal-container .text-gray-600 { color: rgba(237, 230, 210, .75); }
+        .dark .portal-main .text-gray-500, .dark #modal-container .text-gray-500 { color: rgba(230, 220, 190, .6); }
+        .dark .portal-main .text-gray-400, .dark #modal-container .text-gray-400 { color: rgba(230, 220, 190, .45); }
+        .dark .portal-main .border-gray-200, .dark #modal-container .border-gray-200 { border-color: rgba(255, 244, 214, .12); }
+        .dark .portal-main .border-gray-100, .dark #modal-container .border-gray-100 { border-color: rgba(255, 244, 214, .08); }
+        .dark .portal-main .bg-gray-100, .dark #modal-container .bg-gray-100 { background: #2b2519; }
+        .dark .portal-main .bg-gray-50, .dark #modal-container .bg-gray-50 { background: rgba(255, 251, 235, .04); }
+        .dark #modal-container .hover\:bg-gray-200:hover { background: #37301f; }
+        .dark .portal-main .hover\:bg-green-50\/60:hover, .dark .portal-main .hover\:bg-green-50:hover { background: rgba(255, 251, 235, .05); }
+
         @media (prefers-reduced-motion: reduce) {
             .side-link, .side-link svg, .side-cta, .btn { transition: none; }
             .side-link:hover, .side-cta:hover, .btn-primary:hover { transform: none; }
@@ -255,29 +348,33 @@
 
         <!-- Main column -->
         <div class="flex-1 flex flex-col min-h-screen min-w-0">
-            <header class="bg-white shadow-sm h-16 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
+            <header class="portal-top bg-white shadow-sm h-16 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
                 <div class="flex items-center gap-3 min-w-0">
-                    <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden text-gray-500 hover:text-gray-700 cursor-pointer" aria-label="Open navigation">
+                    <button @click="sidebarOpen = !sidebarOpen" class="portal-icon-btn lg:hidden text-gray-500 hover:text-gray-700 cursor-pointer" aria-label="Open navigation">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                     </button>
                     <div class="min-w-0">
-                        <div class="font-bold text-gray-800 truncate" style="font-family:'Sora',sans-serif; font-size:.98rem;">{% block page_title %}{% firstof portal_partner.name portal_partner.contact_person "Portal" %}{% endblock %}</div>
+                        <div class="portal-top-title font-bold text-gray-800 truncate" style="font-family:'Sora',sans-serif; font-size:.98rem;">{% block page_title %}{% firstof portal_partner.name portal_partner.contact_person "Portal" %}{% endblock %}</div>
                         <div class="text-[.62rem] uppercase tracking-widest font-semibold" style="color:var(--brand);">{% if user.role == 'buyer' %}Buyer Portal{% else %}Supplier Portal{% endif %}</div>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <a href="{% url 'notifications:notification_list' %}" class="relative text-gray-500 hover:text-emerald-700 transition-colors" title="Notifications">
+                    <a href="{% url 'notifications:notification_list' %}" class="portal-icon-btn relative text-gray-500 hover:text-emerald-700 transition-colors" title="Notifications">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                         {% if unread_notifications %}
                         <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">{{ unread_notifications }}</span>
                         {% endif %}
                     </a>
+                    <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)" class="portal-icon-btn text-gray-500 hover:text-yellow-500 transition-colors cursor-pointer" :title="darkMode ? 'Light mode' : 'Dark mode'">
+                        <svg x-show="!darkMode" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        <svg x-show="darkMode" x-cloak class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    </button>
                     <div x-data="{ open: false }" class="relative">
-                        <button @click="open = !open" class="flex items-center gap-1.5 bg-gray-100 rounded-full pl-3 pr-2 py-1.5 text-sm text-gray-700 cursor-pointer">
+                        <button @click="open = !open" class="portal-user-btn flex items-center gap-1.5 bg-gray-100 rounded-full pl-3 pr-2 py-1.5 text-sm text-gray-700 cursor-pointer">
                             <span class="font-medium">{{ user.first_name|default:user.username }}</span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
-                        <div x-show="open" @click.away="open = false" x-cloak x-transition class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-50">
+                        <div x-show="open" @click.away="open = false" x-cloak x-transition class="portal-menu absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-50">
                             <a href="{% if user.role == 'buyer' %}{% url 'portal:buyer_profile' %}{% else %}{% url 'portal:supplier_profile' %}{% endif %}" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-green-50">My Profile</a>
                             <a href="{% url 'portal:password_change' %}" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-green-50">Change Password</a>
                             <form method="post" action="{% url 'accounts:logout' %}">
@@ -301,7 +398,7 @@
                 {% endif %}
                 {% block content %}{% endblock %}
             </main>
-            <footer class="px-4 py-6 text-center text-sm text-gray-500">
+            <footer class="portal-foot px-4 py-6 text-center text-sm text-gray-500">
                 &copy; {% now "Y" %} Tambulig Poultry Farm &mdash; Zamboanga del Sur
             </footer>
         </div>
