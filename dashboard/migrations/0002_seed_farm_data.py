@@ -83,6 +83,8 @@ def seed_farm_data(apps, schema_editor):
         return today - timezone.timedelta(days=n)
 
     # --- Suppliers and buyers (contacts only; portal logins stay separate) ---
+    # get_or_create by name: production may already hold portal-linked contacts
+    # (e.g. Manila Egg Traders); reuse them instead of creating duplicates.
     supplier_specs = [
         ("Agrivet Feed Supply", "Feeds and grain", "net15"),
         ("Zamboanga Vet Pharma", "Medicines and vaccines", "cod"),
@@ -90,18 +92,20 @@ def seed_farm_data(apps, schema_editor):
         ("Pacific Packaging Hub", "Egg trays and sacks", "cod"),
         ("Davao Agri Equipment", "Farm tools and equipment", "net15"),
     ]
-    suppliers = [
-        Supplier.objects.create(
+    suppliers = []
+    for i, (name, supplies, terms) in enumerate(supplier_specs):
+        supplier, _ = Supplier.objects.get_or_create(
             name=name,
-            contact_person=f"Contact {i + 1}",
-            phone=f"+63 917 000 {1000 + i}",
-            supplies=supplies,
-            payment_terms=terms,
-            verification_status="approved",
-            is_active=True,
+            defaults={
+                "contact_person": f"Contact {i + 1}",
+                "phone": f"+63 917 000 {1000 + i}",
+                "supplies": supplies,
+                "payment_terms": terms,
+                "verification_status": "approved",
+                "is_active": True,
+            },
         )
-        for i, (name, supplies, terms) in enumerate(supplier_specs)
-    ]
+        suppliers.append(supplier)
 
     buyer_specs = [
         ("Manila Egg Traders", "wholesale", "Egg trays, weekly standing order"),
@@ -110,17 +114,19 @@ def seed_farm_data(apps, schema_editor):
         ("Tambulig Restaurant", "individual", "Dressed chicken, twice a week"),
         ("Dipolog Farmers Cooperative", "wholesale", "Manure for member farms"),
     ]
-    buyers = [
-        Buyer.objects.create(
+    buyers = []
+    for i, (name, kind, note) in enumerate(buyer_specs):
+        buyer, _ = Buyer.objects.get_or_create(
             name=name,
-            buyer_type=kind,
-            notes=note,
-            phone=f"+63 928 000 {2000 + i}",
-            verification_status="approved",
-            is_active=True,
+            defaults={
+                "buyer_type": kind,
+                "notes": note,
+                "phone": f"+63 928 000 {2000 + i}",
+                "verification_status": "approved",
+                "is_active": True,
+            },
         )
-        for i, (name, kind, note) in enumerate(buyer_specs)
-    ]
+        buyers.append(buyer)
 
     # --- Flocks: three layer batches, two broiler batches ---
     flock_specs = [
@@ -448,8 +454,9 @@ def unseed_farm_data(apps, schema_editor):
         ("inventory", "InventoryItem", {"name__in": ["Layer Mash", "Grower Pellets", "Multivitamins", "Newcastle Vaccine", "Eggs (tray)", "Manure (sack)"]}),
         ("inventory", "Unit", {"abbreviation__in": ["kg", "sack", "tray", "pc", "btl"]}),
         ("inventory", "InventoryCategory", {"name__in": ["Feeds", "Medicine", "Vaccine", "Packaging", "Farm Produce"]}),
-        ("buyers", "Buyer", {"name__in": BUYER_NAMES}),
-        ("suppliers", "Supplier", {"name__in": SUPPLIER_NAMES}),
+        # Only remove contacts the seed itself created (never portal-linked ones).
+        ("buyers", "Buyer", {"name__in": BUYER_NAMES, "user__isnull": True}),
+        ("suppliers", "Supplier", {"name__in": SUPPLIER_NAMES, "user__isnull": True}),
         ("flocks", "FlockBatch", {"batch_number__in": BATCH_NUMBERS}),
     ]:
         apps.get_model(app_label, model_name).objects.filter(**filters).delete()
