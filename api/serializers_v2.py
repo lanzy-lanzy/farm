@@ -86,6 +86,23 @@ class SupplierPortalProfileSerializer(ProfileEmailSyncMixin, serializers.ModelSe
 
 
 class OrderRequestPortalSerializer(serializers.ModelSerializer):
+    product_id = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.filter(is_active=True), write_only=True, required=False,
+    )
+
+    def validate(self, attrs):
+        product = attrs.pop("product_id", None)
+        if product is None:
+            # Older mobile clients send the catalog name and type.
+            matches = Product.objects.filter(is_active=True, name=attrs.get("product_name"), product_type=attrs.get("product_type"))
+            if matches.count() != 1:
+                raise serializers.ValidationError({"product_name": "Select an available catalog product."})
+            product = matches.first()
+        if attrs.get("quantity", 0) <= 0:
+            raise serializers.ValidationError({"quantity": "Enter a positive quantity."})
+        attrs.update(product_type=product.product_type, product_name=product.name, requested_unit_price=product.unit_price)
+        return attrs
+
     status = serializers.CharField(read_only=True)
     source = serializers.CharField(read_only=True)
     quoted_unit_price = serializers.DecimalField(
@@ -98,11 +115,12 @@ class OrderRequestPortalSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderRequest
         fields = [
-            "id", "request_number", "buyer_name", "source", "product_type", "product_name",
+            "id", "request_number", "buyer_name", "source", "product_id", "product_type", "product_name",
             "quantity", "requested_unit_price", "requested_date", "status",
             "quoted_unit_price", "staff_note", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "request_number", "buyer_name", "status", "created_at"]
+        extra_kwargs = {"product_type": {"required": False}, "product_name": {"required": False}}
 
 
 class SalesHistorySerializer(serializers.ModelSerializer):

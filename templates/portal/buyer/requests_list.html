@@ -46,7 +46,7 @@
                             <p class="text-xs text-gray-400">{{ order.get_product_type_display }}</p>
                         </td>
                         <td class="px-5 py-4 text-sm text-gray-700 whitespace-nowrap">{{ order.quantity }}</td>
-                        <td class="px-5 py-4 text-sm text-gray-600 whitespace-nowrap hidden md:table-cell">{{ order.requested_date }}</td>
+                        <td class="px-5 py-4 text-sm text-gray-600 whitespace-nowrap hidden md:table-cell">{{ order.requested_date|default:"—" }}</td>
                         <td class="px-5 py-4">
                             <span class="pill pill-{{ order.status }}">{{ order.get_status_display }}</span>
                             {% if order.status == 'quoted' and order.is_stale %}<span class="pill pill-stale mt-1">Expired</span>{% endif %}

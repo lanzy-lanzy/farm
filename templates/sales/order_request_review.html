@@ -14,7 +14,7 @@
             <dt class="text-gray-500">Product</dt><dd class="text-gray-800 dark:text-white">{{ order.product_name }} ({{ order.get_product_type_display }})</dd>
             <dt class="text-gray-500">Quantity</dt><dd class="text-gray-800 dark:text-white">{{ order.quantity }}</dd>
             <dt class="text-gray-500">Buyer target price</dt><dd class="text-gray-800 dark:text-white">{% if order.requested_unit_price %}₱{{ order.requested_unit_price|floatformat:2 }}{% else %}Not specified{% endif %}</dd>
-            <dt class="text-gray-500">Needed by</dt><dd class="text-gray-800 dark:text-white">{{ order.requested_date }}</dd>
+            <dt class="text-gray-500">Needed by</dt><dd class="text-gray-800 dark:text-white">{{ order.requested_date|default:"—" }}</dd>
             {% if order.quoted_unit_price %}<dt class="text-gray-500">Quoted price</dt><dd class="text-gray-800 dark:text-white">₱{{ order.quoted_unit_price|floatformat:2 }} per unit</dd>{% endif %}
             {% if order.staff_note %}<dt class="text-gray-500">Note to buyer</dt><dd class="text-gray-800 dark:text-white">{{ order.staff_note }}</dd>{% endif %}
             {% if order.sales_record %}<dt class="text-gray-500">Linked sale</dt><dd class="text-gray-800 dark:text-white">₱{{ order.sales_record.total_amount|floatformat:2 }} on {{ order.sales_record.date_sold }}</dd>{% endif %}

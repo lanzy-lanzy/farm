@@ -29,24 +29,32 @@ class BuyerForm(forms.ModelForm):
 
 
 class OrderRequestForm(forms.ModelForm):
+    product = forms.ModelChoiceField(queryset=None, widget=forms.Select(attrs={"class": "form-input"}))
+
     class Meta:
         model = OrderRequest
-        fields = [
-            "product_type",
-            "product_name",
-            "quantity",
-            "requested_unit_price",
-            "requested_date",
-        ]
-        widgets = {
-            "product_type": forms.Select(attrs={"class": "form-input"}),
-            "product_name": forms.TextInput(attrs={"class": "form-input"}),
-            "quantity": forms.NumberInput(attrs={"class": "form-input", "min": 0, "step": "0.01"}),
-            "requested_unit_price": forms.NumberInput(
-                attrs={"class": "form-input", "min": 0, "step": "0.01"}
-            ),
-            "requested_date": forms.DateInput(attrs={"class": "form-input", "type": "date"}),
-        }
+        fields = ["product", "quantity"]
+        widgets = {"quantity": forms.NumberInput(attrs={"class": "form-input", "min": "0.01", "step": "0.01"})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from sales.models import Product
+        self.fields["product"].queryset = Product.objects.filter(is_active=True)
+        self.fields["product"].label_from_instance = lambda p: f"{p.name} — {p.unit_price} / {p.unit_label}"
+        self.fields["product"].help_text = "Product name, unit and fixed price come from the farm catalog."
+
+    def clean_quantity(self):
+        quantity = self.cleaned_data["quantity"]
+        if quantity <= 0:
+            raise forms.ValidationError("Enter a positive quantity.")
+        return quantity
+
+    def save(self, commit=True):
+        product = self.cleaned_data["product"]
+        self.instance.product_type = product.product_type
+        self.instance.product_name = product.name
+        self.instance.requested_unit_price = product.unit_price
+        return super().save(commit=commit)
 
 
 class BuyerProfileForm(forms.ModelForm):

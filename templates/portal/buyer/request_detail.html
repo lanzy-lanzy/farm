@@ -6,7 +6,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
             <h1 class="text-xl font-bold text-gray-800">{{ order.request_number }}</h1>
-            <p class="text-sm text-gray-500 mt-1">{{ order.product_name }} &middot; {{ order.quantity }} units &middot; wanted {{ order.requested_date }}</p>
+            <p class="text-sm text-gray-500 mt-1">{{ order.product_name }} &middot; {{ order.quantity }} units{% if order.requested_date %} &middot;{% if order.requested_date %} wanted {{ order.requested_date|default:"—" }}{% endif %}{% endif %}</p>
         </div>
         <a href="{% url 'portal:buyer_requests' %}" class="text-sm font-semibold self-start sm:self-auto" style="color: var(--brand);">
             &larr; All requests

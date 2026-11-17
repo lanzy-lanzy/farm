@@ -7,7 +7,7 @@
     </div>
     <h3 class="text-lg font-semibold text-gray-800">Cancel {{ order.request_number }}?</h3>
     <p class="text-sm text-gray-500 mt-2 max-w-sm mx-auto">
-        {{ order.quantity }} &times; {{ order.product_name }} wanted {{ order.requested_date }} will be withdrawn from the farm's queue.
+        {{ order.quantity }} &times; {{ order.product_name }}{% if order.requested_date %} wanted {{ order.requested_date|default:"—" }}{% endif %} will be withdrawn from the farm's queue.
         Cancelled requests cannot be reopened &mdash; you would need to submit a new one.
     </p>
 </div>

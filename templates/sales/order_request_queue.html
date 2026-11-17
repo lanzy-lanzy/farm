@@ -44,7 +44,7 @@
                     <td class="px-5 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ order.buyer.name }}</td>
                     <td class="px-5 py-4 text-gray-600 dark:text-gray-300">{{ order.product_name }} <span class="text-xs text-gray-400">({{ order.get_product_type_display }})</span></td>
                     <td class="px-5 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ order.quantity }}</td>
-                    <td class="px-5 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ order.requested_date }}</td>
+                    <td class="px-5 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ order.requested_date|default:"—" }}</td>
                     <td class="px-5 py-4 whitespace-nowrap">
                         <span class="pill pill-{{ order.status }}">{{ order.get_status_display }}</span>
                         {% if order.is_stale %}<span class="pill pill-stale">Stale</span>{% endif %}

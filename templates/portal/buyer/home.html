@@ -65,7 +65,7 @@
                 <p class="text-xs text-gray-500 mt-1">
                     {{ order.quantity }} &times; ₱{{ order.quoted_unit_price|floatformat:2 }}
                     = <strong>₱{{ order.estimated_total|floatformat:2 }}</strong>
-                    &middot; wanted {{ order.requested_date }}
+                   {% if order.requested_date %} &middot;{% if order.requested_date %} wanted {{ order.requested_date|default:"—" }}{% endif %}{% endif %}
                     {% if order.is_stale %}<span class="pill pill-stale">Quote expired</span>{% endif %}
                 </p>
                 {% if order.staff_note %}<p class="text-xs text-gray-500 italic mt-1">&ldquo;{{ order.staff_note }}&rdquo;</p>{% endif %}

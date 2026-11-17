@@ -118,7 +118,7 @@ class OrderRequest(models.Model):
     requested_unit_price = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True
     )
-    requested_date = models.DateField()
+    requested_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="submitted")
     quoted_unit_price = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True

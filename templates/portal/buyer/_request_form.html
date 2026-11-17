@@ -2,7 +2,7 @@
 {% block modal_title %}New Order Request{% endblock %}
 {% block modal_content %}
 <p class="text-sm text-gray-500 mb-5">
-    Tell the farm what you need and when. Staff confirm the price with a quote &mdash; nothing is charged until the sale is recorded.
+    Select an available farm product at its listed unit price. Staff review your request &mdash; nothing is charged until the sale is recorded.
 </p>
 <form hx-post="{% url 'portal:buyer_request_create' %}"
       hx-target="#modal-container" hx-swap="innerHTML"

@@ -27,7 +27,7 @@ without a dialog open.
     </div>
     <div>
         <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Needed by</dt>
-        <dd class="text-sm text-gray-800 mt-1">{{ order.requested_date }}</dd>
+        <dd class="text-sm text-gray-800 mt-1">{{ order.requested_date|default:"—" }}</dd>
     </div>
     <div>
         <dt class="text-xs font-semibold uppercase tracking-wider text-gray-400">Your target price</dt>
