@@ -7,6 +7,7 @@ are recreated / re-synced to the values below.
 
     ADMIN_USERNAME, ADMIN_PASSWORD        admin superuser
     ADMIN_EMAIL, ADMIN_FIRST_NAME, ADMIN_LAST_NAME  (optional)
+    MANAGER_USERNAME, MANAGER_PASSWORD    internal staff login
     BUYER_USERNAME, BUYER_PASSWORD        buyer portal login
     BUYER_CONTACT                         contact it links to (default "Manila Egg Traders")
     SUPPLIER_USERNAME, SUPPLIER_PASSWORD  supplier portal login
@@ -36,6 +37,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         admin = self.sync_admin()
+        self.sync_manager()
         for role, prefix, model, default_contact in PORTAL_ACCOUNTS:
             self.sync_portal_account(role, prefix, model, default_contact, admin)
 
@@ -66,6 +68,26 @@ class Command(BaseCommand):
             user.save()
         self.report("admin", username, created, changed)
         return user
+
+    def sync_manager(self):
+        User = get_user_model()
+        username = os.environ.get("MANAGER_USERNAME")
+        password = os.environ.get("MANAGER_PASSWORD")
+        if not username or not password:
+            return
+        user, created = User.objects.get_or_create(
+            username=username, defaults={"role": "staff", "first_name": "Manager"},
+        )
+        # Never overwrite an admin, owner, or portal account with a staff login.
+        if user.role != "staff" or user.is_superuser:
+            self.stderr.write(self.style.WARNING(
+                "Manager username belongs to another role; skipping manager. Choose a distinct MANAGER_USERNAME."
+            ))
+            return
+        changed = self.apply_credentials(user, password)
+        if changed or created:
+            user.save()
+        self.report("manager", username, created, changed)
 
     def sync_portal_account(self, role, prefix, model, default_contact, operator):
         User = get_user_model()

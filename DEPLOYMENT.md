@@ -49,11 +49,12 @@ variables individually):
 | `DATA_DIR`             | `/data`                                            |
 | `ADMIN_USERNAME`       | admin username                                     |
 | `ADMIN_PASSWORD`       | admin password                                     |
+| `MANAGER_USERNAME` / `MANAGER_PASSWORD` | internal staff login (optional; use a distinct username) |
 | `ADMIN_EMAIL`          | optional                                           |
 | `BUYER_USERNAME` / `BUYER_PASSWORD` | buyer portal login (linked to the `BUYER_CONTACT` buyer, default "Manila Egg Traders") |
 | `SUPPLIER_USERNAME` / `SUPPLIER_PASSWORD` | supplier portal login (linked to the `SUPPLIER_CONTACT` supplier, default "Agrivet Feed Supply") |
 
-The environment is the source of truth for these three logins: every boot
+The environment is the source of truth for these configured logins: every boot
 recreates or re-syncs them, so a password changed in the app reverts on the next
 restart. To change one permanently, change it here and redeploy.
 
@@ -67,7 +68,7 @@ assigned after the first deploy (or a custom domain once configured).
 1. Volume check — logs `WARNING: DATA_DIR=... is not on a persistent volume`
    when `/data` is not mounted (the database would reset on every redeploy).
 2. `migrate` — creates the schema on the fresh volume database.
-3. `bootstrap_admin` — creates or re-syncs the admin, buyer and supplier
+3. `bootstrap_admin` — creates or re-syncs the admin, manager, buyer and supplier
    accounts from the environment variables above (safe to run every boot).
 4. Gunicorn binds `0.0.0.0:8000`.
 
