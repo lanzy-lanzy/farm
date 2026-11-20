@@ -1,12 +1,5 @@
 {% extends "reports/_print_base.html" %}
 {% block report_body %}
-    <div class="cards">
-        <div class="card"><div class="label">Total Eggs</div><div class="value">{{ total_eggs }}</div></div>
-        <div class="card"><div class="label">Good Eggs</div><div class="value pos">{{ total_good }}</div></div>
-        <div class="card"><div class="label">Cracked Eggs</div><div class="value warn">{{ total_cracked }}</div></div>
-        <div class="card"><div class="label">Rejected Eggs</div><div class="value neg">{{ total_rejected }}</div></div>
-    </div>
-
     {% if records %}
     <table class="data">
         <caption>Daily Production Records</caption>

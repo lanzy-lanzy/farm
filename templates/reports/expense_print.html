@@ -1,10 +1,5 @@
 {% extends "reports/_print_base.html" %}
 {% block report_body %}
-    <div class="cards">
-        <div class="card"><div class="label">Total Expenses</div><div class="value neg">₱{{ total_expenses|floatformat:2 }}</div></div>
-        <div class="card"><div class="label">Records</div><div class="value">{{ records|length }}</div></div>
-    </div>
-
     {% if records %}
     <table class="data">
         <caption>Expense Records</caption>

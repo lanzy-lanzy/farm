@@ -89,10 +89,15 @@
         </div>
     </div>
 
-    <!-- Egg Production Chart -->
+    <!-- Egg Trays Sold Chart -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Egg Production (Last 7 Days)</h3>
-        <canvas id="eggChart" height="100"></canvas>
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Egg Trays Sold (Last 7 Days)</h3>
+            <span class="text-sm font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/40 px-3 py-1 rounded-full">
+                Total: {{ total_trays_sold_7d }} {% if total_trays_sold_7d == 1 %}tray{% else %}trays{% endif %}
+            </span>
+        </div>
+        <canvas id="traysSoldChart" height="100"></canvas>
     </div>
 
     <!-- Recent Activities -->
@@ -114,25 +119,46 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('eggChart');
+    const ctx = document.getElementById('traysSoldChart');
     if (ctx) {
         new Chart(ctx, {
-            type: 'line',
+            type: 'bar',
             data: {
-                labels: [{% for item in egg_chart_data %}'{{ item.date }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+                labels: [{% for item in trays_sold_chart_data %}'{{ item.date }}'{% if not forloop.last %},{% endif %}{% endfor %}],
                 datasets: [{
-                    label: 'Eggs',
-                    data: [{% for item in egg_chart_data %}{{ item.eggs }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                    label: 'Trays Sold',
+                    data: [{% for item in trays_sold_chart_data %}{{ item.trays }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                    hoverBackgroundColor: '#059669',
                     borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    tension: 0.4,
-                    fill: true
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    maxBarThickness: 48
                 }]
             },
             options: {
                 responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } }
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const val = context.parsed.y;
+                                return val + (val === 1 ? ' tray sold' : ' trays sold');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 },
+                        title: {
+                            display: true,
+                            text: 'Trays Sold'
+                        }
+                    }
+                }
             }
         });
     }

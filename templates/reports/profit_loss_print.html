@@ -1,14 +1,5 @@
 {% extends "reports/_print_base.html" %}
 {% block report_body %}
-    <div class="cards">
-        <div class="card"><div class="label">Total Sales</div><div class="value pos">₱{{ total_sales|floatformat:2 }}</div></div>
-        <div class="card"><div class="label">Total Expenses</div><div class="value neg">₱{{ total_expenses|floatformat:2 }}</div></div>
-        <div class="card">
-            <div class="label">Net {% if profit_loss >= 0 %}Profit{% else %}Loss{% endif %}</div>
-            <div class="value {% if profit_loss >= 0 %}pos{% else %}neg{% endif %}">{% if profit_loss >= 0 %}+{% else %}&minus;{% endif %}₱{{ profit_loss|floatformat:2|cut:"-" }}</div>
-        </div>
-    </div>
-
     <h2 class="section">Financial Summary</h2>
     <table class="data">
         <thead>

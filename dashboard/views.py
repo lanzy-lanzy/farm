@@ -91,19 +91,28 @@ def index(request):
         user=request.user, is_read=False
     )[:5]
 
-    egg_chart_data = []
+    trays_sold_chart_data = []
     mortality_chart_data = []
+    total_trays_sold_7d = 0
     for i in range(6, -1, -1):
         date = today - timezone.timedelta(days=i)
-        egg_prod = EggProduction.objects.filter(production_date=date).aggregate(
-            total=Sum("total_eggs")
-        )["total"] or 0
-        egg_chart_data.append({"date": date.strftime("%b %d"), "eggs": egg_prod})
+        trays_sold = SalesRecord.objects.filter(
+            product_type="eggs", date_sold=date
+        ).aggregate(total=Sum("quantity"))["total"] or 0
+        total_trays_sold_7d += trays_sold
+        trays_val = int(trays_sold) if trays_sold == int(trays_sold) else float(trays_sold)
+        trays_sold_chart_data.append({"date": date.strftime("%b %d"), "trays": trays_val})
 
         mort_count = DeathRecord.objects.filter(date_recorded=date).aggregate(
             total=Sum("quantity")
         )["total"] or 0
         mortality_chart_data.append({"date": date.strftime("%b %d"), "deaths": mort_count})
+
+    total_trays_sold_7d = (
+        int(total_trays_sold_7d)
+        if total_trays_sold_7d == int(total_trays_sold_7d)
+        else float(total_trays_sold_7d)
+    )
 
     context = {
         "total_chickens": total_chickens,
@@ -123,7 +132,8 @@ def index(request):
         "open_deliveries": open_deliveries,
         "recent_activities": recent_activities,
         "recent_notifications": recent_notifications,
-        "egg_chart_data": egg_chart_data,
+        "trays_sold_chart_data": trays_sold_chart_data,
+        "total_trays_sold_7d": total_trays_sold_7d,
         "mortality_chart_data": mortality_chart_data,
     }
     return render(request, "dashboard/index.html", context)

@@ -173,6 +173,16 @@ class PrintPreviewTests(ReportDataTests):
         self.assertContains(response, "\u20b1")
         self.assertNotContains(response, "$")
 
+    def test_print_preview_hides_summary_cards_and_shows_signatories(self):
+        for name in PRINT_VIEW_URLS:
+            with self.subTest(url=name):
+                response = self.client.get(reverse(name))
+                self.assertEqual(response.status_code, 200)
+                self.assertNotContains(response, 'class="cards"')
+                self.assertContains(response, 'class="signatories"')
+                self.assertContains(response, "Prepared by")
+                self.assertContains(response, "Approved by")
+
 
 class ReportsHubTests(ReportDataTests):
     def test_hub_offers_all_four_destinations_per_report(self):

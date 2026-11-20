@@ -144,10 +144,22 @@
     .status.warn{ background:var(--warn-bg); border-color:var(--warn-line); color:var(--warn-ink); }
     .status.bad, .status.neg{ background:var(--neg-bg); border-color:var(--neg-line); color:var(--neg-ink); }
 
-    /* ---------- Footer ---------- */
+    /* ---------- Signatories & Footer ---------- */
+    .signatories{
+        margin-top:42px; display:flex; justify-content:space-between; gap:56px;
+        break-inside:avoid; page-break-inside:avoid;
+    }
+    .sig-col{ flex:1 1 0; max-width:260px; }
+    .sig-name{
+        min-height:20px; font-size:12.5px; font-weight:600; color:var(--ink);
+        padding-bottom:4px; text-align:center;
+    }
+    .sig-line{
+        border-top:1px solid var(--line-strong); padding-top:6px;
+        font-size:10.5px; font-weight:600; text-transform:uppercase;
+        letter-spacing:.06em; color:var(--muted); text-align:center;
+    }
     .report-footer{ margin-top:30px; padding-top:12px; border-top:1px solid var(--line); font-size:10.5px; color:var(--muted); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .report-footer .sig{ margin-top:26px; display:flex; gap:48px; }
-    .report-footer .sig span{ flex:1 1 0; border-top:1px solid var(--line-strong); padding-top:5px; font-size:10px; text-align:center; }
 
     /* ---------- Page box + print rules ---------- */
     @page{ size:A4; margin:16mm 14mm 18mm 14mm; }
@@ -223,6 +235,17 @@
         <main>
             {% block report_body %}{% endblock %}
         </main>
+
+        <section class="signatories" aria-label="Signatories">
+            <div class="sig-col">
+                <div class="sig-name">{{ prepared_by }}</div>
+                <div class="sig-line">Prepared by</div>
+            </div>
+            <div class="sig-col">
+                <div class="sig-name">&nbsp;</div>
+                <div class="sig-line">Approved by</div>
+            </div>
+        </section>
 
         <footer class="report-footer">
             <span>{{ farm_name }}{% if farm_location %} &middot; {{ farm_location }}{% endif %}</span>
