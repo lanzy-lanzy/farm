@@ -204,10 +204,12 @@ def product_list(request):
 @admin_or_owner_required
 def product_create(request):
     if request.method == "POST":
-        form = ProductForm(request.POST)
+        form = ProductForm(request.POST, request.FILES)
         if form.is_valid():
             product = form.save(commit=False)
             product.created_by = request.user
+            if not product.static_image:
+                product.static_image = product.default_static_path()
             product.save()
             log_activity(
                 request.user, "create", "Product", product.pk, product.__str__(),
@@ -234,9 +236,12 @@ def product_update(request, pk):
     product = get_object_or_404(Product, pk=pk)
     if request.method == "POST":
         old_price = product.unit_price
-        form = ProductForm(request.POST, instance=product)
+        form = ProductForm(request.POST, request.FILES, instance=product)
         if form.is_valid():
-            updated = form.save()
+            updated = form.save(commit=False)
+            if not updated.static_image:
+                updated.static_image = updated.default_static_path()
+            updated.save()
             diff = (
                 f" (₱{old_price:,.2f} → ₱{updated.unit_price:,.2f})"
                 if old_price != updated.unit_price

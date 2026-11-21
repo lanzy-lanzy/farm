@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.templatetags.static import static
 
 
 class SalesRecord(models.Model):
@@ -65,12 +66,32 @@ class SalesRecord(models.Model):
 class Product(models.Model):
     """Farm catalog offered to buyer portal accounts; pre-fills order requests."""
 
+    DEFAULT_STATIC_IMAGES = {
+        "eggs": "images/products/eggs_large.jpg",
+        "chicken": "images/products/live_chicken.jpg",
+        "dressed": "images/products/dressed_chicken.jpg",
+        "manure": "images/products/organic_manure.jpg",
+        "other": "images/products/eggs_medium.jpg",
+    }
+
     name = models.CharField(max_length=200)
     product_type = models.CharField(max_length=20, choices=SalesRecord.PRODUCT_CHOICES)
     unit_label = models.CharField(
         max_length=50, default="pc", help_text='What one quantity unit means, e.g. "tray", "kg", "sack".'
     )
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    image = models.ImageField(
+        upload_to="products/",
+        blank=True,
+        null=True,
+        help_text="Optional custom product photo. If omitted, a bundled farm photo is used.",
+    )
+    static_image = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Bundled static asset path under /static/ (persists across redeploys).",
+    )
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -89,3 +110,27 @@ class Product(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.unit_label})"
+
+    def default_static_path(self) -> str:
+        if self.product_type == "eggs":
+            lower = (self.name or "").lower()
+            if "small" in lower or "pewee" in lower or "pullet" in lower:
+                return "images/products/eggs_small.jpg"
+            if "medium" in lower:
+                return "images/products/eggs_medium.jpg"
+            if "extra" in lower or "xl" in lower or "jumbo" in lower:
+                return "images/products/eggs_xl.jpg"
+            return "images/products/eggs_large.jpg"
+        return self.DEFAULT_STATIC_IMAGES.get(
+            self.product_type, "images/products/eggs_large.jpg"
+        )
+
+    @property
+    def image_url(self) -> str:
+        if self.image:
+            try:
+                return self.image.url
+            except ValueError:
+                pass
+        path = self.static_image or self.default_static_path()
+        return static(path)

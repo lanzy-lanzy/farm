@@ -2,6 +2,7 @@
 {% block modal_title %}{% if product %}Edit Product{% else %}Add Product{% endif %}{% endblock %}
 {% block modal_content %}
 <form hx-post="{% if product %}{% url 'sales:product_update' product.pk %}{% else %}{% url 'sales:product_create' %}{% endif %}"
+      hx-encoding="multipart/form-data" enctype="multipart/form-data"
       hx-target="#modal-container" hx-swap="innerHTML" hx-target-4*="#modal-container" class="space-y-4">
     {% csrf_token %}
     {% if form.non_field_errors %}
@@ -36,6 +37,20 @@
                 {{ form.is_active }}
                 <span>Active — show this product to buyers in the mobile app</span>
             </label>
+        </div>
+        <div class="md:col-span-2">
+            <label for="{{ form.image.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Product Image</label>
+            <div class="flex items-center space-x-4">
+                {% if product %}
+                <img src="{{ product.image_url }}" alt="{{ product.name }}"
+                     class="w-16 h-16 rounded-xl object-cover border border-gray-200 dark:border-gray-600 bg-emerald-50 shrink-0">
+                {% endif %}
+                <div class="flex-1">
+                    {{ form.image }}
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ form.image.help_text }}</p>
+                    {% if form.image.errors %}<p class="text-red-500 text-xs mt-1">{{ form.image.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
         </div>
     </div>
     <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">

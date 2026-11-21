@@ -23,6 +23,7 @@ PY
 
 python manage.py migrate --noinput
 python manage.py bootstrap_admin
+python manage.py seed_products
 
 # One worker + threads: safest concurrency model for SQLite.
 exec gunicorn config.wsgi \

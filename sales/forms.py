@@ -36,17 +36,23 @@ class SalesRecordForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ["name", "product_type", "unit_label", "unit_price", "is_active"]
+        fields = ["name", "product_type", "unit_label", "unit_price", "image", "is_active"]
         widgets = {
             "name": forms.TextInput(
-                attrs={"class": "form-input", "placeholder": "e.g. Eggs (tray)"}
+                attrs={"class": "form-input", "placeholder": "e.g. Large Eggs (Tray)"}
             ),
             "product_type": forms.Select(attrs={"class": "form-input"}),
             "unit_label": forms.TextInput(
-                attrs={"class": "form-input", "placeholder": "tray, kg, pc"}
+                attrs={"class": "form-input", "placeholder": "tray, kg, head, sack"}
             ),
             "unit_price": forms.NumberInput(
                 attrs={"class": "form-input", "step": "0.01", "min": "0"}
+            ),
+            "image": forms.ClearableFileInput(
+                attrs={
+                    "class": "block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer",
+                    "accept": "image/*",
+                }
             ),
             "is_active": forms.CheckboxInput(
                 attrs={

@@ -157,9 +157,18 @@ class SupplyUnitSerializer(serializers.ModelSerializer):
 
 
 class BuyerProductSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
-        fields = ["id", "name", "product_type", "unit_label", "unit_price"]
+        fields = ["id", "name", "product_type", "unit_label", "unit_price", "image_url"]
+
+    def get_image_url(self, obj):
+        url = obj.image_url
+        request = self.context.get("request")
+        if request and url and not url.startswith(("http://", "https://")):
+            return request.build_absolute_uri(url)
+        return url
 
 
 class DeliveryNoticePortalSerializer(serializers.ModelSerializer):

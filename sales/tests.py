@@ -2,6 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -437,3 +438,37 @@ class ProductCatalogManagementTests(TestCase):
         feed = api.get(reverse("api-v2-portal-products"))
         self.assertEqual(feed.status_code, 200)
         self.assertEqual(feed.json(), [])
+
+    def test_seed_products_is_idempotent_and_exposes_image_urls(self):
+        call_command("seed_products")
+        first_count = Product.objects.count()
+        self.assertGreaterEqual(first_count, 8)
+        for name in (
+            "Small Eggs (Tray)",
+            "Medium Eggs (Tray)",
+            "Large Eggs (Tray)",
+            "Extra Large Eggs (Tray)",
+            "Jumbo Eggs (Tray)",
+            "Live Broiler Chicken",
+            "Dressed Whole Chicken",
+            "Organic Poultry Manure",
+        ):
+            prod = Product.objects.get(name=name)
+            self.assertTrue(prod.image_url.startswith("/static/images/products/"))
+
+        # Re-running on a subsequent redeploy preserves admin price edits and doesn't duplicate rows.
+        large = Product.objects.get(name="Large Eggs (Tray)")
+        large.unit_price = Decimal("225.00")
+        large.save()
+        call_command("seed_products")
+        self.assertEqual(Product.objects.count(), first_count)
+        large.refresh_from_db()
+        self.assertEqual(large.unit_price, Decimal("225.00"))
+
+        # API feed includes absolute image_url for the mobile app.
+        api = APIClient()
+        api.force_authenticate(user=self.buyer_user)
+        feed = api.get(reverse("api-v2-portal-products"))
+        self.assertEqual(feed.status_code, 200)
+        items = feed.json()
+        self.assertTrue(all("image_url" in item and item["image_url"] for item in items))
