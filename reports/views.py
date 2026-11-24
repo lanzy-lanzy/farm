@@ -1,7 +1,7 @@
 import os
 
 import openpyxl
-from accounts.access import internal_only
+from accounts.access import admin_or_owner_required, internal_only
 from django.conf import settings
 from django.db import models
 from django.db.models import Sum
@@ -98,6 +98,7 @@ REPORT_CATALOG = (
         "description": "Eggs collected by flock and day, split by grade.",
         "period": "Last 30 days",
         "accent": "emerald",
+        "farm_operations": True,
         "icon": "M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
         "urls": ("reports:production_report", "reports:production_report_print", "reports:export_production_pdf", "reports:export_production_excel"),
     },
@@ -106,6 +107,7 @@ REPORT_CATALOG = (
         "description": "Mortality records, quantities and causes.",
         "period": "Last 30 days",
         "accent": "red",
+        "farm_operations": True,
         "icon": "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z",
         "urls": ("reports:death_report", "reports:death_report_print", "reports:export_death_pdf", "reports:export_death_excel"),
     },
@@ -114,7 +116,8 @@ REPORT_CATALOG = (
         "description": "Sold products, buyers and collected amounts.",
         "period": "Last 30 days",
         "accent": "blue",
-        "icon": "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+        "farm_operations": False,
+        "icon": "M9.5 16.5V7.5h3.25a2.75 2.75 0 010 5.5H9.5M8 9.5h7.5M8 11.5h7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
         "urls": ("reports:sales_report", "reports:sales_report_print", "reports:export_sales_pdf", "reports:export_sales_excel"),
     },
     {
@@ -122,6 +125,7 @@ REPORT_CATALOG = (
         "description": "Spending by category, supplier and date.",
         "period": "Last 30 days",
         "accent": "amber",
+        "farm_operations": False,
         "icon": "M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z",
         "urls": ("reports:expense_report", "reports:expense_report_print", "reports:export_expense_pdf", "reports:export_expense_excel"),
     },
@@ -130,6 +134,7 @@ REPORT_CATALOG = (
         "description": "Stock on hand with low-stock and expiry alerts.",
         "period": "Current stock",
         "accent": "purple",
+        "farm_operations": False,
         "icon": "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
         "urls": ("reports:inventory_report", "reports:inventory_report_print", "reports:export_inventory_pdf", "reports:export_inventory_excel"),
     },
@@ -138,6 +143,7 @@ REPORT_CATALOG = (
         "description": "Revenue against expenses, with the net result.",
         "period": "Last 30 days",
         "accent": "teal",
+        "farm_operations": False,
         "icon": "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6",
         "urls": ("reports:profit_loss_report", "reports:profit_loss_report_print", "reports:export_profit_loss_pdf", "reports:export_profit_loss_excel"),
     },
@@ -146,8 +152,11 @@ REPORT_CATALOG = (
 
 @internal_only
 def reports_index(request):
+    is_elevated = request.user.is_admin_user() or request.user.is_owner()
     reports = []
     for entry in REPORT_CATALOG:
+        if not is_elevated and not entry["farm_operations"]:
+            continue
         open_url, print_url, pdf_url, excel_url = entry["urls"]
         reports.append(
             {
@@ -262,12 +271,12 @@ def _sales_context(start=None, end=None):
     }
 
 
-@internal_only
+@admin_or_owner_required
 def sales_report(request):
     return render(request, "reports/sales_report.html", _sales_context())
 
 
-@internal_only
+@admin_or_owner_required
 def sales_report_print(request):
     start, end = _requested_period(request)
     ctx = {**_sales_context(start, end), **_farm_context(request)}
@@ -297,12 +306,12 @@ def _expense_context(start=None, end=None):
     }
 
 
-@internal_only
+@admin_or_owner_required
 def expense_report(request):
     return render(request, "reports/expense_report.html", _expense_context())
 
 
-@internal_only
+@admin_or_owner_required
 def expense_report_print(request):
     start, end = _requested_period(request)
     ctx = {**_expense_context(start, end), **_farm_context(request)}
@@ -333,12 +342,12 @@ def _inventory_context():
     }
 
 
-@internal_only
+@admin_or_owner_required
 def inventory_report(request):
     return render(request, "reports/inventory_report.html", _inventory_context())
 
 
-@internal_only
+@admin_or_owner_required
 def inventory_report_print(request):
     ctx = {**_inventory_context(), **_farm_context(request)}
     ctx["back_url"] = reverse("reports:inventory_report")
@@ -378,12 +387,12 @@ def _profit_loss_context(start=None, end=None):
     }
 
 
-@internal_only
+@admin_or_owner_required
 def profit_loss_report(request):
     return render(request, "reports/profit_loss_report.html", _profit_loss_context())
 
 
-@internal_only
+@admin_or_owner_required
 def profit_loss_report_print(request):
     start, end = _requested_period(request)
     ctx = {**_profit_loss_context(start, end), **_farm_context(request)}
@@ -429,28 +438,28 @@ def export_death_excel(request):
     return _export_to_excel(rows, ["Date", "Flock", "Quantity", "Cause"], "death_report")
 
 
-@internal_only
+@admin_or_owner_required
 def export_sales_excel(request):
     records = _sales_context()["records"]
     rows = [[r.date_sold, r.product_name, str(r.buyer), r.quantity, float(r.total_amount)] for r in records]
     return _export_to_excel(rows, ["Date", "Product", "Buyer", "Quantity", "Total Amount"], "sales_report")
 
 
-@internal_only
+@admin_or_owner_required
 def export_expense_excel(request):
     records = _expense_context()["records"]
-    rows = [[r.expense_date, r.category, r.description, float(r.amount)] for r in records]
+    rows = [[r.expense_date, str(r.category), r.description, float(r.amount)] for r in records]
     return _export_to_excel(rows, ["Date", "Category", "Description", "Amount"], "expense_report")
 
 
-@internal_only
+@admin_or_owner_required
 def export_inventory_excel(request):
     items = _inventory_context()["items"]
     rows = [[r.name, str(r.category), float(r.quantity), str(r.unit), str(r.expiration_date or "N/A")] for r in items]
     return _export_to_excel(rows, ["Name", "Category", "Quantity", "Unit", "Expiry"], "inventory_report")
 
 
-@internal_only
+@admin_or_owner_required
 def export_profit_loss_excel(request):
     ctx = _profit_loss_context()
     rows = [
@@ -478,27 +487,27 @@ def export_death_pdf(request):
     return pdfs.response("deaths", ctx)
 
 
-@internal_only
+@admin_or_owner_required
 def export_sales_pdf(request):
     start, end = _requested_period(request)
     ctx = {**_sales_context(start, end), **_farm_context(request)}
     return pdfs.response("sales", ctx)
 
 
-@internal_only
+@admin_or_owner_required
 def export_expense_pdf(request):
     start, end = _requested_period(request)
     ctx = {**_expense_context(start, end), **_farm_context(request)}
     return pdfs.response("expenses", ctx)
 
 
-@internal_only
+@admin_or_owner_required
 def export_inventory_pdf(request):
     ctx = {**_inventory_context(), **_farm_context(request)}
     return pdfs.response("inventory", ctx)
 
 
-@internal_only
+@admin_or_owner_required
 def export_profit_loss_pdf(request):
     start, end = _requested_period(request)
     ctx = {**_profit_loss_context(start, end), **_farm_context(request)}

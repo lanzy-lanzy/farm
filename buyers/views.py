@@ -16,13 +16,13 @@ def is_htmx(request):
     return request.headers.get("HX-Request") == "true"
 
 
-@internal_only
+@admin_or_owner_required
 def buyer_list(request):
     buyers = Buyer.objects.all()
     return render(request, "buyers/buyer_list.html", {"buyers": buyers})
 
 
-@internal_only
+@admin_or_owner_required
 def buyer_create(request):
     if request.method == "POST":
         form = BuyerForm(request.POST)
@@ -43,7 +43,7 @@ def buyer_create(request):
     return render(request, template, {"form": form})
 
 
-@internal_only
+@admin_or_owner_required
 def buyer_update(request, pk):
     buyer = get_object_or_404(Buyer, pk=pk)
     if request.method == "POST":
@@ -63,7 +63,7 @@ def buyer_update(request, pk):
     return render(request, template, {"form": form, "buyer": buyer})
 
 
-@internal_only
+@admin_or_owner_required
 def buyer_delete(request, pk):
     buyer = get_object_or_404(Buyer, pk=pk)
     if request.method == "POST":
@@ -79,7 +79,7 @@ def buyer_delete(request, pk):
     return render(request, template, {"buyer": buyer})
 
 
-@internal_only
+@admin_or_owner_required
 def buyer_create_account(request, pk):
     buyer = get_object_or_404(Buyer, pk=pk)
     if request.method != "POST":

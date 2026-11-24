@@ -44,19 +44,19 @@ def credit_block_reason(buyer, new_unpaid):
     return None
 
 
-@internal_only
+@admin_or_owner_required
 def sales_list(request):
     records = SalesRecord.objects.all()
     return render(request, "sales/sales_list.html", {"records": records})
 
 
-@internal_only
+@admin_or_owner_required
 def sales_detail(request, pk):
     record = get_object_or_404(SalesRecord, pk=pk)
     return render(request, "sales/sales_detail.html", {"record": record})
 
 
-@internal_only
+@admin_or_owner_required
 def sales_create(request):
     flocks = FlockBatch.objects.filter(status="active")
     buyers_list = Buyer.objects.filter(is_active=True)
@@ -195,7 +195,7 @@ def sales_delete(request, pk):
     return render(request, template, {"record": record})
 
 
-@internal_only
+@admin_or_owner_required
 def product_list(request):
     products = Product.objects.select_related("created_by")
     return render(request, "sales/product_list.html", {"products": products})
@@ -283,7 +283,7 @@ def product_toggle(request, pk):
     return redirect("sales:product_list")
 
 
-@internal_only
+@admin_or_owner_required
 def order_request_queue(request):
     orders = OrderRequest.objects.select_related("buyer")
     status_filter = request.GET.get("status", "")
@@ -304,7 +304,7 @@ def order_request_queue(request):
     )
 
 
-@internal_only
+@admin_or_owner_required
 def order_request_create_internal(request):
     """Staff records a phone/walk-in order on behalf of a buyer — enters the funnel at accepted."""
     if request.method == "POST":
@@ -328,7 +328,7 @@ def order_request_create_internal(request):
     return render(request, template, {"form": form})
 
 
-@internal_only
+@admin_or_owner_required
 def order_request_review(request, pk):
     order = get_object_or_404(OrderRequest.objects.select_related("buyer"), pk=pk)
     if request.method == "GET" and is_htmx(request) and request.GET.get("form") in ("quote", "requote", "reject"):
@@ -407,7 +407,7 @@ def order_request_review(request, pk):
     )
 
 
-@internal_only
+@admin_or_owner_required
 def order_request_convert(request, pk):
     """Explicit conversion of an accepted request into a SalesRecord, with credit + price gates."""
     order = get_object_or_404(OrderRequest.objects.select_related("buyer"), pk=pk)

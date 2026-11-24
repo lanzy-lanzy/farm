@@ -22,22 +22,13 @@ def index(request):
     today = timezone.now().date()
     week_ago = today - timezone.timedelta(days=7)
     month_ago = today - timezone.timedelta(days=30)
+    is_elevated = request.user.is_admin_user() or request.user.is_owner()
 
     total_chickens = FlockBatch.objects.filter(status="active").aggregate(
         total=Sum("current_quantity")
     )["total"] or 0
 
     total_flocks = FlockBatch.objects.filter(status="active").count()
-
-    low_stock_items = InventoryItem.objects.filter(
-        is_active=True, quantity__lte=models.F("reorder_level")
-    ).count()
-
-    expired_items = InventoryItem.objects.filter(
-        is_active=True,
-        expiration_date__lte=today,
-        expiration_date__isnull=False,
-    ).count()
 
     today_eggs = EggProduction.objects.filter(production_date=today).aggregate(
         total=Sum("total_eggs")
@@ -55,66 +46,117 @@ def index(request):
         date_recorded__gte=month_ago
     ).aggregate(total=Sum("quantity"))["total"] or 0
 
-    week_sales = SalesRecord.objects.filter(
-        date_sold__gte=week_ago
-    ).aggregate(total=Sum("total_amount"))["total"] or 0
-
-    month_sales = SalesRecord.objects.filter(
-        date_sold__gte=month_ago
-    ).aggregate(total=Sum("total_amount"))["total"] or 0
-
-    week_expenses = ExpenseRecord.objects.filter(
-        expense_date__gte=week_ago
-    ).aggregate(total=Sum("amount"))["total"] or 0
-
-    month_expenses = ExpenseRecord.objects.filter(
-        expense_date__gte=month_ago
-    ).aggregate(total=Sum("amount"))["total"] or 0
-
-    receivables = SalesRecord.objects.exclude(payment_status="paid").aggregate(
-        total=Sum(
-            ExpressionWrapper(
-                F("total_amount") - F("amount_paid"),
-                output_field=DecimalField(max_digits=12, decimal_places=2),
-            )
-        )
-    )["total"] or 0
-
-    open_requests = OrderRequest.objects.filter(
-        status__in=["submitted", "under_review", "quoted", "accepted"]
-    ).count()
-
-    open_deliveries = DeliveryNotice.objects.filter(status__in=["announced", "confirmed"]).count()
-
-    recent_activities = ActivityLog.objects.all()[:10]
-    recent_notifications = Notification.objects.filter(
-        user=request.user, is_read=False
-    )[:5]
-
-    trays_sold_chart_data = []
+    egg_production_chart_data = []
     mortality_chart_data = []
-    total_trays_sold_7d = 0
+    total_eggs_7d = 0
     for i in range(6, -1, -1):
         date = today - timezone.timedelta(days=i)
-        trays_sold = SalesRecord.objects.filter(
-            product_type="eggs", date_sold=date
-        ).aggregate(total=Sum("quantity"))["total"] or 0
-        total_trays_sold_7d += trays_sold
-        trays_val = int(trays_sold) if trays_sold == int(trays_sold) else float(trays_sold)
-        trays_sold_chart_data.append({"date": date.strftime("%b %d"), "trays": trays_val})
+        day_eggs = EggProduction.objects.filter(production_date=date).aggregate(
+            total=Sum("total_eggs")
+        )["total"] or 0
+        total_eggs_7d += day_eggs
+        egg_production_chart_data.append({"date": date.strftime("%b %d"), "eggs": int(day_eggs)})
 
         mort_count = DeathRecord.objects.filter(date_recorded=date).aggregate(
             total=Sum("quantity")
         )["total"] or 0
         mortality_chart_data.append({"date": date.strftime("%b %d"), "deaths": mort_count})
 
-    total_trays_sold_7d = (
-        int(total_trays_sold_7d)
-        if total_trays_sold_7d == int(total_trays_sold_7d)
-        else float(total_trays_sold_7d)
-    )
+    low_stock_items = 0
+    expired_items = 0
+    week_sales = 0
+    month_sales = 0
+    week_expenses = 0
+    month_expenses = 0
+    receivables = 0
+    open_requests = 0
+    open_deliveries = 0
+    trays_sold_chart_data = []
+    total_trays_sold_7d = 0
+
+    if is_elevated:
+        low_stock_items = InventoryItem.objects.filter(
+            is_active=True, quantity__lte=models.F("reorder_level")
+        ).count()
+
+        expired_items = InventoryItem.objects.filter(
+            is_active=True,
+            expiration_date__lte=today,
+            expiration_date__isnull=False,
+        ).count()
+
+        week_sales = SalesRecord.objects.filter(
+            date_sold__gte=week_ago
+        ).aggregate(total=Sum("total_amount"))["total"] or 0
+
+        month_sales = SalesRecord.objects.filter(
+            date_sold__gte=month_ago
+        ).aggregate(total=Sum("total_amount"))["total"] or 0
+
+        week_expenses = ExpenseRecord.objects.filter(
+            expense_date__gte=week_ago
+        ).aggregate(total=Sum("amount"))["total"] or 0
+
+        month_expenses = ExpenseRecord.objects.filter(
+            expense_date__gte=month_ago
+        ).aggregate(total=Sum("amount"))["total"] or 0
+
+        receivables = SalesRecord.objects.exclude(payment_status="paid").aggregate(
+            total=Sum(
+                ExpressionWrapper(
+                    F("total_amount") - F("amount_paid"),
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
+                )
+            )
+        )["total"] or 0
+
+        open_requests = OrderRequest.objects.filter(
+            status__in=["submitted", "under_review", "quoted", "accepted"]
+        ).count()
+
+        open_deliveries = DeliveryNotice.objects.filter(
+            status__in=["announced", "confirmed"]
+        ).count()
+
+        for i in range(6, -1, -1):
+            date = today - timezone.timedelta(days=i)
+            trays_sold = SalesRecord.objects.filter(
+                product_type="eggs", date_sold=date
+            ).aggregate(total=Sum("quantity"))["total"] or 0
+            total_trays_sold_7d += trays_sold
+            trays_val = int(trays_sold) if trays_sold == int(trays_sold) else float(trays_sold)
+            trays_sold_chart_data.append({"date": date.strftime("%b %d"), "trays": trays_val})
+
+        total_trays_sold_7d = (
+            int(total_trays_sold_7d)
+            if total_trays_sold_7d == int(total_trays_sold_7d)
+            else float(total_trays_sold_7d)
+        )
+
+        recent_activities = ActivityLog.objects.all()[:10]
+    else:
+        recent_activities = ActivityLog.objects.filter(
+            model_name__in=[
+                "FlockBatch",
+                "FeedingRecord",
+                "EggProduction",
+                "DeathRecord",
+                "MedicineRecord",
+            ]
+        )[:10]
+
+    recent_notifications = Notification.objects.filter(
+        user=request.user, is_read=False
+    )[:5]
+
+    profile = getattr(request.user, "farm_profile", None)
+    farm_name = getattr(profile, "farm_name", "") or "Tambulig Poultry Farm"
+    farm_location = getattr(profile, "location", "") or "Tambulig, Zamboanga del Sur"
 
     context = {
+        "is_elevated": is_elevated,
+        "farm_name": farm_name,
+        "farm_location": farm_location,
         "total_chickens": total_chickens,
         "total_flocks": total_flocks,
         "low_stock_items": low_stock_items,
@@ -134,6 +176,8 @@ def index(request):
         "recent_notifications": recent_notifications,
         "trays_sold_chart_data": trays_sold_chart_data,
         "total_trays_sold_7d": total_trays_sold_7d,
+        "egg_production_chart_data": egg_production_chart_data,
+        "total_eggs_7d": total_eggs_7d,
         "mortality_chart_data": mortality_chart_data,
     }
     return render(request, "dashboard/index.html", context)

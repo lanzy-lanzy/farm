@@ -17,13 +17,13 @@ def is_htmx(request):
     return request.headers.get("HX-Request") == "true"
 
 
-@internal_only
+@admin_or_owner_required
 def expense_list(request):
     records = ExpenseRecord.objects.all()
     return render(request, "expenses/expense_list.html", {"records": records})
 
 
-@internal_only
+@admin_or_owner_required
 def expense_create(request):
     categories = ExpenseCategory.objects.all()
     if request.method == "POST":
@@ -82,13 +82,13 @@ def expense_delete(request, pk):
     return render(request, template, {"record": record})
 
 
-@internal_only
+@admin_or_owner_required
 def expense_category_list(request):
     categories = ExpenseCategory.objects.all()
     return render(request, "expenses/category_list.html", {"categories": categories})
 
 
-@internal_only
+@admin_or_owner_required
 def expense_category_create(request):
     if request.method == "POST":
         form = ExpenseCategoryForm(request.POST)
@@ -101,7 +101,7 @@ def expense_category_create(request):
     return render(request, "expenses/category_form.html", {"form": form})
 
 
-@internal_only
+@admin_or_owner_required
 def delivery_notice_queue(request):
     from suppliers.models import DeliveryNotice
 
@@ -122,7 +122,7 @@ def delivery_notice_queue(request):
     )
 
 
-@internal_only
+@admin_or_owner_required
 def delivery_notice_create(request):
     """Farm-initiated purchase order (PO-lite): staff order from a supplier's catalog."""
     from suppliers.forms import FarmDeliveryOrderForm
@@ -157,7 +157,7 @@ def delivery_notice_create(request):
     return render(request, template, {"form": form})
 
 
-@internal_only
+@admin_or_owner_required
 def delivery_notice_review(request, pk):
     from suppliers.models import DeliveryNotice
 

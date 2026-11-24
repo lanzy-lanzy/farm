@@ -25,7 +25,7 @@ def static_version(request):
 def queue_context(request):
     ctx = {"open_order_requests": 0, "open_delivery_notices": 0, "pending_verifications": 0}
     user = getattr(request, "user", None)
-    if user is None or not user.is_authenticated or user.is_external():
+    if user is None or not user.is_authenticated or not (user.is_admin_user() or user.is_owner()):
         return ctx
     from buyers.models import Buyer, OrderRequest
     from suppliers.models import DeliveryNotice, Supplier

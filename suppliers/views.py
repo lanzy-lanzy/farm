@@ -13,13 +13,13 @@ def is_htmx(request):
     return request.headers.get("HX-Request") == "true"
 
 
-@internal_only
+@admin_or_owner_required
 def supplier_list(request):
     suppliers = Supplier.objects.all()
     return render(request, "suppliers/supplier_list.html", {"suppliers": suppliers})
 
 
-@internal_only
+@admin_or_owner_required
 def supplier_create(request):
     if request.method == "POST":
         form = SupplierForm(request.POST)
@@ -40,7 +40,7 @@ def supplier_create(request):
     return render(request, template, {"form": form})
 
 
-@internal_only
+@admin_or_owner_required
 def supplier_update(request, pk):
     supplier = get_object_or_404(Supplier, pk=pk)
     if request.method == "POST":
@@ -60,7 +60,7 @@ def supplier_update(request, pk):
     return render(request, template, {"form": form, "supplier": supplier})
 
 
-@internal_only
+@admin_or_owner_required
 def supplier_delete(request, pk):
     supplier = get_object_or_404(Supplier, pk=pk)
     if request.method == "POST":
@@ -76,7 +76,7 @@ def supplier_delete(request, pk):
     return render(request, template, {"supplier": supplier})
 
 
-@internal_only
+@admin_or_owner_required
 def supplier_create_account(request, pk):
     supplier = get_object_or_404(Supplier, pk=pk)
     if request.method != "POST":

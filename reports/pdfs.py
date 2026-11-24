@@ -483,7 +483,7 @@ class _ReportPDF(FPDF):
         half = self.epw / 2
         line_y = top + 15
         blocks = (
-            ("Prepared by", self.doc["farm"]["prepared_by"]),
+            ("Prepared by", ""),
             ("Approved by", ""),
         )
         self.set_draw_color(*LINE_STRONG)

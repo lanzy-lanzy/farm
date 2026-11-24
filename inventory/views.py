@@ -1,7 +1,7 @@
 from urllib.parse import urlencode
 
 from django.contrib import messages
-from accounts.access import internal_only
+from accounts.access import admin_or_owner_required
 from django.core.paginator import Paginator
 from django.db.models import F, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
@@ -79,7 +79,7 @@ def _inventory_stats(items):
     }
 
 
-@internal_only
+@admin_or_owner_required
 def inventory_list(request):
     items, params = _filtered_inventory(request)
     paginator = Paginator(items, INVENTORY_PAGE_SIZE)
@@ -100,7 +100,7 @@ def inventory_list(request):
     return render(request, "inventory/inventory_list.html", context)
 
 
-@internal_only
+@admin_or_owner_required
 def inventory_print(request):
     """Standalone, filter-aware print preview: the source for Print / Save as PDF."""
     items, params = _filtered_inventory(request)
@@ -129,7 +129,7 @@ def inventory_print(request):
     return render(request, "inventory/inventory_print.html", context)
 
 
-@internal_only
+@admin_or_owner_required
 def inventory_detail(request, pk):
     item = get_object_or_404(InventoryItem, pk=pk)
     transactions = InventoryTransaction.objects.filter(item=item)[:20]
@@ -138,7 +138,7 @@ def inventory_detail(request, pk):
     )
 
 
-@internal_only
+@admin_or_owner_required
 def inventory_create(request):
     categories = InventoryCategory.objects.all()
     units = Unit.objects.all()
@@ -163,7 +163,7 @@ def inventory_create(request):
     return render(request, template, {"form": form, "categories": categories, "units": units, "suppliers": suppliers_list})
 
 
-@internal_only
+@admin_or_owner_required
 def inventory_update(request, pk):
     item = get_object_or_404(InventoryItem, pk=pk)
     categories = InventoryCategory.objects.all()
@@ -187,7 +187,7 @@ def inventory_update(request, pk):
     return render(request, template, {"form": form, "item": item, "categories": categories, "units": units, "suppliers": suppliers_list})
 
 
-@internal_only
+@admin_or_owner_required
 def inventory_delete(request, pk):
     item = get_object_or_404(InventoryItem, pk=pk)
     if request.method == "POST":
@@ -203,7 +203,7 @@ def inventory_delete(request, pk):
     return render(request, template, {"item": item})
 
 
-@internal_only
+@admin_or_owner_required
 def transaction_create(request, item_id=None):
     item = None
     if item_id:
@@ -225,13 +225,13 @@ def transaction_create(request, item_id=None):
     )
 
 
-@internal_only
+@admin_or_owner_required
 def category_list(request):
     categories = InventoryCategory.objects.all()
     return render(request, "inventory/category_list.html", {"categories": categories})
 
 
-@internal_only
+@admin_or_owner_required
 def category_create(request):
     if request.method == "POST":
         form = InventoryCategoryForm(request.POST)
@@ -244,13 +244,13 @@ def category_create(request):
     return render(request, "inventory/category_form.html", {"form": form})
 
 
-@internal_only
+@admin_or_owner_required
 def unit_list(request):
     units = Unit.objects.all()
     return render(request, "inventory/unit_list.html", {"units": units})
 
 
-@internal_only
+@admin_or_owner_required
 def unit_create(request):
     if request.method == "POST":
         form = UnitForm(request.POST)

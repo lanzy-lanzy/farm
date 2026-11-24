@@ -81,3 +81,89 @@ class DashboardTraysSoldChartTests(TestCase):
         self.assertContains(response, "type: 'bar'")
         self.assertContains(response, "traysSoldChart")
         self.assertContains(response, "Total: 23 trays")
+        self.assertContains(response, "Print Graph")
+        self.assertContains(response, "printDashboardChart")
+        # Peso icon in admin sidebar, no legacy dollar icon
+        self.assertContains(response, "M9.5 16.5V7.5")
+        self.assertNotContains(response, "M12 8c-1.657")
+
+
+class ManagerStaffRBACTests(TestCase):
+    def setUp(self):
+        self.staff = User.objects.create_user(
+            username="manager_staff",
+            password="password123",
+            role="staff",
+        )
+        self.client.force_login(self.staff)
+
+    def test_staff_dashboard_only_shows_farm_operations_cards_and_printable_chart(self):
+        response = self.client.get(reverse("dashboard:index"))
+        self.assertEqual(response.status_code, 200)
+        # Farm operations cards & chart are visible
+        self.assertContains(response, "Total Chickens")
+        self.assertContains(response, "Active Flocks")
+        self.assertContains(response, "Today's Eggs")
+        self.assertContains(response, "Mortality (30 days)")
+        self.assertContains(response, "Egg Production (Last 7 Days)")
+        self.assertContains(response, "eggProductionChart")
+        self.assertContains(response, "Print Graph")
+        # Non-farm-operations cards & chart are hidden
+        self.assertNotContains(response, "Low Stock Items")
+        self.assertNotContains(response, "Receivables (unpaid sales)")
+        self.assertNotContains(response, "Open order requests")
+        self.assertNotContains(response, "Announced deliveries")
+        self.assertNotContains(response, "Sales Summary")
+        self.assertNotContains(response, "Expenses Summary")
+        self.assertNotContains(response, "Egg Trays Sold (Last 7 Days)")
+
+    def test_staff_sidebar_only_shows_farm_operations_and_reports(self):
+        response = self.client.get(reverse("dashboard:index"))
+        self.assertEqual(response.status_code, 200)
+        for url_name in (
+            "flocks:flock_list",
+            "feeding:feeding_list",
+            "eggs:egg_list",
+            "deaths:death_list",
+            "medicine:medicine_list",
+            "reports:reports_index",
+        ):
+            self.assertContains(response, reverse(url_name))
+        for forbidden_url_name in (
+            "sales:sales_list",
+            "sales:order_request_queue",
+            "sales:product_list",
+            "buyers:buyer_list",
+            "inventory:inventory_list",
+            "expenses:expense_list",
+            "expenses:delivery_notice_queue",
+            "suppliers:supplier_list",
+            "accounts:user_list",
+            "settings_app:settings",
+        ):
+            self.assertNotContains(response, reverse(forbidden_url_name))
+
+    def test_staff_can_access_farm_operations_views_and_is_blocked_from_others(self):
+        for allowed in (
+            "flocks:flock_list",
+            "feeding:feeding_list",
+            "eggs:egg_list",
+            "deaths:death_list",
+            "medicine:medicine_list",
+        ):
+            with self.subTest(allowed=allowed):
+                self.assertEqual(self.client.get(reverse(allowed)).status_code, 200)
+
+        for forbidden in (
+            "sales:sales_list",
+            "sales:order_request_queue",
+            "sales:product_list",
+            "buyers:buyer_list",
+            "inventory:inventory_list",
+            "expenses:expense_list",
+            "expenses:delivery_notice_queue",
+            "suppliers:supplier_list",
+            "settings_app:settings",
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertEqual(self.client.get(reverse(forbidden)).status_code, 403)

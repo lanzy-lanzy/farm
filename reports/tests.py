@@ -210,3 +210,69 @@ class BrandingTests(ReportDataTests):
     def test_pdf_letterhead_embeds_the_farm_badge(self):
         response = self.client.get(reverse("reports:export_production_pdf"))
         self.assertIn(b"/Subtype /Image", response.content)
+
+
+class SignatoryAndStaffReportsRBACTests(ReportDataTests):
+    def test_signatory_prepared_by_name_is_blank_in_print_preview(self):
+        self.user.first_name = "Maria"
+        self.user.last_name = "Clara"
+        self.user.save()
+        response = self.client.get(reverse("reports:production_report_print"))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        sig_section = html.split('class="signatories"')[1].split("</section>")[0]
+        self.assertNotIn("Maria Clara", sig_section)
+        self.assertNotIn("admin", sig_section)
+        self.assertIn("Prepared by", sig_section)
+        self.assertIn("Approved by", sig_section)
+
+    def test_staff_reports_hub_only_lists_farm_operations_reports(self):
+        staff = User.objects.create_user(username="staff_rep", password="pw", role="staff")
+        self.client.force_login(staff)
+        response = self.client.get(reverse("reports:reports_index"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Production Report")
+        self.assertContains(response, "Deaths Report")
+        self.assertNotContains(response, "Sales Report")
+        self.assertNotContains(response, "Expense Report")
+        self.assertNotContains(response, "Inventory Report")
+        self.assertNotContains(response, "Profit &amp; Loss")
+
+    def test_staff_can_access_farm_operations_reports_only(self):
+        staff = User.objects.create_user(username="staff_rep2", password="pw", role="staff")
+        self.client.force_login(staff)
+        allowed = (
+            "reports:production_report",
+            "reports:production_report_print",
+            "reports:export_production_pdf",
+            "reports:export_production_excel",
+            "reports:death_report",
+            "reports:death_report_print",
+            "reports:export_death_pdf",
+            "reports:export_death_excel",
+        )
+        for name in allowed:
+            with self.subTest(allowed=name):
+                self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+
+        forbidden = (
+            "reports:sales_report",
+            "reports:sales_report_print",
+            "reports:export_sales_pdf",
+            "reports:export_sales_excel",
+            "reports:expense_report",
+            "reports:expense_report_print",
+            "reports:export_expense_pdf",
+            "reports:export_expense_excel",
+            "reports:inventory_report",
+            "reports:inventory_report_print",
+            "reports:export_inventory_pdf",
+            "reports:export_inventory_excel",
+            "reports:profit_loss_report",
+            "reports:profit_loss_report_print",
+            "reports:export_profit_loss_pdf",
+            "reports:export_profit_loss_excel",
+        )
+        for name in forbidden:
+            with self.subTest(forbidden=name):
+                self.assertEqual(self.client.get(reverse(name)).status_code, 403)

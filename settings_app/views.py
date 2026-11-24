@@ -1,4 +1,4 @@
-from accounts.access import internal_only, staff_or_admin_required
+from accounts.access import admin_or_owner_required, staff_or_admin_required
 from django.contrib import messages
 from django.shortcuts import redirect, render
 
@@ -9,13 +9,13 @@ from settings_app.models import SystemSetting
 from . import network
 
 
-@internal_only
+@admin_or_owner_required
 def settings_view(request):
     profile, _ = FarmProfile.objects.get_or_create(user=request.user)
     return render(request, "settings/settings.html", {"profile": profile})
 
 
-@internal_only
+@admin_or_owner_required
 def farm_settings(request):
     profile, _ = FarmProfile.objects.get_or_create(user=request.user)
     if request.method == "POST":
