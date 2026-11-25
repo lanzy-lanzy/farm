@@ -51,7 +51,7 @@ variables individually):
 | `ADMIN_PASSWORD`       | admin password                                     |
 | `MANAGER_USERNAME` / `MANAGER_PASSWORD` | internal staff login (optional; use a distinct username) |
 | `ADMIN_EMAIL`          | optional                                           |
-| `BUYER_USERNAME` / `BUYER_PASSWORD` | buyer portal login (linked to the `BUYER_CONTACT` buyer, default "Manila Egg Traders") |
+| `BUYER_USERNAME` / `BUYER_PASSWORD` | buyer portal login (linked to the `BUYER_CONTACT` buyer, default "Tambulig Egg Traders") |
 | `SUPPLIER_USERNAME` / `SUPPLIER_PASSWORD` | supplier portal login (linked to the `SUPPLIER_CONTACT` supplier, default "Agrivet Feed Supply") |
 
 The environment is the source of truth for these configured logins: every boot

@@ -9,7 +9,7 @@ are recreated / re-synced to the values below.
     ADMIN_EMAIL, ADMIN_FIRST_NAME, ADMIN_LAST_NAME  (optional)
     MANAGER_USERNAME, MANAGER_PASSWORD    internal staff login
     BUYER_USERNAME, BUYER_PASSWORD        buyer portal login
-    BUYER_CONTACT                         contact it links to (default "Manila Egg Traders")
+    BUYER_CONTACT                         contact it links to (default "Tambulig Egg Traders")
     SUPPLIER_USERNAME, SUPPLIER_PASSWORD  supplier portal login
     SUPPLIER_CONTACT                      contact it links to (default "Agrivet Feed Supply")
 
@@ -27,7 +27,7 @@ from suppliers.models import Supplier
 
 PORTAL_ACCOUNTS = [
     # role, env prefix, contact model, default contact name
-    ("buyer", "BUYER", Buyer, "Manila Egg Traders"),
+    ("buyer", "BUYER", Buyer, "Tambulig Egg Traders"),
     ("supplier", "SUPPLIER", Supplier, "Agrivet Feed Supply"),
 ]
 

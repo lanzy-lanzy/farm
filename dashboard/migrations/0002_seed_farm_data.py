@@ -32,7 +32,7 @@ PRODUCT_NAMES = [
     "Cull Layer",
 ]
 BUYER_NAMES = [
-    "Manila Egg Traders",
+    "Tambulig Egg Traders",
     "Pagadian Public Market",
     "Zamboanga Grocery Chain",
     "Tambulig Restaurant",
@@ -84,7 +84,7 @@ def seed_farm_data(apps, schema_editor):
 
     # --- Suppliers and buyers (contacts only; portal logins stay separate) ---
     # get_or_create by name: production may already hold portal-linked contacts
-    # (e.g. Manila Egg Traders); reuse them instead of creating duplicates.
+    # (e.g. Tambulig Egg Traders); reuse them instead of creating duplicates.
     supplier_specs = [
         ("Agrivet Feed Supply", "Feeds and grain", "net15"),
         ("Zamboanga Vet Pharma", "Medicines and vaccines", "cod"),
@@ -108,7 +108,7 @@ def seed_farm_data(apps, schema_editor):
         suppliers.append(supplier)
 
     buyer_specs = [
-        ("Manila Egg Traders", "wholesale", "Egg trays, weekly standing order"),
+        ("Tambulig Egg Traders", "wholesale", "Egg trays, weekly standing order"),
         ("Pagadian Public Market", "retail", "Live and dressed chicken"),
         ("Zamboanga Grocery Chain", "business", "Trayed eggs for retail shelves"),
         ("Tambulig Restaurant", "individual", "Dressed chicken, twice a week"),
