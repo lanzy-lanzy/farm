@@ -291,3 +291,29 @@ class InboxModalCrudTests(TestCase):
         self.assertContains(response, "Feed running low")
         self.assertContains(response, "opens the page to handle it")
 
+    def test_poll_returns_live_unread_count_and_dropdown_for_internal_user(self):
+        url = reverse("notifications:notification_poll")
+        res_empty = self.client.get(url)
+        self.assertEqual(res_empty.status_code, 200)
+        self.assertEqual(res_empty.json()["unread_count"], 0)
+        self.assertIn("Nothing waiting", res_empty.json()["dropdown_html"])
+        self.assertEqual(res_empty["Cache-Control"], "no-store")
+
+        self._notice(title="New live alert", link="/flocks/")
+        res_one = self.client.get(url)
+        self.assertEqual(res_one.status_code, 200)
+        self.assertEqual(res_one.json()["unread_count"], 1)
+        self.assertIn("New live alert", res_one.json()["dropdown_html"])
+
+    def test_poll_returns_live_unread_count_for_portal_user(self):
+        buyer = User.objects.create_user(username="buyer_poll", password="pass12345", role="buyer")
+        Notification.objects.create(
+            user=buyer, notification_type="activity", title="Order quoted", message="Check your quote."
+        )
+        self.client.force_login(buyer)
+        res = self.client.get(reverse("notifications:notification_poll"))
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["unread_count"], 1)
+        self.assertNotIn("dropdown_html", data)
+

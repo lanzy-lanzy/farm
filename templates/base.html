@@ -173,7 +173,7 @@
                 </a>
                 <a href="{% url 'notifications:notification_list' %}" class="side-link {% if ns == 'notifications' %}is-active{% endif %}">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                    <span>Notifications</span>{% if unread_notifications %}<span class="nav-badge">{{ unread_notifications }}</span>{% endif %}
+                    <span>Notifications</span><span data-notif-badge="sidebar" class="nav-badge" {% if not unread_notifications %}style="display:none"{% endif %}>{{ unread_notifications }}</span>
                 </a>
                 <div class="side-label">Farm Operations</div>
                 <a href="{% url 'flocks:flock_list' %}" class="side-link {% if ns == 'flocks' %}is-active{% endif %}">
@@ -295,42 +295,12 @@
                         <button @click="bellOpen = !bellOpen" type="button" title="Notifications" aria-label="Notifications"
                                 class="relative text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                            {% if unread_notifications %}
-                            <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">{{ unread_notifications }}</span>
-                            {% endif %}
+                            <span data-notif-badge="bell" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg" {% if not unread_notifications %}style="display:none"{% endif %}>{{ unread_notifications }}</span>
                         </button>
                         {# The latest alerts, each one a shortcut: the link marks it read and lands on the page where it gets handled. #}
-                        <div x-show="bellOpen" @click.away="bellOpen = false" x-cloak x-transition
+                        <div x-show="bellOpen" @click.away="bellOpen = false" x-cloak x-transition id="notif-bell-dropdown-body"
                              class="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
-                            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                                <p class="text-sm font-semibold text-gray-800 dark:text-white">Latest notifications</p>
-                                {% if unread_notifications %}<span class="pill pill-under_review">{{ unread_notifications }} unread</span>{% endif %}
-                            </div>
-                            {% for notification in recent_notifications %}
-                            <a href="{% url 'notifications:notification_mark_read' notification.pk %}" @click="bellOpen = false"
-                               class="flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-emerald-50/70 dark:hover:bg-gray-700/50 {% if not notification.is_read %}bg-emerald-50/40 dark:bg-emerald-900/10{% endif %}">
-                                {% include "notifications/_badge.html" with notification=notification %}
-                                <span class="min-w-0 flex-1">
-                                    <span class="block text-sm font-semibold text-gray-800 dark:text-white">{{ notification.title }}</span>
-                                    <span class="block text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ notification.message }}</span>
-                                    <span class="block text-[.68rem] text-gray-400 dark:text-gray-500 mt-1">{{ notification.created_at|timesince }} ago{% if notification.link %} &middot; opens the page to handle it{% endif %}</span>
-                                </span>
-                            </a>
-                            {% empty %}
-                            <div class="px-4 py-8 text-center">
-                                <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">Nothing waiting</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Alerts from stock, flocks, buyers and suppliers appear here.</p>
-                            </div>
-                            {% endfor %}
-                            <div class="flex items-center justify-between gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-700/40 border-t border-gray-200 dark:border-gray-700">
-                                <a href="{% url 'notifications:notification_list' %}" @click="bellOpen = false" class="text-sm font-semibold text-green-700 dark:text-green-400 hover:underline">View &amp; manage all</a>
-                                {% if unread_notifications %}
-                                <form hx-post="{% url 'notifications:notification_mark_all_read' %}" hx-target="#modal-container" hx-swap="innerHTML">
-                                    {% csrf_token %}
-                                    <button type="submit" @click="bellOpen = false" class="text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-full px-3 py-1 hover:bg-white dark:hover:bg-gray-700 transition-colors cursor-pointer">Mark all read</button>
-                                </form>
-                                {% endif %}
-                            </div>
+                            {% include "notifications/_bell_dropdown.html" %}
                         </div>
                     </div>
                     <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)" class="text-gray-500 dark:text-gray-400 hover:text-yellow-500 transition-colors cursor-pointer" :title="darkMode ? 'Light mode' : 'Dark mode'">
@@ -383,5 +353,34 @@
     </div>
     <!-- Modal Container for HTMX -->
     <div id="modal-container" hx-target="this" hx-swap="innerHTML"></div>
+    <script>
+    (function() {
+        const pollUrl = "{% url 'notifications:notification_poll' %}";
+        let lastHtml = null;
+        async function refreshNotifications() {
+            if (document.hidden) return;
+            try {
+                const res = await fetch(pollUrl, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } });
+                if (!res.ok) return;
+                const data = await res.json();
+                const count = Number(data.unread_count || 0);
+                document.querySelectorAll("[data-notif-badge]").forEach(function(el) {
+                    el.textContent = count > 0 ? String(count) : "";
+                    el.style.display = count > 0 ? "" : "none";
+                });
+                const dropdown = document.getElementById("notif-bell-dropdown-body");
+                if (dropdown && typeof data.dropdown_html === "string" && data.dropdown_html !== lastHtml) {
+                    lastHtml = data.dropdown_html;
+                    dropdown.innerHTML = data.dropdown_html;
+                    if (window.htmx) window.htmx.process(dropdown);
+                }
+            } catch (_) {}
+        }
+        setInterval(refreshNotifications, 5000);
+        document.addEventListener("visibilitychange", function() {
+            if (!document.hidden) refreshNotifications();
+        });
+    })();
+    </script>
 </body>
 </html>

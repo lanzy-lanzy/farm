@@ -1,6 +1,8 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from accounts.access import internal_only
@@ -33,6 +35,26 @@ def _processing_url(request, notification):
     ):
         return link
     return None
+
+
+@login_required
+def notification_poll(request):
+    """Lightweight JSON endpoint for live auto-counting notification badges."""
+    mine = Notification.objects.filter(user=request.user)
+    unread_count = mine.filter(is_read=False).count()
+    payload = {"unread_count": unread_count}
+    if not request.user.is_external():
+        payload["dropdown_html"] = render_to_string(
+            "notifications/_bell_dropdown.html",
+            {
+                "unread_notifications": unread_count,
+                "recent_notifications": mine[:6],
+            },
+            request=request,
+        )
+    response = JsonResponse(payload)
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 @login_required
