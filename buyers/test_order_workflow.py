@@ -122,3 +122,35 @@ class OrderWorkflowAutomationTests(TestCase):
         self.assertTrue(rules["order_auto_complete_on_delivered"])
         self.assertFalse(rules["order_auto_complete_on_buyer_accept"])
         self.assertTrue(rules["order_auto_create_sale_on_complete"])
+
+    def test_delivery_receipt_is_printable_by_admin_only_and_blocked_for_buyer_and_staff(self):
+        # Complete the order first
+        self.client.force_login(self.admin)
+        review_url = reverse("sales:order_request_review", args=[self.order.pk])
+        self.client.post(review_url, {"action": "approve"})
+        self.client.post(review_url, {"action": "deliver"})
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "completed")
+
+        receipt_url = reverse("sales:order_request_receipt_print", args=[self.order.pk])
+
+        # Admin can print the Delivery Verification Receipt
+        res_admin = self.client.get(receipt_url)
+        self.assertEqual(res_admin.status_code, 200)
+        self.assertContains(res_admin, "Delivery Verification Receipt")
+        self.assertContains(res_admin, self.order.request_number)
+        self.assertContains(res_admin, "window.print()")
+
+        # Buyer cannot access or print the receipt (redirected to portal or 403)
+        self.client.force_login(self.buyer_user)
+        res_buyer = self.client.get(receipt_url)
+        self.assertIn(res_buyer.status_code, (302, 403))
+        buyer_detail = self.client.get(reverse("portal:buyer_request_detail", args=[self.order.pk]))
+        self.assertEqual(buyer_detail.status_code, 200)
+        self.assertNotContains(buyer_detail, receipt_url)
+
+        # Staff cannot print the receipt (403)
+        staff_user = User.objects.create_user(username="wf_staff", password="pw", role="staff")
+        self.client.force_login(staff_user)
+        res_staff = self.client.get(receipt_url)
+        self.assertEqual(res_staff.status_code, 403)

@@ -222,7 +222,7 @@ class OrderRequest(models.Model):
         return self.status in ("approved", "accepted", "processing", "out_for_delivery")
 
     def can_confirm_received(self):
-        return self.status == "delivered"
+        return self.status in ("out_for_delivery", "delivered")
 
     def can_quote(self):
         return self.status in ("submitted", "under_review")

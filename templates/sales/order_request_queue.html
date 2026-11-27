@@ -90,6 +90,10 @@
                                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
                                 <button type="submit" class="inline-block bg-green-700 hover:bg-green-800 text-white font-semibold px-3 py-1.5 rounded-lg shadow-sm cursor-pointer transition-colors">Complete Order</button>
                             </form>
+                            <a href="{% url 'sales:order_request_receipt_print' order.pk %}" target="_blank" rel="noopener" class="text-emerald-700 dark:text-emerald-400 font-medium hover:underline">Print Receipt</a>
+                            <a href="{% url 'sales:order_request_review' order.pk %}" class="text-gray-500 dark:text-gray-400 hover:underline">View</a>
+                            {% elif order.status == 'completed' or order.status == 'converted' %}
+                            <a href="{% url 'sales:order_request_receipt_print' order.pk %}" target="_blank" rel="noopener" class="inline-block border border-emerald-600 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 font-semibold px-3 py-1.5 rounded-lg no-underline transition-colors">Print Receipt</a>
                             <a href="{% url 'sales:order_request_review' order.pk %}" class="text-gray-500 dark:text-gray-400 hover:underline">View</a>
                             {% else %}
                             <a href="{% url 'sales:order_request_review' order.pk %}" class="text-gray-500 dark:text-gray-400 hover:underline">View</a>

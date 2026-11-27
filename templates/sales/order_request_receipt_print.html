@@ -1,0 +1,70 @@
+{% extends "reports/_print_base.html" %}
+{% block report_body %}
+<div class="alert" style="background:var(--pos-bg); border-color:var(--pos-line); color:var(--pos-ink);">
+    <strong>Delivery Verified:</strong>
+    Order <strong>{{ order.request_number }}</strong> is marked <strong>{{ order.get_status_display }}</strong>.
+    This receipt serves as official verification that the products listed below were delivered to the buyer.
+</div>
+
+<h2 class="section">Order &amp; Buyer Details</h2>
+<table class="data" style="margin-bottom:20px;">
+    <tbody>
+        <tr>
+            <th style="width:24%; background:var(--brand-soft); color:var(--brand-ink);">Order Reference</th>
+            <td style="width:26%;"><strong>{{ order.request_number }}</strong></td>
+            <th style="width:24%; background:var(--brand-soft); color:var(--brand-ink);">Order Status</th>
+            <td style="width:26%;"><span class="status ok">{{ order.get_status_display }}</span></td>
+        </tr>
+        <tr>
+            <th style="background:var(--brand-soft); color:var(--brand-ink);">Buyer</th>
+            <td>{{ order.buyer.name }}</td>
+            <th style="background:var(--brand-soft); color:var(--brand-ink);">Contact</th>
+            <td>{{ order.buyer.phone|default:"-" }}</td>
+        </tr>
+        <tr>
+            <th style="background:var(--brand-soft); color:var(--brand-ink);">Delivery Address</th>
+            <td colspan="3">{{ order.buyer.address|default:"Tambulig, Zamboanga del Sur" }}</td>
+        </tr>
+        <tr>
+            <th style="background:var(--brand-soft); color:var(--brand-ink);">Payment Method</th>
+            <td>Cash on Delivery (COD)</td>
+            <th style="background:var(--brand-soft); color:var(--brand-ink);">Payment Status</th>
+            <td>{% if order.sales_record %}{{ order.sales_record.get_payment_status_display }}{% else %}Pending{% endif %}</td>
+        </tr>
+    </tbody>
+</table>
+
+<table class="data">
+    <caption>Delivered Product Summary</caption>
+    <thead>
+        <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th class="num">Quantity</th>
+            <th class="num">Unit Price</th>
+            <th class="num">Total Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>{{ order.product_name }}</strong></td>
+            <td>{{ order.get_product_type_display }}</td>
+            <td class="num">{{ order.quantity }}</td>
+            <td class="num">₱{{ unit_price|floatformat:2 }}</td>
+            <td class="num">₱{{ total_amount|floatformat:2 }}</td>
+        </tr>
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="4">Total Amount</td>
+            <td class="num">₱{{ total_amount|floatformat:2 }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+{% if order.staff_note %}
+<div class="meta">
+    <span><b>Delivery Note:</b> {{ order.staff_note }}</span>
+</div>
+{% endif %}
+{% endblock %}

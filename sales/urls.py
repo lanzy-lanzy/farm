@@ -9,6 +9,7 @@ urlpatterns = [
     path("requests/", views.order_request_queue, name="order_request_queue"),
     path("requests/create-on-behalf/", views.order_request_create_internal, name="order_request_create_internal"),
     path("requests/<int:pk>/", views.order_request_review, name="order_request_review"),
+    path("requests/<int:pk>/receipt/", views.order_request_receipt_print, name="order_request_receipt_print"),
     path("requests/<int:pk>/convert/", views.order_request_convert, name="order_request_convert"),
     path("products/", views.product_list, name="product_list"),
     path("products/create/", views.product_create, name="product_create"),

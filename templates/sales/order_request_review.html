@@ -79,14 +79,26 @@
         {% elif order.status == 'delivered' %}
         <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
             <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">Order has been delivered. Waiting for buyer confirmation, or complete it now.</p>
-            <form method="post" class="inline">
-                {% csrf_token %}
-                <button type="submit" name="action" value="complete" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Complete Order</button>
-            </form>
+            <div class="flex flex-wrap gap-3">
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" name="action" value="complete" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Complete Order</button>
+                </form>
+                <a href="{% url 'sales:order_request_receipt_print' order.pk %}" target="_blank" rel="noopener"
+                   class="inline-flex items-center gap-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-emerald-500 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl font-medium no-underline transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Print Delivery Receipt
+                </a>
+            </div>
         </div>
         {% elif order.status == 'completed' or order.status == 'converted' %}
-        <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-5 flex flex-wrap items-center justify-between gap-3">
             <p class="text-sm text-emerald-700 dark:text-emerald-400 font-medium">This order is Completed (Product Received){% if order.sales_record %} and linked to Sale #{{ order.sales_record.pk }}{% endif %}.</p>
+            <a href="{% url 'sales:order_request_receipt_print' order.pk %}" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm no-underline transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                Print Delivery Receipt
+            </a>
         </div>
         {% endif %}
 

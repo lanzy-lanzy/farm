@@ -432,6 +432,45 @@ def order_request_review(request, pk):
 
 
 @admin_or_owner_required
+def order_request_receipt_print(request, pk):
+    """Admin-only printable Delivery Verification Receipt for delivered/completed orders."""
+    from reports.views import _farm_context
+
+    order = get_object_or_404(
+        OrderRequest.objects.select_related("buyer", "sales_record"), pk=pk
+    )
+    if order.status not in ("delivered", "completed", "converted"):
+        messages.error(
+            request,
+            "Delivery receipt can only be printed once an order is Delivered or Completed.",
+        )
+        return redirect("sales:order_request_review", pk=order.pk)
+
+    unit_price = (
+        order.sales_record.unit_price
+        if order.sales_record_id
+        else (order.effective_unit_price or Decimal("0.00"))
+    )
+    total_amount = (
+        order.sales_record.total_amount
+        if order.sales_record_id
+        else (order.quantity * unit_price)
+    )
+    ctx = {
+        **_farm_context(request),
+        "order": order,
+        "unit_price": unit_price,
+        "total_amount": total_amount,
+        "report_title": "Delivery Verification Receipt",
+        "report_subtitle": f"Official proof of product delivery for order {order.request_number}",
+        "date_range": f"{(order.sales_record.date_sold if order.sales_record_id else timezone.localdate()):%B %d, %Y}",
+        "back_url": reverse("sales:order_request_review", args=[order.pk]),
+        "show_date_filter": False,
+    }
+    return render(request, "sales/order_request_receipt_print.html", ctx)
+
+
+@admin_or_owner_required
 def order_request_convert(request, pk):
     """Explicit conversion of an accepted request into a SalesRecord, with credit + price gates."""
     order = get_object_or_404(OrderRequest.objects.select_related("buyer"), pk=pk)
