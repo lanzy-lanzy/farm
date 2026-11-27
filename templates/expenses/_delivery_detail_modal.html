@@ -16,6 +16,7 @@
     {% if notice.created_by %}<dt class="text-gray-500 dark:text-gray-400">Ordered by</dt><dd class="text-gray-800 dark:text-white">{{ notice.created_by.get_full_name|default:notice.created_by.username }}</dd>{% endif %}
     {% if notice.received_by %}<dt class="text-gray-500 dark:text-gray-400">Received by</dt><dd class="text-gray-800 dark:text-white">{{ notice.received_by.get_full_name|default:notice.received_by.username }}</dd>{% endif %}
     {% if notice.expense_record %}<dt class="text-gray-500 dark:text-gray-400">Linked expense</dt><dd class="text-gray-800 dark:text-white">₱{{ notice.expense_record.amount|floatformat:2 }} on {{ notice.expense_record.expense_date }} ({{ notice.expense_record.category }})</dd>{% endif %}
+    {% if notice.expense_record and notice.expense_record.receipt %}<dt class="text-gray-500 dark:text-gray-400">Receipt attachment</dt><dd><a href="{{ notice.expense_record.receipt.url }}" target="_blank" rel="noopener" class="text-emerald-600 dark:text-emerald-400 font-medium hover:underline">View uploaded receipt</a></dd>{% endif %}
 </dl>
 <div class="flex justify-end pt-5 mt-5 border-t border-gray-100 dark:border-gray-700">
     <button type="button" onclick="this.closest('#modal-overlay').remove()"
