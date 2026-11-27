@@ -16,9 +16,9 @@ from .forms import (
     SalesRecordForm,
 )
 from .models import Product, SalesRecord
-from buyers.models import OrderRequest
+from buyers.models import Buyer, OrderRequest
+from buyers.workflow import WorkflowError, advance_order, complete_order
 from flocks.models import FlockBatch
-from buyers.models import Buyer
 from notifications.utils import log_activity, notify_user
 
 
@@ -287,10 +287,12 @@ def product_toggle(request, pk):
 def order_request_queue(request):
     orders = OrderRequest.objects.select_related("buyer")
     status_filter = request.GET.get("status", "")
-    if status_filter:
+    if status_filter == "completed":
+        orders = orders.filter(status__in=["completed", "converted"])
+    elif status_filter:
         orders = orders.filter(status=status_filter)
     open_count = OrderRequest.objects.filter(
-        status__in=["submitted", "under_review", "quoted", "accepted"]
+        status__in=OrderRequest.OPEN_STATUSES
     ).count()
     return render(
         request,
@@ -299,24 +301,24 @@ def order_request_queue(request):
             "orders": orders,
             "open_count": open_count,
             "status_filter": status_filter,
-            "statuses": OrderRequest.STATUS_CHOICES,
+            "statuses": OrderRequest.QUEUE_FILTER_STATUSES,
         },
     )
 
 
 @admin_or_owner_required
 def order_request_create_internal(request):
-    """Staff records a phone/walk-in order on behalf of a buyer — enters the funnel at accepted."""
+    """Staff records a phone/walk-in order on behalf of a buyer — enters at Approved."""
     if request.method == "POST":
         form = OrderRequestOnBehalfForm(request.POST)
         if form.is_valid():
             order = form.save(commit=False)
             order.source = "staff"
-            order.status = "accepted"
+            order.status = "approved"
             order.created_by = request.user
             order.save()
             log_activity(request.user, "create", "OrderRequest", order.pk, order.request_number, "Created on behalf of buyer")
-            messages.success(request, f"Order {order.request_number} recorded — convert it to a sale when delivered.")
+            messages.success(request, f"Order {order.request_number} recorded as Approved.")
             if is_htmx(request):
                 return HttpResponse(
                     '<script>document.getElementById("modal-overlay").remove();window.location.reload()</script>'
@@ -336,7 +338,7 @@ def order_request_review(request, pk):
         allowed = {
             "quote": order.can_quote(),
             "requote": order.can_requote(),
-            "reject": order.status in ("submitted", "under_review", "quoted"),
+            "reject": order.status in OrderRequest.OPEN_STATUSES,
         }[modal_form]
         if not allowed:
             return redirect("sales:order_request_review", pk=order.pk)
@@ -347,7 +349,29 @@ def order_request_review(request, pk):
         )
     if request.method == "POST":
         action = request.POST.get("action")
-        if action in ("quote", "requote") and (
+        next_url = request.POST.get("next") or ""
+        redirect_target = next_url if next_url.startswith("/") else reverse("sales:order_request_review", args=[order.pk])
+
+        if action in ("approve", "process", "out_for_delivery", "deliver"):
+            try:
+                _, msg = advance_order(
+                    order,
+                    action,
+                    request.user,
+                    note=request.POST.get("staff_note", "").strip() or None,
+                )
+                messages.success(request, msg)
+            except WorkflowError as exc:
+                messages.error(request, str(exc))
+            return redirect(redirect_target)
+        elif action == "complete" and order.status in ("delivered", "accepted", "approved"):
+            try:
+                complete_order(order, request.user)
+                messages.success(request, f"Order {order.request_number} marked Completed.")
+            except WorkflowError as exc:
+                messages.error(request, str(exc))
+            return redirect(redirect_target)
+        elif action in ("quote", "requote") and (
             (action == "quote" and order.can_quote()) or (action == "requote" and order.can_requote())
         ):
             form = OrderRequestQuoteForm(request.POST, instance=order)

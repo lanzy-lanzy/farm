@@ -171,6 +171,10 @@ REST_FRAMEWORK = {
 # ---- Buyer/supplier workflow ----
 # Days before an unanswered quote is considered stale and must be re-quoted.
 ORDER_REQUEST_QUOTE_STALE_DAYS = 7
+# Default configurable automation rules (can be overridden in Settings -> Order Workflow).
+ORDER_AUTO_COMPLETE_ON_DELIVERED = True
+ORDER_AUTO_COMPLETE_ON_BUYER_ACCEPT = True
+ORDER_AUTO_CREATE_SALE_ON_COMPLETE = True
 
 # ---- Production hardening (active when DEBUG=false) ----
 if not DEBUG:

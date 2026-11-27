@@ -111,7 +111,7 @@ def index(request):
         )["total"] or 0
 
         open_requests = OrderRequest.objects.filter(
-            status__in=["submitted", "under_review", "quoted", "accepted"]
+            status__in=OrderRequest.OPEN_STATUSES
         ).count()
 
         open_deliveries = DeliveryNotice.objects.filter(

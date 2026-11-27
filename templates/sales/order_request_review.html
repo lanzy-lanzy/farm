@@ -8,34 +8,85 @@
     </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex flex-wrap gap-1.5 mb-6">
+            {% for label, state in order.timeline %}
+            <span class="px-3 py-1 rounded-full text-xs font-semibold {% if state == 'done' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300{% elif state == 'current' %}bg-green-700 text-white{% elif state == 'dead' %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400{% endif %}">{{ label }}</span>
+            {% endfor %}
+        </div>
+
         <dl class="grid grid-cols-2 gap-y-3 text-sm mb-6">
             <dt class="text-gray-500">Buyer</dt><dd class="font-medium text-gray-800 dark:text-white">{{ order.buyer.name }} <span class="pill pill-{{ order.source }}">{{ order.get_source_display }}</span></dd>
             <dt class="text-gray-500">Contact</dt><dd class="text-gray-800 dark:text-white">{{ order.buyer.phone|default:"-" }}</dd>
             <dt class="text-gray-500">Product</dt><dd class="text-gray-800 dark:text-white">{{ order.product_name }} ({{ order.get_product_type_display }})</dd>
             <dt class="text-gray-500">Quantity</dt><dd class="text-gray-800 dark:text-white">{{ order.quantity }}</dd>
-            <dt class="text-gray-500">Buyer target price</dt><dd class="text-gray-800 dark:text-white">{% if order.requested_unit_price %}₱{{ order.requested_unit_price|floatformat:2 }}{% else %}Not specified{% endif %}</dd>
+            <dt class="text-gray-500">Unit price</dt><dd class="text-gray-800 dark:text-white">{% if order.effective_unit_price %}₱{{ order.effective_unit_price|floatformat:2 }}{% else %}Not specified{% endif %}</dd>
             <dt class="text-gray-500">Needed by</dt><dd class="text-gray-800 dark:text-white">{{ order.requested_date|default:"—" }}</dd>
-            {% if order.quoted_unit_price %}<dt class="text-gray-500">Quoted price</dt><dd class="text-gray-800 dark:text-white">₱{{ order.quoted_unit_price|floatformat:2 }} per unit</dd>{% endif %}
+            {% if order.estimated_total %}<dt class="text-gray-500">Estimated total</dt><dd class="font-semibold text-gray-800 dark:text-white">₱{{ order.estimated_total|floatformat:2 }}</dd>{% endif %}
             {% if order.staff_note %}<dt class="text-gray-500">Note to buyer</dt><dd class="text-gray-800 dark:text-white">{{ order.staff_note }}</dd>{% endif %}
-            {% if order.sales_record %}<dt class="text-gray-500">Linked sale</dt><dd class="text-gray-800 dark:text-white">₱{{ order.sales_record.total_amount|floatformat:2 }} on {{ order.sales_record.date_sold }}</dd>{% endif %}
+            {% if order.sales_record %}<dt class="text-gray-500">Linked sale</dt><dd class="text-gray-800 dark:text-white">₱{{ order.sales_record.total_amount|floatformat:2 }} on {{ order.sales_record.date_sold }} ({{ order.sales_record.get_payment_status_display }})</dd>{% endif %}
         </dl>
 
-        {% if order.status == 'submitted' %}
-        <form method="post" class="mb-4">
-            {% csrf_token %}
-            <button type="submit" name="action" value="start_review" class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer">Start Review</button>
-        </form>
-        {% endif %}
-
-        {% if order.status == 'under_review' %}
+        {% if order.can_approve %}
         <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
-            <h2 class="font-semibold text-gray-800 dark:text-white mb-3">Send a quote or decline</h2>
+            <h2 class="font-semibold text-gray-800 dark:text-white mb-3">Review &amp; Approve</h2>
             <div class="flex flex-wrap gap-3">
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" name="action" value="approve" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Approve Order</button>
+                </form>
                 <button hx-get="{% url 'sales:order_request_review' order.pk %}?form=quote" hx-target="#modal-container" hx-swap="innerHTML"
-                        class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Send Quote</button>
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer transition-colors">Send Custom Quote</button>
                 <button hx-get="{% url 'sales:order_request_review' order.pk %}?form=reject" hx-target="#modal-container" hx-swap="innerHTML"
                         class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl font-medium cursor-pointer transition-colors">Decline Request</button>
             </div>
+        </div>
+        {% elif order.can_start_processing %}
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">Order is approved. Start processing or mark it delivered once handed over (delivery automatically completes the order).</p>
+            <div class="flex flex-wrap gap-3">
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" name="action" value="process" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-sm transition-colors">Start Processing</button>
+                </form>
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" name="action" value="deliver" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Mark Delivered</button>
+                </form>
+            </div>
+        </div>
+        {% elif order.can_mark_out_for_delivery %}
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">Order is being processed. Dispatch it for delivery or mark it delivered directly.</p>
+            <div class="flex flex-wrap gap-3">
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" name="action" value="out_for_delivery" class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-sm transition-colors">Mark Out for Delivery</button>
+                </form>
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" name="action" value="deliver" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Mark Delivered</button>
+                </form>
+            </div>
+        </div>
+        {% elif order.status == 'out_for_delivery' %}
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">Order is out for delivery. Marking it Delivered will automatically update the order to Completed and record the sale.</p>
+            <form method="post" class="inline">
+                {% csrf_token %}
+                <button type="submit" name="action" value="deliver" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Mark Delivered</button>
+            </form>
+        </div>
+        {% elif order.status == 'delivered' %}
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">Order has been delivered. Waiting for buyer confirmation, or complete it now.</p>
+            <form method="post" class="inline">
+                {% csrf_token %}
+                <button type="submit" name="action" value="complete" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Complete Order</button>
+            </form>
+        </div>
+        {% elif order.status == 'completed' or order.status == 'converted' %}
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
+            <p class="text-sm text-emerald-700 dark:text-emerald-400 font-medium">This order is Completed (Product Received){% if order.sales_record %} and linked to Sale #{{ order.sales_record.pk }}{% endif %}.</p>
         </div>
         {% endif %}
 
@@ -52,16 +103,7 @@
                         class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl font-medium cursor-pointer transition-colors">Decline Request</button>
             </div>
         </div>
-        {% endif %}
-
-        {% if order.status == 'accepted' %}
-        <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
-            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">This order is confirmed. Convert it to a sale when the goods are handed over.</p>
-            <a href="{% url 'sales:order_request_convert' order.pk %}" class="inline-block bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-green-900/30 no-underline transition-colors">Convert to Sale</a>
-        </div>
-        {% endif %}
-
-        {% if order.status == 'quoted' and not order.is_stale %}
+        {% elif order.status == 'quoted' and not order.is_stale %}
         <p class="text-sm text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-5">Quote sent — waiting for the buyer to accept or decline.</p>
         {% endif %}
     </div>

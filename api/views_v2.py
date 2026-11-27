@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from buyers.models import Buyer, OrderRequest
+from buyers.workflow import WorkflowError, advance_order
 from expenses.models import ExpenseCategory, ExpenseRecord
 from inventory.models import InventoryItem, Unit
 from inventory.services import deduct_for_sale, receive_for_notice, sale_stock_block_reason
@@ -125,14 +126,19 @@ class OrderRequestPortalViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def accept(self, request, pk=None):
         order = self._owned(request, pk)
-        if not order.can_accept():
-            detail = "This quote has expired; ask the farm to re-quote." if order.is_stale else "Only a quoted request can be accepted."
-            return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
-        order.status = "accepted"
-        order.save()
-        notify_team("order_request", f"Quote accepted for {order.request_number}",
-                    f"{order.buyer.name} accepted the quote. Ready to record the sale.",
-                    link=f"/sales/requests/{order.pk}/", target=f"order_request:{order.pk}")
+        try:
+            order, _ = advance_order(order, "buyer_accept", request.user)
+        except WorkflowError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(self.get_serializer(order).data)
+
+    @action(detail=True, methods=["post"], url_path="confirm-received")
+    def confirm_received(self, request, pk=None):
+        order = self._owned(request, pk)
+        try:
+            order, _ = advance_order(order, "confirm_received", request.user)
+        except WorkflowError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(self.get_serializer(order).data)
 
     @action(detail=True, methods=["post"])
@@ -273,6 +279,42 @@ class InternalOrderRequestViewSet(viewsets.ReadOnlyModelViewSet):
         if state:
             qs = qs.filter(status=state)
         return qs
+
+    @action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        order = self.get_object()
+        try:
+            order, _ = advance_order(order, "approve", request.user, note=request.data.get("staff_note"))
+        except WorkflowError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(self.get_serializer(order).data)
+
+    @action(detail=True, methods=["post"])
+    def process(self, request, pk=None):
+        order = self.get_object()
+        try:
+            order, _ = advance_order(order, "process", request.user, note=request.data.get("staff_note"))
+        except WorkflowError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(self.get_serializer(order).data)
+
+    @action(detail=True, methods=["post"], url_path="out-for-delivery")
+    def out_for_delivery(self, request, pk=None):
+        order = self.get_object()
+        try:
+            order, _ = advance_order(order, "out_for_delivery", request.user, note=request.data.get("staff_note"))
+        except WorkflowError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(self.get_serializer(order).data)
+
+    @action(detail=True, methods=["post"])
+    def deliver(self, request, pk=None):
+        order = self.get_object()
+        try:
+            order, _ = advance_order(order, "deliver", request.user, note=request.data.get("staff_note"))
+        except WorkflowError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(self.get_serializer(order).data)
 
     @action(detail=True, methods=["post"])
     def quote(self, request, pk=None):

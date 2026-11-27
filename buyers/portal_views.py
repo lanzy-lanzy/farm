@@ -7,6 +7,7 @@ from notifications.utils import notify_team
 
 from .forms import BuyerProfileForm, OrderRequestForm
 from .models import OrderRequest
+from .workflow import WorkflowError, advance_order
 
 
 def _buyer(request):
@@ -19,7 +20,7 @@ def buyer_home(request):
     requests = buyer.order_requests.all()[:5]
     recent_sales = buyer.sales_records.all()[:5]
     open_requests = buyer.order_requests.filter(
-        status__in=["submitted", "under_review", "quoted", "accepted"]
+        status__in=OrderRequest.OPEN_STATUSES
     ).count()
     awaiting_response = buyer.order_requests.filter(status="quoted")[:3]
     return render(
@@ -91,17 +92,18 @@ def order_request_respond(request, pk):
     if request.method != "POST":
         return redirect("portal:buyer_request_detail", pk=order.pk)
     action = request.POST.get("action")
-    if action == "accept" and order.can_accept():
-        order.status = "accepted"
-        order.save()
-        notify_team(
-            "order_request",
-            f"Quote accepted for {order.request_number}",
-            f"{order.buyer.name} accepted the quote. Ready to record the sale.",
-            link=f"/sales/requests/{order.pk}/",
-            target=f"order_request:{order.pk}",
-        )
-        messages.success(request, "Quote accepted. The farm will now prepare your order.")
+    if action == "accept":
+        try:
+            _, msg = advance_order(order, "buyer_accept", request.user)
+            messages.success(request, msg)
+        except WorkflowError as exc:
+            messages.error(request, str(exc))
+    elif action == "confirm_received":
+        try:
+            _, msg = advance_order(order, "confirm_received", request.user)
+            messages.success(request, msg)
+        except WorkflowError as exc:
+            messages.error(request, str(exc))
     elif action == "decline" and order.can_accept():
         order.status = "rejected"
         order.save()

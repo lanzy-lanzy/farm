@@ -84,14 +84,39 @@ without a dialog open.
         </form>
     </div>
 </div>
+{% elif order.can_confirm_received %}
+<div class="mt-6 rounded-2xl p-4 border" style="background: var(--brand-ink); border-color: color-mix(in srgb, var(--brand) 25%, #fff);">
+    <p class="text-sm font-semibold text-gray-800">Your order has been delivered.</p>
+    <p class="text-xs text-gray-500 mt-1 mb-4">Confirm receipt to mark this order as Completed (Product Received).</p>
+    <form hx-post="{% url 'portal:buyer_request_respond' order.pk %}" hx-target="#modal-container" hx-swap="innerHTML">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="confirm_received">
+        <button type="submit" class="btn btn-primary w-full justify-center cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <span>Confirm Product Received</span>
+        </button>
+    </form>
+</div>
 {% elif order.is_cancellable %}
 <div class="mt-6 pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-    <p class="text-xs text-gray-400">The farm has not quoted yet &mdash; you can still withdraw this request.</p>
+    <p class="text-xs text-gray-400">Pending farm approval &mdash; you can still withdraw this order.</p>
     <button hx-get="{% url 'portal:buyer_request_cancel' order.pk %}" hx-target="#modal-container" hx-swap="innerHTML"
             type="button" class="text-red-600 hover:text-red-800 text-sm font-medium text-left sm:text-right cursor-pointer">Cancel this request</button>
 </div>
-{% elif order.status == 'accepted' %}
+{% elif order.status == 'approved' or order.status == 'accepted' %}
 <div class="mt-6 pt-4 border-t border-gray-100">
-    <p class="text-sm text-gray-600">Accepted &mdash; the farm is preparing your order and will record the sale against your account.</p>
+    <p class="text-sm text-gray-600">Approved &mdash; the farm has approved your order and will begin processing it shortly.</p>
+</div>
+{% elif order.status == 'processing' %}
+<div class="mt-6 pt-4 border-t border-gray-100">
+    <p class="text-sm text-gray-600">Processing &mdash; the farm is preparing your order for dispatch.</p>
+</div>
+{% elif order.status == 'out_for_delivery' %}
+<div class="mt-6 pt-4 border-t border-gray-100">
+    <p class="text-sm text-gray-600">Out for Delivery &mdash; your order is on its way.</p>
+</div>
+{% elif order.status == 'completed' or order.status == 'converted' %}
+<div class="mt-6 pt-4 border-t border-gray-100">
+    <p class="text-sm font-medium text-emerald-700">Completed &mdash; Product Received.</p>
 </div>
 {% endif %}

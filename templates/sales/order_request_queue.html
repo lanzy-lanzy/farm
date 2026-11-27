@@ -51,12 +51,46 @@
                     </td>
                     <td class="px-5 py-4 text-right">
                         <div class="flex items-center justify-end gap-2 text-sm whitespace-nowrap">
-                            {% if order.status == 'submitted' or order.status == 'under_review' %}
+                            {% if order.can_approve %}
+                            <form method="post" action="{% url 'sales:order_request_review' order.pk %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="approve">
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" class="inline-block bg-green-700 hover:bg-green-800 text-white font-semibold px-3 py-1.5 rounded-lg shadow-sm cursor-pointer transition-colors">Approve Order</button>
+                            </form>
                             <a href="{% url 'sales:order_request_review' order.pk %}" class="text-blue-600 dark:text-blue-400 font-medium hover:underline">Review</a>
-                            {% elif order.status == 'quoted' %}
+                            {% elif order.can_start_processing %}
+                            <form method="post" action="{% url 'sales:order_request_review' order.pk %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="process">
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow-sm cursor-pointer transition-colors">Start Processing</button>
+                            </form>
                             <a href="{% url 'sales:order_request_review' order.pk %}" class="text-gray-500 dark:text-gray-400 hover:underline">View</a>
-                            {% elif order.status == 'accepted' %}
-                            <a href="{% url 'sales:order_request_convert' order.pk %}" class="inline-block bg-green-700 hover:bg-green-800 text-white font-semibold px-3.5 py-1.5 rounded-lg shadow-sm no-underline transition-colors">Convert to Sale</a>
+                            {% elif order.can_mark_out_for_delivery %}
+                            <form method="post" action="{% url 'sales:order_request_review' order.pk %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="out_for_delivery">
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" class="inline-block bg-amber-600 hover:bg-amber-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow-sm cursor-pointer transition-colors">Out for Delivery</button>
+                            </form>
+                            <a href="{% url 'sales:order_request_review' order.pk %}" class="text-gray-500 dark:text-gray-400 hover:underline">View</a>
+                            {% elif order.status == 'out_for_delivery' %}
+                            <form method="post" action="{% url 'sales:order_request_review' order.pk %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="deliver">
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" class="inline-block bg-green-700 hover:bg-green-800 text-white font-semibold px-3 py-1.5 rounded-lg shadow-sm cursor-pointer transition-colors">Mark Delivered</button>
+                            </form>
+                            <a href="{% url 'sales:order_request_review' order.pk %}" class="text-gray-500 dark:text-gray-400 hover:underline">View</a>
+                            {% elif order.status == 'delivered' %}
+                            <form method="post" action="{% url 'sales:order_request_review' order.pk %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="complete">
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" class="inline-block bg-green-700 hover:bg-green-800 text-white font-semibold px-3 py-1.5 rounded-lg shadow-sm cursor-pointer transition-colors">Complete Order</button>
+                            </form>
+                            <a href="{% url 'sales:order_request_review' order.pk %}" class="text-gray-500 dark:text-gray-400 hover:underline">View</a>
                             {% else %}
                             <a href="{% url 'sales:order_request_review' order.pk %}" class="text-gray-500 dark:text-gray-400 hover:underline">View</a>
                             {% endif %}

@@ -30,6 +30,27 @@ def farm_settings(request):
     return render(request, "settings/farm_settings.html", {"form": form, "profile": profile})
 
 
+@admin_or_owner_required
+def order_workflow_settings(request):
+    """Configure automated Buyer & Admin order status progression rules."""
+    from buyers.workflow import get_workflow_rules, save_workflow_rules
+
+    if request.method == "POST":
+        save_workflow_rules(
+            auto_complete_on_delivered=request.POST.get("order_auto_complete_on_delivered") == "on",
+            auto_complete_on_buyer_accept=request.POST.get("order_auto_complete_on_buyer_accept") == "on",
+            auto_create_sale_on_complete=request.POST.get("order_auto_create_sale_on_complete") == "on",
+        )
+        messages.success(request, "Order workflow automation rules updated.")
+        return redirect("settings_app:order_workflow_settings")
+
+    return render(
+        request,
+        "settings/order_workflow.html",
+        {"rules": get_workflow_rules()},
+    )
+
+
 @staff_or_admin_required
 def lan_sharing(request):
     """Minimal, opt-in LAN / Wi-Fi sharing control panel.

@@ -83,12 +83,39 @@ class Buyer(models.Model):
 
 class OrderRequest(models.Model):
     STATUS_CHOICES = [
-        ("submitted", "Submitted"),
+        ("submitted", "Pending Approval"),
+        ("approved", "Approved"),
+        ("processing", "Processing"),
+        ("out_for_delivery", "Out for Delivery"),
+        ("delivered", "Delivered"),
+        ("completed", "Completed"),
         ("under_review", "Under Review"),
         ("quoted", "Quoted"),
         ("accepted", "Accepted"),
+        ("converted", "Completed"),
         ("rejected", "Rejected"),
-        ("converted", "Converted to Sale"),
+        ("cancelled", "Cancelled"),
+    ]
+
+    OPEN_STATUSES = (
+        "submitted",
+        "under_review",
+        "quoted",
+        "approved",
+        "accepted",
+        "processing",
+        "out_for_delivery",
+        "delivered",
+    )
+
+    QUEUE_FILTER_STATUSES = [
+        ("submitted", "Pending Approval"),
+        ("approved", "Approved"),
+        ("processing", "Processing"),
+        ("out_for_delivery", "Out for Delivery"),
+        ("delivered", "Delivered"),
+        ("completed", "Completed"),
+        ("rejected", "Rejected"),
         ("cancelled", "Cancelled"),
     ]
 
@@ -182,6 +209,21 @@ class OrderRequest(models.Model):
         days = getattr(settings, "ORDER_REQUEST_QUOTE_STALE_DAYS", 7)
         return timezone.now() - self.updated_at > timezone.timedelta(days=days)
 
+    def can_approve(self):
+        return self.status in ("submitted", "under_review")
+
+    def can_start_processing(self):
+        return self.status in ("approved", "accepted")
+
+    def can_mark_out_for_delivery(self):
+        return self.status == "processing"
+
+    def can_mark_delivered(self):
+        return self.status in ("approved", "accepted", "processing", "out_for_delivery")
+
+    def can_confirm_received(self):
+        return self.status == "delivered"
+
     def can_quote(self):
         return self.status in ("submitted", "under_review")
 
@@ -192,22 +234,41 @@ class OrderRequest(models.Model):
         return self.status == "quoted" and not self.is_stale
 
     def can_convert(self):
-        return self.status == "accepted" and self.sales_record_id is None
+        return self.status in ("accepted", "approved", "delivered") and self.sales_record_id is None
 
     def timeline(self):
-        steps = ["submitted", "under_review", "quoted", "accepted", "converted"]
-        labels = dict(self.STATUS_CHOICES)
-        timeline = []
-        if self.status in ("rejected", "cancelled"):
-            idx = 2 if self.quoted_unit_price is not None else 1
+        steps = [
+            ("submitted", "Pending Approval"),
+            ("approved", "Approved"),
+            ("processing", "Processing"),
+            ("out_for_delivery", "Out for Delivery"),
+            ("delivered", "Delivered"),
+            ("completed", "Completed"),
+        ]
+        status_to_idx = {
+            "submitted": 0,
+            "under_review": 0,
+            "quoted": 0,
+            "approved": 1,
+            "accepted": 1,
+            "processing": 2,
+            "out_for_delivery": 3,
+            "delivered": 4,
+            "completed": 5,
+            "converted": 5,
+        }
+        closed_bad = self.status in ("rejected", "cancelled")
+        if closed_bad:
+            idx = 1 if self.quoted_unit_price is not None else 0
         else:
-            idx = steps.index(self.status) if self.status in steps else 0
-        for i, step in enumerate(steps):
+            idx = status_to_idx.get(self.status, 0)
+        timeline = []
+        for i, (_, label) in enumerate(steps):
             if i < idx:
                 state = "done"
             elif i == idx:
-                state = "dead" if self.status in ("rejected", "cancelled") else "current"
+                state = "dead" if closed_bad else ("done" if i == len(steps) - 1 else "current")
             else:
                 state = "pending"
-            timeline.append((labels[step], state))
+            timeline.append((label, state))
         return timeline

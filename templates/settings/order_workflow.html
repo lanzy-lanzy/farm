@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Order Workflow Automation{% endblock %}
+{% block content %}
+<div class="max-w-2xl space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Order Workflow Automation</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Configure how buyer orders automatically advance to Completed (Product Received).</p>
+        </div>
+        <a href="{% url 'settings_app:settings' %}" class="text-sm text-emerald-700 dark:text-emerald-400 hover:underline">&larr; Back to Settings</a>
+    </div>
+
+    <form method="post" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-5">
+        {% csrf_token %}
+
+        <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" name="order_auto_complete_on_delivered" class="mt-1 h-4 w-4 rounded border-gray-300 text-green-700 focus:ring-green-600"
+                   {% if rules.order_auto_complete_on_delivered %}checked{% endif %}>
+            <span>
+                <span class="block text-sm font-semibold text-gray-800 dark:text-white">Auto-complete orders when marked Delivered</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">When an admin clicks Mark Delivered, automatically update the status to Completed (Product Received) without needing a separate conversion click.</span>
+            </span>
+        </label>
+
+        <label class="flex items-start gap-3 cursor-pointer border-t border-gray-100 dark:border-gray-700 pt-5">
+            <input type="checkbox" name="order_auto_complete_on_buyer_accept" class="mt-1 h-4 w-4 rounded border-gray-300 text-green-700 focus:ring-green-600"
+                   {% if rules.order_auto_complete_on_buyer_accept %}checked{% endif %}>
+            <span>
+                <span class="block text-sm font-semibold text-gray-800 dark:text-white">Auto-complete orders when accepted by the buyer</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">When a buyer accepts a quoted order, automatically mark it Completed (Product Received).</span>
+            </span>
+        </label>
+
+        <label class="flex items-start gap-3 cursor-pointer border-t border-gray-100 dark:border-gray-700 pt-5">
+            <input type="checkbox" name="order_auto_create_sale_on_complete" class="mt-1 h-4 w-4 rounded border-gray-300 text-green-700 focus:ring-green-600"
+                   {% if rules.order_auto_create_sale_on_complete %}checked{% endif %}>
+            <span>
+                <span class="block text-sm font-semibold text-gray-800 dark:text-white">Automatically record Sale &amp; deduct inventory on completion</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">Automatically creates the linked Sales Record and deducts mapped stock when an order completes.</span>
+            </span>
+        </label>
+
+        <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+            <button type="submit" class="bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-sm cursor-pointer transition-colors">
+                Save Automation Rules
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

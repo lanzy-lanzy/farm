@@ -31,7 +31,7 @@ def queue_context(request):
     from suppliers.models import DeliveryNotice, Supplier
 
     ctx["open_order_requests"] = OrderRequest.objects.filter(
-        status__in=["submitted", "under_review", "quoted", "accepted"]
+        status__in=OrderRequest.OPEN_STATUSES
     ).count()
     ctx["open_delivery_notices"] = DeliveryNotice.objects.filter(
         status__in=["announced", "confirmed"]
