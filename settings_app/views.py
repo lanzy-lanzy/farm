@@ -11,20 +11,33 @@ from . import network
 
 @admin_or_owner_required
 def settings_view(request):
-    profile, _ = FarmProfile.objects.get_or_create(user=request.user)
+    profile, _ = FarmProfile.objects.get_or_create(
+        user=request.user,
+        defaults={
+            "farm_name": "Tambulig Poultry Farm",
+            "location": "Tambulig, Zamboanga del Sur",
+        },
+    )
     return render(request, "settings/settings.html", {"profile": profile})
 
 
 @admin_or_owner_required
 def farm_settings(request):
-    profile, _ = FarmProfile.objects.get_or_create(user=request.user)
+    profile, _ = FarmProfile.objects.get_or_create(
+        user=request.user,
+        defaults={
+            "farm_name": "Tambulig Poultry Farm",
+            "location": "Tambulig, Zamboanga del Sur",
+        },
+    )
     if request.method == "POST":
         form = FarmProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
             farm_profile = form.save(commit=False)
             farm_profile.user = request.user
             farm_profile.save()
-            return redirect("settings_app:settings")
+            messages.success(request, "Farm profile updated successfully.")
+            return redirect("settings_app:farm_settings")
     else:
         form = FarmProfileForm(instance=profile)
     return render(request, "settings/farm_settings.html", {"form": form, "profile": profile})

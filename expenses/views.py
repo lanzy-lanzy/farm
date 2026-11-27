@@ -27,7 +27,7 @@ def expense_list(request):
 def expense_create(request):
     categories = ExpenseCategory.objects.all()
     if request.method == "POST":
-        form = ExpenseRecordForm(request.POST)
+        form = ExpenseRecordForm(request.POST, request.FILES)
         if form.is_valid():
             record = form.save(commit=False)
             record.recorded_by = request.user
@@ -50,7 +50,7 @@ def expense_update(request, pk):
     record = get_object_or_404(ExpenseRecord, pk=pk)
     categories = ExpenseCategory.objects.all()
     if request.method == "POST":
-        form = ExpenseRecordForm(request.POST, instance=record)
+        form = ExpenseRecordForm(request.POST, request.FILES, instance=record)
         if form.is_valid():
             form.save()
             log_activity(request.user, "update", "ExpenseRecord", record.pk, record.__str__(), "Updated expense record")

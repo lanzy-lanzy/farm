@@ -175,14 +175,41 @@ class DeliveryNoticePortalSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True)
     origin = serializers.CharField(read_only=True)
     supplier_name = serializers.CharField(source="supplier.name", read_only=True)
+    receipt_url = serializers.SerializerMethodField()
+    receipt_name = serializers.SerializerMethodField()
+    expense_amount = serializers.DecimalField(
+        source="expense_record.amount", max_digits=12, decimal_places=2, read_only=True, allow_null=True
+    )
 
     class Meta:
         model = DeliveryNotice
         fields = [
             "id", "supplier_name", "origin", "supply_item", "description", "quantity",
-            "expected_date", "supplier_note", "status", "created_at",
+            "expected_date", "supplier_note", "status", "expense_record", "expense_amount",
+            "receipt_url", "receipt_name", "created_at",
         ]
-        read_only_fields = ["id", "supplier_name", "origin", "status", "created_at"]
+        read_only_fields = [
+            "id", "supplier_name", "origin", "status", "expense_record",
+            "expense_amount", "receipt_url", "receipt_name", "created_at",
+        ]
+
+    def get_receipt_url(self, obj):
+        expense = getattr(obj, "expense_record", None)
+        if not expense or not expense.receipt:
+            return None
+        url = expense.receipt.url
+        request = self.context.get("request")
+        if request and url and not url.startswith(("http://", "https://")):
+            return request.build_absolute_uri(url)
+        return url
+
+    def get_receipt_name(self, obj):
+        import os
+
+        expense = getattr(obj, "expense_record", None)
+        if not expense or not expense.receipt:
+            return None
+        return os.path.basename(expense.receipt.name)
 
     def validate_supply_item(self, value):
         request = self.context["request"]
@@ -192,9 +219,28 @@ class DeliveryNoticePortalSerializer(serializers.ModelSerializer):
 
 
 class PurchaseHistorySerializer(serializers.ModelSerializer):
+    receipt_url = serializers.SerializerMethodField()
+    receipt_name = serializers.SerializerMethodField()
+
     class Meta:
         model = ExpenseRecord
-        fields = ["id", "description", "amount", "expense_date", "payment_method"]
+        fields = ["id", "description", "amount", "expense_date", "payment_method", "receipt_url", "receipt_name"]
+
+    def get_receipt_url(self, obj):
+        if not obj.receipt:
+            return None
+        url = obj.receipt.url
+        request = self.context.get("request")
+        if request and url and not url.startswith(("http://", "https://")):
+            return request.build_absolute_uri(url)
+        return url
+
+    def get_receipt_name(self, obj):
+        import os
+
+        if not obj.receipt:
+            return None
+        return os.path.basename(obj.receipt.name)
 
 
 class FarmOrderResponseSerializer(serializers.ModelSerializer):

@@ -172,3 +172,87 @@ class AdHocReceiveBookingTests(TestCase):
         other.refresh_from_db()
         self.assertEqual(mapped.quantity, Decimal("10"))
         self.assertEqual(other.quantity, Decimal("16"))
+
+
+class SupplierReceiptApiTests(TestCase):
+    """Admin-uploaded expense receipts must be exposed to the supplier mobile API."""
+
+    def test_admin_uploaded_receipt_exposed_on_supplier_purchases_and_deliveries(self):
+        import tempfile
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+        from rest_framework.authtoken.models import Token
+        from rest_framework.test import APIClient
+
+        admin = User.objects.create_user(username="rcpt_admin", password="StrongPass123!", role="admin")
+        sup_user = User.objects.create_user(
+            username="rcpt_sup", password="StrongPass123!", role="supplier", is_active=True
+        )
+        supplier = Supplier.objects.create(
+            name="Tambulig Feed Supply",
+            user=sup_user,
+            verification_status="approved",
+            is_active=True,
+        )
+        cat = ExpenseCategory.objects.create(name="Receipt Test Feeds")
+        notice = DeliveryNotice.objects.create(
+            supplier=supplier,
+            description="20 sacks starter mash",
+            quantity=Decimal("20"),
+            expected_date=timezone.localdate(),
+        )
+
+        # Tiny valid 1x1 PNG
+        png_bytes = (
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+            b"\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\x0f\x00"
+            b"\x00\x01\x01\x00\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82"
+        )
+        receipt_file = SimpleUploadedFile("delivery_receipt.png", png_bytes, content_type="image/png")
+
+        with tempfile.TemporaryDirectory() as tmp_media:
+            with override_settings(MEDIA_ROOT=tmp_media):
+                self.client.force_login(admin)
+                resp = self.client.post(
+                    reverse("expenses:delivery_notice_review", args=[notice.pk]),
+                    {
+                        "action": "receive",
+                        "category": cat.pk,
+                        "description": "20 sacks starter mash",
+                        "amount": "24000.00",
+                        "expense_date": str(timezone.localdate()),
+                        "payment_method": "gcash",
+                        "receipt": receipt_file,
+                    },
+                )
+                self.assertEqual(resp.status_code, 302)
+                notice.refresh_from_db()
+                self.assertEqual(notice.status, "received")
+                self.assertIsNotNone(notice.expense_record)
+                self.assertTrue(bool(notice.expense_record.receipt))
+
+                token, _ = Token.objects.get_or_create(user=sup_user)
+                api = APIClient()
+                api.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
+
+                # Purchases endpoint includes receipt_url & receipt_name
+                purchases_resp = api.get("/api/v2/portal/purchase-history/")
+                self.assertEqual(purchases_resp.status_code, 200)
+                p_rows = purchases_resp.data["results"] if isinstance(purchases_resp.data, dict) else purchases_resp.data
+                self.assertEqual(len(p_rows), 1)
+                self.assertIn("/media/receipts/", p_rows[0]["receipt_url"])
+                self.assertTrue(p_rows[0]["receipt_name"].endswith(".png"))
+
+                # Deliveries endpoint also includes receipt_url, receipt_name & expense_amount
+                deliv_resp = api.get("/api/v2/portal/delivery-notices/")
+                self.assertEqual(deliv_resp.status_code, 200)
+                d_rows = deliv_resp.data["results"] if isinstance(deliv_resp.data, dict) else deliv_resp.data
+                self.assertEqual(len(d_rows), 1)
+                self.assertIn("/media/receipts/", d_rows[0]["receipt_url"])
+                self.assertEqual(str(d_rows[0]["expense_amount"]), "24000.00")
+
+                # File is saved on disk at MEDIA_ROOT
+                import os
+
+                self.assertTrue(os.path.exists(notice.expense_record.receipt.path))
+                self.assertTrue(p_rows[0]["receipt_url"].startswith("http://testserver/media/receipts/"))

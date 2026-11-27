@@ -209,7 +209,9 @@ class DeliveryNoticePortalViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.role != "supplier":
             return DeliveryNotice.objects.none()
-        return DeliveryNotice.objects.filter(supplier=self.request.user.supplier)
+        return DeliveryNotice.objects.filter(supplier=self.request.user.supplier).select_related(
+            "supplier", "supply_item", "expense_record"
+        )
 
     def create(self, request, *args, **kwargs):
         if request.user.role != "supplier":
