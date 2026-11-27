@@ -238,32 +238,58 @@ def advance_order(order, action, actor, *, note=None):
 
     if action == "confirm_received":
         if not order.can_confirm_received():
-            raise WorkflowError("You can only accept this order once it is marked Out for Delivery or Delivered by the admin.")
-        if order.status == "out_for_delivery":
-            order.status = "accepted"
+            raise WorkflowError("You can only accept this order once it is marked Out for Delivery by the admin.")
+        auto_sale = rules["order_auto_create_sale_on_complete"]
+        record = order.sales_record
+        if auto_sale and record is None:
+            stock_reason = sale_stock_block_reason(order.product_type, order.quantity)
+            if stock_reason:
+                raise WorkflowError(f"Insufficient stock — {stock_reason}")
+        with transaction.atomic():
+            if auto_sale and record is None:
+                unit_price = order.effective_unit_price if order.effective_unit_price is not None else Decimal("0.00")
+                total = order.quantity * unit_price
+                record = SalesRecord.objects.create(
+                    product_type=order.product_type,
+                    buyer=order.buyer,
+                    product_name=order.product_name,
+                    quantity=order.quantity,
+                    unit_price=unit_price,
+                    total_amount=total,
+                    date_sold=timezone.localdate(),
+                    payment_status="paid",
+                    amount_paid=total,
+                    recorded_by=actor,
+                    notes=f"Auto-recorded on buyer delivery acceptance for {order.request_number}",
+                )
+                deduct_for_sale(record, user=actor)
+                order.sales_record = record
+                log_activity(
+                    actor,
+                    "create",
+                    "SalesRecord",
+                    record.pk,
+                    str(record),
+                    f"Auto-recorded sale on delivery acceptance of {order.request_number}",
+                )
+            order.status = "delivered"
             order.save()
-            log_activity(
-                actor,
-                "update",
-                "OrderRequest",
-                order.pk,
-                order.request_number,
-                "Buyer accepted out-for-delivery order",
-            )
-            notify_team(
-                "order_request",
-                f"Order {order.request_number} accepted by buyer",
-                f"{order.buyer.name} accepted {order.request_number}. You can now mark it Delivered and print the receipt.",
-                link=f"/sales/requests/{order.pk}/",
-                target=f"order_request:{order.pk}",
-            )
-            return order, f"Order {order.request_number} accepted. The farm admin can now mark it Delivered."
-        order, _ = complete_order(
-            order,
+        log_activity(
             actor,
-            notify_team_msg=f"{order.buyer.name} confirmed receipt of {order.request_number}. Automatically completed.",
+            "update",
+            "OrderRequest",
+            order.pk,
+            order.request_number,
+            "Buyer accepted order — automatically marked Delivered",
         )
-        return order, f"Order {order.request_number} confirmed as Product Received (Completed)."
+        notify_team(
+            "order_request",
+            f"Order {order.request_number} delivered (accepted by buyer)",
+            f"{order.buyer.name} accepted {order.request_number}. Order is now marked Delivered and ready for receipt printing.",
+            link=f"/sales/requests/{order.pk}/",
+            target=f"order_request:{order.pk}",
+        )
+        return order, f"Order {order.request_number} accepted and marked Delivered."
 
     if action == "buyer_accept":
         if not order.can_accept():

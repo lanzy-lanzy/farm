@@ -64,7 +64,7 @@ class OrderWorkflowAutomationTests(TestCase):
         self.assertEqual(self.order.sales_record.payment_status, "paid")
         self.assertTrue(SalesRecord.objects.filter(pk=self.order.sales_record_id).exists())
 
-    def test_configurable_rule_can_pause_at_delivered_until_buyer_confirms(self):
+    def test_configurable_rule_can_pause_at_delivered_when_admin_marks_delivered(self):
         save_workflow_rules(
             auto_complete_on_delivered=False,
             auto_complete_on_buyer_accept=True,
@@ -80,11 +80,8 @@ class OrderWorkflowAutomationTests(TestCase):
         self.assertEqual(self.order.status, "delivered")
         self.assertIsNone(self.order.sales_record_id)
 
-        # Buyer confirms receipt -> automatically completes & creates Sale
-        self.client.force_login(self.buyer_user)
-        respond_url = reverse("portal:buyer_request_respond", args=[self.order.pk])
-        res = self.client.post(respond_url, {"action": "confirm_received"})
-        self.assertEqual(res.status_code, 302)
+        # Admin can complete it explicitly
+        self.client.post(review_url, {"action": "complete"})
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "completed")
         self.assertIsNotNone(self.order.sales_record_id)
@@ -155,7 +152,7 @@ class OrderWorkflowAutomationTests(TestCase):
         res_staff = self.client.get(receipt_url)
         self.assertEqual(res_staff.status_code, 403)
 
-    def test_buyer_accepts_out_for_delivery_then_admin_marks_delivered_and_prints_receipt(self):
+    def test_buyer_accepts_out_for_delivery_auto_marks_delivered_and_admin_can_print_receipt(self):
         # Admin: Approve -> Processing -> Out for Delivery
         self.client.force_login(self.admin)
         review_url = reverse("sales:order_request_review", args=[self.order.pk])
@@ -165,19 +162,17 @@ class OrderWorkflowAutomationTests(TestCase):
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "out_for_delivery")
 
-        # Buyer accepts order while Out for Delivery -> moves to accepted (ready for admin Mark Delivered)
+        # Buyer accepts order while Out for Delivery -> automatically marked Delivered & sale recorded
         self.client.force_login(self.buyer_user)
         respond_url = reverse("portal:buyer_request_respond", args=[self.order.pk])
         res = self.client.post(respond_url, {"action": "confirm_received"})
         self.assertEqual(res.status_code, 302)
         self.order.refresh_from_db()
-        self.assertEqual(self.order.status, "accepted")
-
-        # Admin marks Delivered -> auto-completes & receipt is printable
-        self.client.force_login(self.admin)
-        self.client.post(review_url, {"action": "deliver"})
-        self.order.refresh_from_db()
-        self.assertEqual(self.order.status, "completed")
+        self.assertEqual(self.order.status, "delivered")
         self.assertIsNotNone(self.order.sales_record_id)
+
+        # Admin can immediately print the Delivery Verification Receipt
+        self.client.force_login(self.admin)
         receipt_res = self.client.get(reverse("sales:order_request_receipt_print", args=[self.order.pk]))
         self.assertEqual(receipt_res.status_code, 200)
+        self.assertContains(receipt_res, "Delivery Verification Receipt")

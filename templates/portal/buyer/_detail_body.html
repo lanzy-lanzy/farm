@@ -86,8 +86,8 @@ without a dialog open.
 </div>
 {% elif order.can_confirm_received %}
 <div class="mt-6 rounded-2xl p-4 border" style="background: var(--brand-ink); border-color: color-mix(in srgb, var(--brand) 25%, #fff);">
-    <p class="text-sm font-semibold text-gray-800">{% if order.status == 'out_for_delivery' %}Your order is Out for Delivery.{% else %}Your order has been delivered.{% endif %}</p>
-    <p class="text-xs text-gray-500 mt-1 mb-4">{% if order.status == 'out_for_delivery' %}Accept this order once received so the farm admin can mark it Delivered and print the receipt.{% else %}Confirm receipt to mark this order as Completed (Product Received).{% endif %}</p>
+    <p class="text-sm font-semibold text-gray-800">Your order is Out for Delivery.</p>
+    <p class="text-xs text-gray-500 mt-1 mb-4">Accept this order once received — it will automatically be marked Delivered so the farm admin can print your receipt.</p>
     <form hx-post="{% url 'portal:buyer_request_respond' order.pk %}" hx-target="#modal-container" hx-swap="innerHTML">
         {% csrf_token %}
         <input type="hidden" name="action" value="confirm_received">
@@ -96,6 +96,10 @@ without a dialog open.
             <span>Accept Order</span>
         </button>
     </form>
+</div>
+{% elif order.status == 'delivered' %}
+<div class="mt-6 pt-4 border-t border-gray-100">
+    <p class="text-sm font-medium text-emerald-700">Delivered &mdash; your acceptance has been recorded. Official delivery receipt is printable by the farm admin.</p>
 </div>
 {% elif order.is_cancellable %}
 <div class="mt-6 pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
