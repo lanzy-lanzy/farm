@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
-from rest_framework import mixins, status, viewsets
+from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
@@ -15,7 +15,7 @@ from expenses.models import ExpenseCategory, ExpenseRecord
 from inventory.models import InventoryItem, Unit
 from inventory.services import deduct_for_sale, receive_for_notice, sale_stock_block_reason
 from notifications.models import Notification
-from notifications.utils import log_activity, notify_team, notify_user
+from notifications.utils import log_activity, notify_admins_and_owners, notify_team, notify_user
 from sales.models import Product, SalesRecord
 from sales.views import credit_block_reason
 from suppliers.models import DeliveryNotice, Supplier, SupplyItem
@@ -547,6 +547,108 @@ class VerificationActionView(APIView):
             profile.user.save(update_fields=["is_active"])
         profile.save()
         return Response({"id": profile.pk, "verification_status": profile.verification_status})
+
+
+class PartnerRegistrationView(APIView):
+    """POST /api/v2/auth/register/ — public Buyer/Supplier self-registration pending admin approval."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        from django.contrib.auth import get_user_model
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        User = get_user_model()
+        data = request.data
+        role = str(data.get("role", "")).strip().lower()
+        username = str(data.get("username", "")).strip()
+        password = str(data.get("password", ""))
+        business_name = str(data.get("business_name") or data.get("name") or "").strip()
+        contact_person = str(data.get("contact_person", "")).strip()
+        phone = str(data.get("phone", "")).strip()
+        email = str(data.get("email", "")).strip()
+        address = str(data.get("address", "")).strip()
+        buyer_type = str(data.get("buyer_type", "individual")).strip() or "individual"
+        supplies = str(data.get("supplies", "")).strip()
+
+        errors = {}
+        if role not in ("buyer", "supplier"):
+            errors["role"] = ["Choose either 'buyer' or 'supplier'."]
+        if not username:
+            errors["username"] = ["Username is required."]
+        elif User.objects.filter(username__iexact=username).exists():
+            errors["username"] = ["This username is already taken."]
+        if not business_name:
+            errors["business_name"] = ["Business or full name is required."]
+        if not password:
+            errors["password"] = ["Password is required."]
+        else:
+            try:
+                validate_password(password)
+            except DjangoValidationError as exc:
+                errors["password"] = list(exc.messages)
+
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                role=role,
+                first_name=(contact_person or business_name)[:30],
+                phone=phone or None,
+                address=address or None,
+                is_active=False,
+            )
+            if role == "buyer":
+                valid_types = {choice[0] for choice in Buyer._meta.get_field("buyer_type").choices}
+                profile = Buyer.objects.create(
+                    name=business_name,
+                    contact_person=contact_person or None,
+                    phone=phone or None,
+                    email=email or None,
+                    address=address or None,
+                    buyer_type=buyer_type if buyer_type in valid_types else "individual",
+                    user=user,
+                    verification_status="pending",
+                    is_active=True,
+                )
+            else:
+                profile = Supplier.objects.create(
+                    name=business_name,
+                    contact_person=contact_person or None,
+                    phone=phone or None,
+                    email=email or None,
+                    address=address or None,
+                    supplies=supplies or None,
+                    user=user,
+                    verification_status="pending",
+                    is_active=True,
+                )
+
+        notify_admins_and_owners(
+            "account",
+            f"New {role} registration: {business_name}",
+            f"{business_name} (@{username}) registered via mobile and is awaiting admin approval.",
+            link="/accounts/verifications/",
+            target=f"verification:{role}:{profile.pk}",
+        )
+        log_activity(user, "create", profile.__class__.__name__, profile.pk, business_name, "Self-registered via mobile (pending approval)")
+
+        return Response(
+            {
+                "id": profile.pk,
+                "username": user.username,
+                "role": role,
+                "verification_status": "pending",
+                "detail": "Registration submitted! An administrator must approve your account before you can sign in.",
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class ChangePasswordView(APIView):

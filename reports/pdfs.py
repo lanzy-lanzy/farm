@@ -742,7 +742,107 @@ def profit_loss_document(ctx):
     return _document(ctx, cards, sections)
 
 
+def flocks_document(ctx):
+    records = list(ctx["records"])
+    rows = [
+        [
+            _text(r.batch_number),
+            _text(r.breed),
+            _text(r.get_growing_stage_display()),
+            _number(r.quantity),
+            _number(r.remaining_stock()),
+            _date(r.date_acquired),
+            (_text(r.get_status_display()).upper(), "pos" if r.status == "active" else "warn"),
+        ]
+        for r in records
+    ]
+    cards = [
+        {"label": "Total Batches", "value": _number(len(records))},
+        {"label": "Active Batches", "value": _number(ctx["active_batches"]), "tone": "pos"},
+        {"label": "Current Birds", "value": _number(ctx["total_birds"]), "tone": "pos"},
+    ]
+    sections = [
+        {
+            "kind": "table",
+            "caption": "Flock Batches",
+            "headers": ["Batch", "Breed", "Stage", "Initial", "Current", "Acquired", "Status"],
+            "align": "lllrrll",
+            "rows": rows,
+            "totals": ["Totals", f"{len(rows)} batches", "", _number(ctx["initial_birds"]), _number(ctx["total_birds"]), "", ""],
+        }
+    ]
+    if not rows:
+        sections = [{"kind": "empty", "text": "No flock batches recorded."}]
+    return _document(ctx, cards, sections)
+
+
+def feeding_document(ctx):
+    records = list(ctx["records"])
+    rows = [
+        [
+            _date(r.feeding_date),
+            _batch(r.flock),
+            _text(r.feed_item.name if r.feed_item_id else "-"),
+            _quantity(r.quantity_used),
+            _text(r.remarks),
+        ]
+        for r in records
+    ]
+    cards = [
+        {"label": "Total Feed Used", "value": _quantity(ctx["total_feed_used"]), "tone": "pos"},
+        {"label": "Feeding Logs", "value": _number(len(rows))},
+    ]
+    sections = [
+        {
+            "kind": "table",
+            "caption": "Feeding Records",
+            "headers": ["Date", "Flock", "Feed Item", "Qty Used", "Remarks"],
+            "align": "lllrl",
+            "rows": rows,
+            "totals": ["Totals", f"{len(rows)} logs", "", _quantity(ctx["total_feed_used"]), ""],
+        }
+    ]
+    if not rows:
+        sections = [{"kind": "empty", "text": "No feeding records were found for this period."}]
+    return _document(ctx, cards, sections)
+
+
+def medicine_document(ctx):
+    records = list(ctx["records"])
+    rows = [
+        [
+            _date(r.date_administered),
+            _batch(r.flock),
+            _text(r.get_medicine_type_display()),
+            _text(r.medicine_name),
+            _text(r.dosage),
+            _text(r.get_administration_route_display()),
+            _date(r.next_schedule) if r.next_schedule else "-",
+        ]
+        for r in records
+    ]
+    cards = [
+        {"label": "Administrations", "value": _number(len(rows))},
+        {"label": "Total Qty Used", "value": _quantity(ctx["total_quantity_used"]), "tone": "pos"},
+    ]
+    sections = [
+        {
+            "kind": "table",
+            "caption": "Medicine & Vaccination Records",
+            "headers": ["Date", "Flock", "Type", "Medicine", "Dosage", "Route", "Next Due"],
+            "align": "lllllll",
+            "rows": rows,
+        }
+    ]
+    if not rows:
+        sections = [{"kind": "empty", "text": "No medicine records were found for this period."}]
+    return _document(ctx, cards, sections)
+
+
 DOCUMENTS = {
+    "flocks": flocks_document,
+    "feeding": feeding_document,
+    "medicine": medicine_document,
     "production": production_document,
     "deaths": death_document,
     "sales": sales_document,

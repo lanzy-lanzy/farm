@@ -3,13 +3,25 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.db import transaction
+from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 
 from .access import admin_or_owner_required, admin_required
-from .forms import LoginForm, PartnerRegistrationForm, UserRegistrationForm, UserUpdateForm
+from .forms import (
+    AdminUserUpdateForm,
+    LoginForm,
+    PartnerRegistrationForm,
+    UserRegistrationForm,
+    UserUpdateForm,
+)
 from .models import User
+
+
+def is_htmx(request):
+    return request.headers.get("HX-Request") == "true"
 
 
 class CustomLoginView(LoginView):
@@ -88,42 +100,185 @@ class CustomLogoutView(LogoutView):
 
 @admin_or_owner_required
 def user_list(request):
-    users = User.objects.all().order_by("-date_joined")
-    return render(request, "accounts/user_list.html", {"users": users})
+    from buyers.models import Buyer
+    from suppliers.models import Supplier
+
+    tab = request.GET.get("tab", "all").strip().lower()
+    if tab not in ("all", "staff", "buyers", "suppliers"):
+        tab = "all"
+    status_filter = request.GET.get("status", "all").strip().lower()
+    if status_filter not in ("all", "active", "inactive", "pending"):
+        status_filter = "all"
+    q = request.GET.get("q", "").strip()
+
+    base_qs = User.objects.select_related("buyer", "supplier").order_by("-date_joined")
+
+    counts = {
+        "all": base_qs.count(),
+        "staff": base_qs.filter(role__in=User.INTERNAL_ROLES).count(),
+        "buyers": base_qs.filter(role="buyer").count(),
+        "suppliers": base_qs.filter(role="supplier").count(),
+        "pending": (
+            Buyer.objects.filter(verification_status="pending").count()
+            + Supplier.objects.filter(verification_status="pending").count()
+        ),
+    }
+
+    users = base_qs
+    if tab == "staff":
+        users = users.filter(role__in=User.INTERNAL_ROLES)
+    elif tab == "buyers":
+        users = users.filter(role="buyer")
+    elif tab == "suppliers":
+        users = users.filter(role="supplier")
+
+    if status_filter == "active":
+        users = users.filter(is_active=True)
+    elif status_filter == "inactive":
+        users = users.filter(is_active=False)
+    elif status_filter == "pending":
+        users = users.filter(
+            Q(buyer__verification_status="pending")
+            | Q(supplier__verification_status="pending")
+        )
+
+    if q:
+        users = users.filter(
+            Q(username__icontains=q)
+            | Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(email__icontains=q)
+            | Q(phone__icontains=q)
+            | Q(buyer__name__icontains=q)
+            | Q(supplier__name__icontains=q)
+        ).distinct()
+
+    user_rows = []
+    for u in users:
+        partner_profile = None
+        if u.role == "buyer":
+            partner_profile = getattr(u, "buyer", None)
+        elif u.role == "supplier":
+            partner_profile = getattr(u, "supplier", None)
+        user_rows.append({"user": u, "partner": partner_profile})
+
+    return render(
+        request,
+        "accounts/user_list.html",
+        {
+            "users": users,
+            "user_rows": user_rows,
+            "tab": tab,
+            "status_filter": status_filter,
+            "q": q,
+            "counts": counts,
+        },
+    )
+
+
+@admin_or_owner_required
+def user_detail(request, pk):
+    target_user = get_object_or_404(
+        User.objects.select_related("buyer", "supplier"), pk=pk
+    )
+    buyer_profile = getattr(target_user, "buyer", None) if target_user.role == "buyer" else None
+    supplier_profile = getattr(target_user, "supplier", None) if target_user.role == "supplier" else None
+
+    order_count = buyer_profile.order_requests.count() if buyer_profile else 0
+    delivery_count = supplier_profile.delivery_notices.count() if supplier_profile else 0
+
+    context = {
+        "target_user": target_user,
+        "buyer_profile": buyer_profile,
+        "supplier_profile": supplier_profile,
+        "order_count": order_count,
+        "delivery_count": delivery_count,
+    }
+    template = "accounts/_detail.html" if is_htmx(request) else "accounts/user_detail.html"
+    return render(request, template, context)
 
 
 @admin_required
 def user_create(request):
+    from notifications.utils import log_activity
+
     if request.method == "POST":
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            form.save()
+            new_user = form.save()
+            log_activity(
+                request.user,
+                "create",
+                "User",
+                new_user.pk,
+                new_user.username,
+                f"Created user ({new_user.get_role_display()})",
+            )
+            messages.success(request, f"User '{new_user.username}' created successfully.")
+            if is_htmx(request):
+                return HttpResponse(
+                    '<script>var m=document.getElementById("modal-overlay");if(m)m.remove();window.location.reload()</script>'
+                )
             return redirect("accounts:user_list")
     else:
         form = UserRegistrationForm()
-    return render(request, "accounts/user_form.html", {"form": form})
+    template = "accounts/_form.html" if is_htmx(request) else "accounts/user_form.html"
+    return render(request, template, {"form": form})
 
 
 @admin_required
 def user_update(request, pk):
-    user = User.objects.get(pk=pk)
+    from notifications.utils import log_activity
+
+    target_user = get_object_or_404(User, pk=pk)
     if request.method == "POST":
-        form = UserUpdateForm(request.POST, request.FILES, instance=user)
+        form = AdminUserUpdateForm(request.POST, request.FILES, instance=target_user)
         if form.is_valid():
-            form.save()
+            updated = form.save()
+            log_activity(
+                request.user,
+                "update",
+                "User",
+                updated.pk,
+                updated.username,
+                f"Updated user ({updated.get_role_display()})",
+            )
+            messages.success(request, f"User '{updated.username}' updated successfully.")
+            if is_htmx(request):
+                return HttpResponse(
+                    '<script>var m=document.getElementById("modal-overlay");if(m)m.remove();window.location.reload()</script>'
+                )
             return redirect("accounts:user_list")
     else:
-        form = UserUpdateForm(instance=user)
-    return render(request, "accounts/user_form.html", {"form": form, "user": user})
+        form = AdminUserUpdateForm(instance=target_user)
+    template = "accounts/_form.html" if is_htmx(request) else "accounts/user_form.html"
+    return render(request, template, {"form": form, "target_user": target_user})
 
 
 @admin_required
 def user_delete(request, pk):
-    user = User.objects.get(pk=pk)
+    from notifications.utils import log_activity
+
+    target_user = get_object_or_404(User, pk=pk)
     if request.method == "POST":
-        user.delete()
+        if target_user.pk == request.user.pk:
+            messages.error(request, "You cannot delete your own account.")
+            if is_htmx(request):
+                return HttpResponse(
+                    '<script>var m=document.getElementById("modal-overlay");if(m)m.remove();window.location.reload()</script>'
+                )
+            return redirect("accounts:user_list")
+        username = target_user.username
+        log_activity(request.user, "delete", "User", target_user.pk, username, "Deleted user")
+        target_user.delete()
+        messages.success(request, f"User '{username}' deleted successfully.")
+        if is_htmx(request):
+            return HttpResponse(
+                '<script>var m=document.getElementById("modal-overlay");if(m)m.remove();window.location.reload()</script>'
+            )
         return redirect("accounts:user_list")
-    return render(request, "accounts/user_confirm_delete.html", {"user": user})
+    template = "accounts/_delete.html" if is_htmx(request) else "accounts/user_confirm_delete.html"
+    return render(request, template, {"target_user": target_user})
 
 
 @admin_or_owner_required

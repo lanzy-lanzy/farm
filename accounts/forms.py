@@ -233,3 +233,27 @@ class UserUpdateForm(forms.ModelForm):
             "address": forms.Textarea(attrs={"class": "form-input", "rows": 3}),
             "profile_picture": forms.FileInput(attrs={"class": "form-input"}),
         }
+
+
+class AdminUserUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = [
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "role",
+            "phone",
+            "address",
+            "is_active",
+        ]
+        widgets = {
+            "username": forms.TextInput(attrs={"class": "form-input"}),
+            "first_name": forms.TextInput(attrs={"class": "form-input"}),
+            "last_name": forms.TextInput(attrs={"class": "form-input"}),
+            "email": forms.EmailInput(attrs={"class": "form-input"}),
+            "role": forms.Select(attrs={"class": "form-input"}),
+            "phone": forms.TextInput(attrs={"class": "form-input"}),
+            "address": forms.Textarea(attrs={"class": "form-input", "rows": 2}),
+        }

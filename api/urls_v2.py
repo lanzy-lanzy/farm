@@ -9,6 +9,7 @@ from .views_v2 import (
     InternalOptionsView,
     InternalOrderRequestViewSet,
     OrderRequestPortalViewSet,
+    PartnerRegistrationView,
     PendingVerificationsView,
     PortalNotificationListView,
     PortalNotificationReadView,
@@ -29,6 +30,7 @@ router.register("internal/order-requests", InternalOrderRequestViewSet, basename
 router.register("internal/delivery-notices", InternalDeliveryNoticeViewSet, basename="internal-delivery-notices")
 
 urlpatterns = [
+    path("auth/register/", PartnerRegistrationView.as_view(), name="api-v2-register"),
     path("auth/change-password/", ChangePasswordView.as_view(), name="api-v2-change-password"),
     path("portal/notifications/", PortalNotificationListView.as_view(), name="api-v2-portal-notifications"),
     path(

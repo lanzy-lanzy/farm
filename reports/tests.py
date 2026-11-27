@@ -231,8 +231,11 @@ class SignatoryAndStaffReportsRBACTests(ReportDataTests):
         self.client.force_login(staff)
         response = self.client.get(reverse("reports:reports_index"))
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Flocks Report")
+        self.assertContains(response, "Feeding Report")
         self.assertContains(response, "Production Report")
         self.assertContains(response, "Deaths Report")
+        self.assertContains(response, "Medicine Report")
         self.assertNotContains(response, "Sales Report")
         self.assertNotContains(response, "Expense Report")
         self.assertNotContains(response, "Inventory Report")
@@ -242,6 +245,18 @@ class SignatoryAndStaffReportsRBACTests(ReportDataTests):
         staff = User.objects.create_user(username="staff_rep2", password="pw", role="staff")
         self.client.force_login(staff)
         allowed = (
+            "reports:flocks_report",
+            "reports:flocks_report_print",
+            "reports:export_flocks_pdf",
+            "reports:export_flocks_excel",
+            "reports:feeding_report",
+            "reports:feeding_report_print",
+            "reports:export_feeding_pdf",
+            "reports:export_feeding_excel",
+            "reports:medicine_report",
+            "reports:medicine_report_print",
+            "reports:export_medicine_pdf",
+            "reports:export_medicine_excel",
             "reports:production_report",
             "reports:production_report_print",
             "reports:export_production_pdf",

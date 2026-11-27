@@ -311,3 +311,187 @@ class PartnerSelfRegistrationTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(User.objects.filter(username="sneakyadmin").exists())
+
+    def test_mobile_api_v2_partner_registration(self):
+        import json
+        from buyers.models import Buyer
+        from suppliers.models import Supplier
+        from notifications.models import Notification
+
+        # Buyer registration via mobile API
+        buyer_resp = self.client.post(
+            "/api/v2/auth/register/",
+            data=json.dumps({
+                "role": "buyer",
+                "name": "Tambulig Market Buyer",
+                "contact_person": "Ana Reyes",
+                "username": "mobile_buyer1",
+                "email": "ana@tambulig.test",
+                "phone": "09170001111",
+                "address": "Tambulig, Zamboanga del Sur",
+                "buyer_type": "retail",
+                "password": "MobileBuyer2026!",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(buyer_resp.status_code, 201)
+        buyer_user = User.objects.get(username="mobile_buyer1")
+        self.assertEqual(buyer_user.role, "buyer")
+        self.assertFalse(buyer_user.is_active)
+        self.assertEqual(Buyer.objects.get(user=buyer_user).verification_status, "pending")
+        self.assertTrue(Notification.objects.filter(user=self.admin, notification_type="account").exists())
+
+        # Supplier registration via mobile API
+        sup_resp = self.client.post(
+            "/api/v2/auth/register/",
+            data=json.dumps({
+                "role": "supplier",
+                "name": "Tambulig Agro Feeds",
+                "contact_person": "Pedro Cruz",
+                "username": "mobile_sup1",
+                "email": "pedro@agro.test",
+                "phone": "09180002222",
+                "supplies": "Layer Feeds",
+                "payment_terms": "net15",
+                "password": "MobileSup2026!",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(sup_resp.status_code, 201)
+        sup_user = User.objects.get(username="mobile_sup1")
+        self.assertEqual(sup_user.role, "supplier")
+        self.assertFalse(sup_user.is_active)
+        self.assertEqual(Supplier.objects.get(user=sup_user).verification_status, "pending")
+
+        # Reject internal role
+        bad_resp = self.client.post(
+            "/api/v2/auth/register/",
+            data=json.dumps({
+                "role": "admin",
+                "name": "Bad Admin",
+                "username": "bad_admin1",
+                "password": "BadPassword2026!",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(bad_resp.status_code, 400)
+        self.assertFalse(User.objects.filter(username="bad_admin1").exists())
+
+
+class UserManagementActionsTests(TestCase):
+    def setUp(self):
+        from buyers.models import Buyer
+        from suppliers.models import Supplier
+
+        self.admin = User.objects.create_user(
+            username="um_admin", password="StrongPass123!", role="admin"
+        )
+        self.owner = User.objects.create_user(
+            username="um_owner", password="StrongPass123!", role="owner"
+        )
+        self.buyer_user = User.objects.create_user(
+            username="um_buyer", password="StrongPass123!", role="buyer", is_active=True
+        )
+        self.buyer = Buyer.objects.create(
+            name="Tambulig Fresh Eggs",
+            user=self.buyer_user,
+            verification_status="approved",
+            is_active=True,
+        )
+        self.supplier_user = User.objects.create_user(
+            username="um_supplier", password="StrongPass123!", role="supplier", is_active=False
+        )
+        self.supplier = Supplier.objects.create(
+            name="Zambo Feed Mill",
+            user=self.supplier_user,
+            supplies="Layer Feeds",
+            verification_status="pending",
+            is_active=True,
+        )
+
+    def test_user_list_tabs_and_filters(self):
+        self.client.force_login(self.admin)
+
+        buyers_resp = self.client.get(reverse("accounts:user_list"), {"tab": "buyers"})
+        self.assertEqual(buyers_resp.status_code, 200)
+        self.assertContains(buyers_resp, "Tambulig Fresh Eggs")
+        self.assertNotContains(buyers_resp, "Zambo Feed Mill")
+
+        suppliers_resp = self.client.get(reverse("accounts:user_list"), {"tab": "suppliers"})
+        self.assertEqual(suppliers_resp.status_code, 200)
+        self.assertContains(suppliers_resp, "Zambo Feed Mill")
+        self.assertNotContains(suppliers_resp, "Tambulig Fresh Eggs")
+
+        pending_resp = self.client.get(reverse("accounts:user_list"), {"status": "pending"})
+        self.assertEqual(pending_resp.status_code, 200)
+        self.assertContains(pending_resp, "Zambo Feed Mill")
+        self.assertNotContains(pending_resp, "Tambulig Fresh Eggs")
+
+        search_resp = self.client.get(reverse("accounts:user_list"), {"q": "Tambulig Fresh"})
+        self.assertEqual(search_resp.status_code, 200)
+        self.assertContains(search_resp, "Tambulig Fresh Eggs")
+        self.assertNotContains(search_resp, "Zambo Feed Mill")
+
+    def test_user_view_edit_and_delete_modals_and_actions(self):
+        self.client.force_login(self.admin)
+
+        # View detail (HTMX modal + full page)
+        detail_htmx = self.client.get(
+            reverse("accounts:user_detail", args=[self.buyer_user.pk]),
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(detail_htmx.status_code, 200)
+        self.assertContains(detail_htmx, "Tambulig Fresh Eggs")
+        self.assertContains(detail_htmx, "modal-overlay")
+
+        detail_full = self.client.get(reverse("accounts:user_detail", args=[self.supplier_user.pk]))
+        self.assertEqual(detail_full.status_code, 200)
+        self.assertContains(detail_full, "Zambo Feed Mill")
+
+        # Edit (HTMX modal GET + POST)
+        edit_get = self.client.get(
+            reverse("accounts:user_update", args=[self.buyer_user.pk]),
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(edit_get.status_code, 200)
+        self.assertContains(edit_get, "Edit User")
+
+        edit_post = self.client.post(
+            reverse("accounts:user_update", args=[self.buyer_user.pk]),
+            {
+                "username": "um_buyer",
+                "first_name": "Updated",
+                "last_name": "Buyer",
+                "email": "updated@buyer.test",
+                "role": "buyer",
+                "phone": "09171112222",
+                "address": "Tambulig",
+                "is_active": "on",
+            },
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(edit_post.status_code, 200)
+        self.assertContains(edit_post, "window.location.reload")
+        self.buyer_user.refresh_from_db()
+        self.assertEqual(self.buyer_user.first_name, "Updated")
+        self.assertEqual(self.buyer_user.email, "updated@buyer.test")
+
+        # Delete (HTMX modal GET + POST)
+        del_get = self.client.get(
+            reverse("accounts:user_delete", args=[self.supplier_user.pk]),
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(del_get.status_code, 200)
+        self.assertContains(del_get, "Confirm Deletion")
+
+        del_post = self.client.post(
+            reverse("accounts:user_delete", args=[self.supplier_user.pk]),
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(del_post.status_code, 200)
+        self.assertFalse(User.objects.filter(pk=self.supplier_user.pk).exists())
+
+        # Cannot delete own account
+        self_del = self.client.post(reverse("accounts:user_delete", args=[self.admin.pk]))
+        self.assertEqual(self_del.status_code, 302)
+        self.assertTrue(User.objects.filter(pk=self.admin.pk).exists())

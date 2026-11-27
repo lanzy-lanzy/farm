@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Flocks Report{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Flocks Report</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Active and historical flock batches summary</p>
+        </div>
+        {% url 'reports:flocks_report_print' as print_url %}
+        {% url 'reports:export_flocks_pdf' as pdf_url %}
+        {% url 'reports:export_flocks_excel' as excel_url %}
+        {% include "reports/_actions.html" with print_url=print_url pdf_url=pdf_url excel_url=excel_url %}
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Active Batches</p>
+            <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ active_batches }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Current Active Birds</p>
+            <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ total_birds }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Initial Birds (All Batches)</p>
+            <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ initial_birds }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="font-semibold text-gray-800 dark:text-white">Flock Batches</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 dark:bg-gray-700/50">
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Batch</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Breed</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stage</th>
+                        <th class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Initial</th>
+                        <th class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Current</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acquired</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    {% for record in records %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                        <td class="px-5 py-4 font-medium text-gray-800 dark:text-white">{{ record.batch_number }}</td>
+                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">{{ record.breed }}</td>
+                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">{{ record.get_growing_stage_display }}</td>
+                        <td class="px-5 py-4 text-right text-gray-600 dark:text-gray-300">{{ record.quantity }}</td>
+                        <td class="px-5 py-4 text-right font-medium text-gray-800 dark:text-white">{{ record.remaining_stock }}</td>
+                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">{{ record.date_acquired }}</td>
+                        <td class="px-5 py-4"><span class="pill {% if record.status == 'active' %}pill-approved{% else %}pill-inactive{% endif %}">{{ record.get_status_display }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-5 py-12 text-center text-gray-500 dark:text-gray-400 text-sm">No flock batches found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

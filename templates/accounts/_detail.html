@@ -1,0 +1,101 @@
+{% extends "partials/modal.html" %}
+{% block modal_title %}User Details{% endblock %}
+{% block modal_content %}
+<div class="space-y-5">
+    <div class="flex items-center gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+        <span class="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-lg font-bold grid place-items-center shrink-0">
+            {{ target_user.get_full_name|default:target_user.username|slice:":1"|upper }}
+        </span>
+        <div class="min-w-0 flex-1">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white truncate">
+                {% if buyer_profile %}{{ buyer_profile.name }}{% elif supplier_profile %}{{ supplier_profile.name }}{% else %}{{ target_user.get_full_name|default:target_user.username }}{% endif %}
+            </h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">@{{ target_user.username }}</p>
+        </div>
+        <div class="flex flex-col items-end gap-1.5">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if target_user.role == 'buyer' %}bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300{% elif target_user.role == 'supplier' %}bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300{% elif target_user.role == 'admin' %}bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300{% else %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400{% endif %}">
+                {{ target_user.get_role_display }}
+            </span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if target_user.is_active %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400{% else %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                {% if target_user.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Full Name</p>
+            <p class="text-gray-800 dark:text-gray-200 mt-0.5">{{ target_user.get_full_name|default:"—" }}</p>
+        </div>
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Email</p>
+            <p class="text-gray-800 dark:text-gray-200 mt-0.5">{{ target_user.email|default:"—" }}</p>
+        </div>
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Phone</p>
+            <p class="text-gray-800 dark:text-gray-200 mt-0.5">{{ target_user.phone|default:"—" }}</p>
+        </div>
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Date Joined</p>
+            <p class="text-gray-800 dark:text-gray-200 mt-0.5">{{ target_user.date_joined|date:"M d, Y h:i A" }}</p>
+        </div>
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Last Login</p>
+            <p class="text-gray-800 dark:text-gray-200 mt-0.5">{{ target_user.last_login|date:"M d, Y h:i A"|default:"Never" }}</p>
+        </div>
+        <div class="sm:col-span-2">
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Address</p>
+            <p class="text-gray-800 dark:text-gray-200 mt-0.5">{{ target_user.address|default:"—" }}</p>
+        </div>
+    </div>
+
+    {% if buyer_profile %}
+    <div class="rounded-xl bg-sky-50/70 dark:bg-sky-900/20 border border-sky-200/80 dark:border-sky-800 p-4 space-y-2.5 text-sm">
+        <div class="flex items-center justify-between">
+            <p class="text-xs font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">Buyer Profile</p>
+            <span class="pill pill-{{ buyer_profile.verification_status }}">{{ buyer_profile.get_verification_status_display }}</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><span class="text-gray-500 dark:text-gray-400 text-xs block">Business / Buyer Name</span><span class="font-medium text-gray-800 dark:text-white">{{ buyer_profile.name }}</span></div>
+            <div><span class="text-gray-500 dark:text-gray-400 text-xs block">Buyer Type</span><span class="font-medium text-gray-800 dark:text-white">{{ buyer_profile.get_buyer_type_display }}</span></div>
+            <div><span class="text-gray-500 dark:text-gray-400 text-xs block">Contact Person</span><span class="text-gray-800 dark:text-gray-200">{{ buyer_profile.contact_person|default:"—" }}</span></div>
+            <div><span class="text-gray-500 dark:text-gray-400 text-xs block">Order Requests</span><span class="font-medium text-gray-800 dark:text-white">{{ order_count }}</span></div>
+        </div>
+        {% if buyer_profile.rejection_reason %}
+        <p class="text-xs text-red-600 dark:text-red-400">Rejection reason: {{ buyer_profile.rejection_reason }}</p>
+        {% endif %}
+    </div>
+    {% elif supplier_profile %}
+    <div class="rounded-xl bg-amber-50/70 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-800 p-4 space-y-2.5 text-sm">
+        <div class="flex items-center justify-between">
+            <p class="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">Supplier Profile</p>
+            <span class="pill pill-{{ supplier_profile.verification_status }}">{{ supplier_profile.get_verification_status_display }}</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><span class="text-gray-500 dark:text-gray-400 text-xs block">Business / Supplier Name</span><span class="font-medium text-gray-800 dark:text-white">{{ supplier_profile.name }}</span></div>
+            <div><span class="text-gray-500 dark:text-gray-400 text-xs block">Payment Terms</span><span class="font-medium text-gray-800 dark:text-white">{{ supplier_profile.get_payment_terms_display }}</span></div>
+            <div><span class="text-gray-500 dark:text-gray-400 text-xs block">Supplies</span><span class="text-gray-800 dark:text-gray-200">{{ supplier_profile.supplies|default:"—" }}</span></div>
+            <div><span class="text-gray-500 dark:text-gray-400 text-xs block">Deliveries</span><span class="font-medium text-gray-800 dark:text-white">{{ delivery_count }}</span></div>
+            {% if supplier_profile.dti_registration %}
+            <div class="sm:col-span-2"><span class="text-gray-500 dark:text-gray-400 text-xs block">DTI Registration</span><span class="text-gray-800 dark:text-gray-200">{{ supplier_profile.dti_registration }}</span></div>
+            {% endif %}
+        </div>
+        {% if supplier_profile.rejection_reason %}
+        <p class="text-xs text-red-600 dark:text-red-400">Rejection reason: {{ supplier_profile.rejection_reason }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-gray-200 dark:border-gray-700">
+        {% if buyer_profile and buyer_profile.verification_status == 'pending' %}
+        <a href="{% url 'accounts:verification_queue' %}" class="px-4 py-2 text-sm font-medium text-amber-800 bg-amber-100 hover:bg-amber-200 rounded-xl transition-colors">Review Verification</a>
+        {% elif supplier_profile and supplier_profile.verification_status == 'pending' %}
+        <a href="{% url 'accounts:verification_queue' %}" class="px-4 py-2 text-sm font-medium text-amber-800 bg-amber-100 hover:bg-amber-200 rounded-xl transition-colors">Review Verification</a>
+        {% endif %}
+        {% if user.is_admin_user %}
+        <button type="button" hx-get="{% url 'accounts:user_update' target_user.pk %}" hx-target="#modal-container" hx-swap="innerHTML" class="px-4 py-2 text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-xl transition-colors cursor-pointer">Edit User</button>
+        {% endif %}
+        <button type="button" onclick="this.closest('#modal-overlay').remove()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors cursor-pointer">Close</button>
+    </div>
+</div>
+{% endblock %}

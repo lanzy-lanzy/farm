@@ -12,6 +12,8 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from flocks.models import FlockBatch
+from feeding.models import FeedingRecord
+from medicine.models import MedicineRecord
 from inventory.models import InventoryItem
 from eggs.models import EggProduction
 from deaths.models import DeathRecord
@@ -94,6 +96,24 @@ def _pdf_url(name, start=None, end=None):
 # One entry per report card on the hub: the live report plus its three outputs.
 REPORT_CATALOG = (
     {
+        "title": "Flocks Report",
+        "description": "Active and historical flock batches, breeds, stages and bird counts.",
+        "period": "Current flocks",
+        "accent": "emerald",
+        "farm_operations": True,
+        "icon": "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
+        "urls": ("reports:flocks_report", "reports:flocks_report_print", "reports:export_flocks_pdf", "reports:export_flocks_excel"),
+    },
+    {
+        "title": "Feeding Report",
+        "description": "Daily feed consumption logs by flock batch and feed type.",
+        "period": "Last 30 days",
+        "accent": "amber",
+        "farm_operations": True,
+        "icon": "M12 6v6m0 0v6m0-6h6m-6 0H6",
+        "urls": ("reports:feeding_report", "reports:feeding_report_print", "reports:export_feeding_pdf", "reports:export_feeding_excel"),
+    },
+    {
         "title": "Production Report",
         "description": "Eggs collected by flock and day, split by grade.",
         "period": "Last 30 days",
@@ -110,6 +130,15 @@ REPORT_CATALOG = (
         "farm_operations": True,
         "icon": "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z",
         "urls": ("reports:death_report", "reports:death_report_print", "reports:export_death_pdf", "reports:export_death_excel"),
+    },
+    {
+        "title": "Medicine Report",
+        "description": "Medicines, vaccines and vitamins administered to flocks.",
+        "period": "Last 30 days",
+        "accent": "teal",
+        "farm_operations": True,
+        "icon": "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z",
+        "urls": ("reports:medicine_report", "reports:medicine_report_print", "reports:export_medicine_pdf", "reports:export_medicine_excel"),
     },
     {
         "title": "Sales Report",
@@ -172,6 +201,109 @@ def reports_index(request):
             }
         )
     return render(request, "reports/reports_index.html", {"reports": reports})
+
+
+# --------------------------------------------------------------------------- #
+#  Flocks (Farm Operations)
+# --------------------------------------------------------------------------- #
+def _flocks_context():
+    today = timezone.now().date()
+    records = FlockBatch.objects.all()
+    active_batches = records.filter(status="active").count()
+    initial_birds = records.aggregate(total=Sum("quantity"))["total"] or 0
+    total_birds = records.filter(status="active").aggregate(total=Sum("current_quantity"))["total"] or 0
+    return {
+        "records": records,
+        "active_batches": active_batches,
+        "initial_birds": initial_birds,
+        "total_birds": total_birds,
+        "report_title": "Flocks Report",
+        "report_subtitle": "Flock batches and active bird counts",
+        "date_range": f"Current flocks as of {today:%B %d, %Y}",
+    }
+
+
+@internal_only
+def flocks_report(request):
+    return render(request, "reports/flocks_report.html", _flocks_context())
+
+
+@internal_only
+def flocks_report_print(request):
+    ctx = {**_flocks_context(), **_farm_context(request)}
+    ctx["back_url"] = reverse("reports:flocks_report")
+    ctx["pdf_url"] = reverse("reports:export_flocks_pdf")
+    return render(request, "reports/flocks_print.html", ctx)
+
+
+# --------------------------------------------------------------------------- #
+#  Feeding (Farm Operations)
+# --------------------------------------------------------------------------- #
+def _feeding_context(start=None, end=None):
+    if start is None or end is None:
+        start, end = _period()
+    records = FeedingRecord.objects.filter(feeding_date__range=(start, end)).select_related("flock", "feed_item")
+    total_feed_used = records.aggregate(total=Sum("quantity_used"))["total"] or 0
+    return {
+        "records": records,
+        "total_feed_used": total_feed_used,
+        "report_title": "Feeding Report",
+        "report_subtitle": "Feed consumption summary by flock",
+        "date_range": _range_label(start, end),
+        "start_date": start,
+        "end_date": end,
+    }
+
+
+@internal_only
+def feeding_report(request):
+    return render(request, "reports/feeding_report.html", _feeding_context())
+
+
+@internal_only
+def feeding_report_print(request):
+    start, end = _requested_period(request)
+    ctx = {**_feeding_context(start, end), **_farm_context(request)}
+    ctx["back_url"] = reverse("reports:feeding_report")
+    ctx["print_url"] = reverse("reports:feeding_report_print")
+    ctx["pdf_url"] = _pdf_url("reports:export_feeding_pdf", start, end)
+    ctx["show_date_filter"] = True
+    return render(request, "reports/feeding_print.html", ctx)
+
+
+# --------------------------------------------------------------------------- #
+#  Medicine (Farm Operations)
+# --------------------------------------------------------------------------- #
+def _medicine_context(start=None, end=None):
+    if start is None or end is None:
+        start, end = _period()
+    records = MedicineRecord.objects.filter(date_administered__range=(start, end)).select_related("flock", "medicine_item")
+    total_quantity_used = records.aggregate(total=Sum("quantity_used"))["total"] or 0
+    return {
+        "records": records,
+        "total_quantity_used": total_quantity_used,
+        "report_title": "Medicine Report",
+        "report_subtitle": "Medicine, vaccine and vitamin administrations",
+        "date_range": _range_label(start, end),
+        "start_date": start,
+        "end_date": end,
+    }
+
+
+@internal_only
+def medicine_report(request):
+    return render(request, "reports/medicine_report.html", _medicine_context())
+
+
+@internal_only
+def medicine_report_print(request):
+    start, end = _requested_period(request)
+    ctx = {**_medicine_context(start, end), **_farm_context(request)}
+    ctx["back_url"] = reverse("reports:medicine_report")
+    ctx["print_url"] = reverse("reports:medicine_report_print")
+    ctx["pdf_url"] = _pdf_url("reports:export_medicine_pdf", start, end)
+    ctx["show_date_filter"] = True
+    return render(request, "reports/medicine_print.html", ctx)
 
 
 # --------------------------------------------------------------------------- #
@@ -425,6 +557,36 @@ def _export_to_excel(rows, headers, filename):
 
 
 @internal_only
+def export_flocks_excel(request):
+    records = _flocks_context()["records"]
+    rows = [
+        [r.batch_number, r.breed, r.get_growing_stage_display(), r.quantity, r.remaining_stock(), r.date_acquired, r.get_status_display()]
+        for r in records
+    ]
+    return _export_to_excel(rows, ["Batch", "Breed", "Stage", "Initial Qty", "Current Qty", "Date Acquired", "Status"], "flocks_report")
+
+
+@internal_only
+def export_feeding_excel(request):
+    records = _feeding_context()["records"]
+    rows = [
+        [r.feeding_date, str(r.flock.batch_number), str(r.feed_item.name), float(r.quantity_used), r.remarks or ""]
+        for r in records
+    ]
+    return _export_to_excel(rows, ["Date", "Flock", "Feed Item", "Quantity Used", "Remarks"], "feeding_report")
+
+
+@internal_only
+def export_medicine_excel(request):
+    records = _medicine_context()["records"]
+    rows = [
+        [r.date_administered, str(r.flock.batch_number), r.get_medicine_type_display(), r.medicine_name, r.dosage, r.get_administration_route_display(), str(r.next_schedule or "")]
+        for r in records
+    ]
+    return _export_to_excel(rows, ["Date", "Flock", "Type", "Medicine", "Dosage", "Route", "Next Schedule"], "medicine_report")
+
+
+@internal_only
 def export_production_excel(request):
     records = _production_context()["records"]
     rows = [[r.production_date, str(r.flock.batch_number), r.total_eggs, r.good_eggs, r.cracked_eggs, r.rejected_eggs] for r in records]
@@ -473,6 +635,26 @@ def export_profit_loss_excel(request):
 # --------------------------------------------------------------------------- #
 #  PDF exports - a downloadable file, kept separate from the print previews
 # --------------------------------------------------------------------------- #
+@internal_only
+def export_flocks_pdf(request):
+    ctx = {**_flocks_context(), **_farm_context(request)}
+    return pdfs.response("flocks", ctx)
+
+
+@internal_only
+def export_feeding_pdf(request):
+    start, end = _requested_period(request)
+    ctx = {**_feeding_context(start, end), **_farm_context(request)}
+    return pdfs.response("feeding", ctx)
+
+
+@internal_only
+def export_medicine_pdf(request):
+    start, end = _requested_period(request)
+    ctx = {**_medicine_context(start, end), **_farm_context(request)}
+    return pdfs.response("medicine", ctx)
+
+
 @internal_only
 def export_production_pdf(request):
     start, end = _requested_period(request)

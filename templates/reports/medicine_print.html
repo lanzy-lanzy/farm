@@ -1,0 +1,29 @@
+{% extends "reports/_print_base.html" %}
+{% block report_body %}
+    {% if records %}
+    <table class="data">
+        <caption>Medicine &amp; Vaccination Records</caption>
+        <thead>
+            <tr>
+                <th>Date</th><th>Flock</th><th>Type</th><th>Medicine</th>
+                <th>Dosage</th><th>Route</th><th>Next Schedule</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in records %}
+            <tr>
+                <td>{{ r.date_administered }}</td>
+                <td>{{ r.flock.batch_number }}</td>
+                <td>{{ r.get_medicine_type_display }}</td>
+                <td>{{ r.medicine_name }}</td>
+                <td>{{ r.dosage }}</td>
+                <td>{{ r.get_administration_route_display }}</td>
+                <td>{{ r.next_schedule|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No medicine records found for this period.</div>
+    {% endif %}
+{% endblock %}
