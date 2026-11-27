@@ -238,7 +238,7 @@ def advance_order(order, action, actor, *, note=None):
 
     if action == "confirm_received":
         if not order.can_confirm_received():
-            raise WorkflowError("Only an Out for Delivery or Delivered order can be accepted as received.")
+            raise WorkflowError("You can only accept this order once it is marked Delivered by the admin.")
         order, _ = complete_order(
             order,
             actor,
