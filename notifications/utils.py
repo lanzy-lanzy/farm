@@ -33,6 +33,26 @@ def notify_team(notification_type, title, message, link=None, target=None):
         )
 
 
+def notify_admins_and_owners(notification_type, title, message, link=None, target=None):
+    """Notify active administrators, farm owners, and superusers."""
+    from django.db.models import Q
+
+    users = (
+        User.objects.filter(is_active=True)
+        .filter(Q(role__in=["admin", "owner"]) | Q(is_superuser=True))
+        .distinct()
+    )
+    for user in users:
+        create_notification(
+            user=user,
+            notification_type=notification_type,
+            title=title,
+            message=message,
+            link=link,
+            target=target,
+        )
+
+
 def notify_user(user, notification_type, title, message, link=None, target=None):
     if user is not None and user.is_active:
         create_notification(

@@ -2,12 +2,13 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 
 from .access import admin_or_owner_required, admin_required
-from .forms import LoginForm, UserRegistrationForm, UserUpdateForm
+from .forms import LoginForm, PartnerRegistrationForm, UserRegistrationForm, UserUpdateForm
 from .models import User
 
 
@@ -23,6 +24,62 @@ class CustomLoginView(LoginView):
     def form_valid(self, form):
         response = super().form_valid(form)
         return response
+
+
+def register(request, default_role=None):
+    """Public self-registration for Buyer and Supplier accounts (requires admin approval)."""
+    from notifications.utils import log_activity, notify_admins_and_owners
+
+    if request.user.is_authenticated:
+        if request.user.is_external():
+            return redirect("portal:home")
+        return redirect("dashboard:index")
+
+    requested_role = default_role or request.GET.get("role", "buyer")
+    if requested_role not in ("buyer", "supplier"):
+        requested_role = "buyer"
+
+    if request.method == "POST":
+        form = PartnerRegistrationForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                user, profile = form.save()
+                role = user.role
+                role_label = "Buyer" if role == "buyer" else "Supplier"
+                notify_admins_and_owners(
+                    "account",
+                    f"New {role_label} registration: {profile.name}",
+                    f"{profile.name} (@{user.username}) registered as a {role_label.lower()} "
+                    "and is awaiting verification.",
+                    link=reverse("accounts:verification_queue"),
+                    target=f"verification:{role}:{profile.pk}",
+                )
+                log_activity(
+                    user,
+                    "create",
+                    role_label,
+                    profile.pk,
+                    profile.name,
+                    f"Self-registered as {role_label.lower()} (pending approval)",
+                )
+            messages.success(
+                request,
+                f"Registration submitted for {profile.name} (@{user.username}). "
+                "Your account is pending administrator approval — you will be able to sign in once approved.",
+            )
+            return redirect("accounts:login")
+    else:
+        form = PartnerRegistrationForm(initial={"role": requested_role})
+
+    selected_role = form["role"].value() or requested_role
+    if selected_role not in ("buyer", "supplier"):
+        selected_role = "buyer"
+
+    return render(
+        request,
+        "accounts/register.html",
+        {"form": form, "selected_role": selected_role},
+    )
 
 
 class CustomLogoutView(LogoutView):
@@ -125,9 +182,13 @@ def verification_queue(request):
 def verification_action(request, kind, pk):
     from buyers.models import Buyer
     from suppliers.models import Supplier
-    from notifications.utils import log_activity
+    from notifications.utils import log_activity, notify_user
 
     if request.method != "POST":
+        return redirect("accounts:verification_queue")
+
+    if kind not in ("buyer", "supplier"):
+        messages.error(request, "Unknown account type.")
         return redirect("accounts:verification_queue")
 
     model = Buyer if kind == "buyer" else Supplier
@@ -140,8 +201,15 @@ def verification_action(request, kind, pk):
         profile_obj.verified_by = request.user
         profile_obj.verified_at = timezone.now()
         if profile_obj.user:
-            profile_obj.user.is_active = True
+            profile_obj.user.is_active = profile_obj.is_active
             profile_obj.user.save(update_fields=["is_active"])
+            notify_user(
+                profile_obj.user,
+                "account",
+                "Account approved",
+                f"Your {kind} account ({profile_obj.name}) has been approved. Welcome to the portal!",
+                link="/portal/",
+            )
         messages.success(request, f"{profile_obj.name} approved.")
     elif action == "reject":
         profile_obj.verification_status = "rejected"

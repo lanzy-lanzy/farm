@@ -189,13 +189,30 @@
     .auth-lead { color: var(--ink-faint); font-size: .95rem; margin: 0 0 1.9rem; }
 
     .auth-error {
-        display: flex; align-items: center; gap: .7rem;
+        display: flex; align-items: flex-start; gap: .7rem;
         padding: .85rem 1rem; margin-bottom: 1.4rem;
         background: rgba(251, 113, 133, .1); border: 1px solid rgba(251, 113, 133, .35);
         border-left: 3px solid var(--danger); border-radius: 12px;
         color: #fecdd3; font-size: .9rem;
     }
-    .auth-error svg { flex-shrink: 0; color: var(--danger); }
+    .auth-error svg { flex-shrink: 0; color: var(--danger); margin-top: .1rem; }
+    .auth-notice {
+        display: flex; align-items: flex-start; gap: .7rem;
+        padding: .85rem 1rem; margin-bottom: 1.4rem;
+        background: rgba(52, 211, 153, .12); border: 1px solid rgba(52, 211, 153, .38);
+        border-left: 3px solid var(--emerald); border-radius: 12px;
+        color: #d1fae5; font-size: .9rem;
+    }
+    .auth-notice svg { flex-shrink: 0; color: var(--emerald-soft); margin-top: .1rem; }
+    .register-cta {
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .45rem .8rem;
+        margin-bottom: 1rem; font-size: .9rem; color: var(--ink-faint);
+    }
+    .register-cta a {
+        color: var(--spring); text-decoration: none; font-weight: 600;
+        transition: color .2s ease;
+    }
+    .register-cta a:hover { color: #d9f99d; text-decoration: underline; }
 
     .field { position: relative; margin-bottom: 1.15rem; }
     .field-icon {
@@ -344,15 +361,32 @@
                 <form method="post" id="login-form" novalidate>
                     {% csrf_token %}
 
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="auth-notice" role="status">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+                        <span>{{ message }}</span>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+
                     {% if form.errors %}
                     <div class="auth-error" role="alert">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
-                        <span>Invalid username or password. Please try again.</span>
+                        <div>
+                            {% if form.non_field_errors %}
+                                {% for error in form.non_field_errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            {% else %}
+                                <span>Invalid username or password. Please try again.</span>
+                            {% endif %}
+                        </div>
                     </div>
                     {% endif %}
 
                     <div class="field">
-                        <input class="field-input" type="text" name="username" id="id_username" placeholder=" " autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
+                        <input class="field-input" type="text" name="username" id="id_username" value="{{ form.username.value|default:'' }}" placeholder=" " autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
                         <label class="field-label" for="id_username">Username</label>
                         <span class="field-icon" aria-hidden="true">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -379,6 +413,12 @@
                 </form>
 
                 <div class="auth-links">
+                    <div class="register-cta">
+                        <span>New buyer or supplier?</span>
+                        <a href="{% url 'accounts:register_buyer' %}">Register as Buyer</a>
+                        <span>&middot;</span>
+                        <a href="{% url 'accounts:register_supplier' %}">Register as Supplier</a>
+                    </div>
                     <a class="back-home" href="/">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                         <span>Back to Home</span>

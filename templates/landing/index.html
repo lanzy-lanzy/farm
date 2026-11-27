@@ -743,6 +743,7 @@
             </nav>
 
             <div class="nav-cta-group">
+                <a class="btn btn-ghost btn-sm" href="{% url 'accounts:register' %}">Register</a>
                 <a class="btn btn-primary btn-sm magnetic" href="{% url 'accounts:login' %}">Sign in</a>
                 <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
                     <span class="bar"></span><span class="bar"></span><span class="bar"></span>
@@ -756,6 +757,7 @@
         <a href="#workflow"><span class="num">02</span>How it works</a>
         <a href="#stats"><span class="num">03</span>At a glance</a>
         <a href="#cta"><span class="num">04</span>Get started</a>
+        <a href="{% url 'accounts:register' %}"><span class="num">05</span>Register as Buyer / Supplier</a>
         <a class="btn btn-primary" href="{% url 'accounts:login' %}">Sign in
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
         </a>
@@ -790,6 +792,9 @@
                     <a class="btn btn-primary magnetic" href="{% url 'accounts:login' %}">
                         Get started
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+                    </a>
+                    <a class="btn btn-ghost" href="{% url 'accounts:register' %}">
+                        Register as Buyer / Supplier
                     </a>
                     <a class="btn btn-ghost" href="#features">
                         Explore the system
@@ -986,10 +991,15 @@
                 <div class="cta-panel glass" data-reveal>
                     <h2 id="cta-title">Ready to bring<br>the farm online?</h2>
                     <p>Join the growers of Zamboanga del Sur turning careful record-keeping into healthier flocks and better harvests.</p>
-                    <a class="btn btn-primary magnetic" href="{% url 'accounts:login' %}">
-                        Sign in to your dashboard
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
-                    </a>
+                    <div class="hero-cta">
+                        <a class="btn btn-primary magnetic" href="{% url 'accounts:login' %}">
+                            Sign in to your dashboard
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+                        </a>
+                        <a class="btn btn-ghost" href="{% url 'accounts:register' %}">
+                            Register as Buyer / Supplier
+                        </a>
+                    </div>
                     <span class="cta-note">Tambulig Poultry Farm Management System</span>
                 </div>
             </div>
@@ -1026,6 +1036,8 @@
                     <h4>System</h4>
                     <ul>
                         <li><a href="{% url 'accounts:login' %}">Sign in</a></li>
+                        <li><a href="{% url 'accounts:register_buyer' %}">Register as Buyer</a></li>
+                        <li><a href="{% url 'accounts:register_supplier' %}">Register as Supplier</a></li>
                         <li><a href="{% url 'accounts:login' %}">Dashboard</a></li>
                         <li><a href="{% url 'accounts:profile' %}">Profile</a></li>
                     </ul>
