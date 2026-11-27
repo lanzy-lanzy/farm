@@ -68,9 +68,15 @@
                 </form>
             </div>
         </div>
-        {% elif order.status == 'out_for_delivery' %}
+        {% elif order.status == 'out_for_delivery' or order.status == 'accepted' %}
         <div class="border-t border-gray-100 dark:border-gray-700 pt-5">
-            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">Order is out for delivery. Marking it Delivered will automatically update the order to Completed and record the sale.</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                {% if order.status == 'accepted' %}
+                The buyer has accepted this order. Mark it Delivered to complete the order and print the Delivery Verification Receipt.
+                {% else %}
+                Order is out for delivery. Waiting for the buyer to accept the order, or mark it Delivered directly to complete and print the receipt.
+                {% endif %}
+            </p>
             <form method="post" class="inline">
                 {% csrf_token %}
                 <button type="submit" name="action" value="deliver" class="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-medium cursor-pointer shadow-lg shadow-green-900/20 transition-colors">Mark Delivered</button>

@@ -91,7 +91,7 @@ class OrderRequest(models.Model):
         ("completed", "Completed"),
         ("under_review", "Under Review"),
         ("quoted", "Quoted"),
-        ("accepted", "Accepted"),
+        ("accepted", "Accepted by Buyer"),
         ("converted", "Completed"),
         ("rejected", "Rejected"),
         ("cancelled", "Cancelled"),
@@ -213,7 +213,7 @@ class OrderRequest(models.Model):
         return self.status in ("submitted", "under_review")
 
     def can_start_processing(self):
-        return self.status in ("approved", "accepted")
+        return self.status == "approved"
 
     def can_mark_out_for_delivery(self):
         return self.status == "processing"
@@ -222,7 +222,7 @@ class OrderRequest(models.Model):
         return self.status in ("approved", "accepted", "processing", "out_for_delivery")
 
     def can_confirm_received(self):
-        return self.status == "delivered"
+        return self.status in ("out_for_delivery", "delivered")
 
     def can_quote(self):
         return self.status in ("submitted", "under_review")
@@ -250,9 +250,9 @@ class OrderRequest(models.Model):
             "under_review": 0,
             "quoted": 0,
             "approved": 1,
-            "accepted": 1,
             "processing": 2,
             "out_for_delivery": 3,
+            "accepted": 4,
             "delivered": 4,
             "completed": 5,
             "converted": 5,

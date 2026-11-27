@@ -238,7 +238,26 @@ def advance_order(order, action, actor, *, note=None):
 
     if action == "confirm_received":
         if not order.can_confirm_received():
-            raise WorkflowError("You can only accept this order once it is marked Delivered by the admin.")
+            raise WorkflowError("You can only accept this order once it is marked Out for Delivery or Delivered by the admin.")
+        if order.status == "out_for_delivery":
+            order.status = "accepted"
+            order.save()
+            log_activity(
+                actor,
+                "update",
+                "OrderRequest",
+                order.pk,
+                order.request_number,
+                "Buyer accepted out-for-delivery order",
+            )
+            notify_team(
+                "order_request",
+                f"Order {order.request_number} accepted by buyer",
+                f"{order.buyer.name} accepted {order.request_number}. You can now mark it Delivered and print the receipt.",
+                link=f"/sales/requests/{order.pk}/",
+                target=f"order_request:{order.pk}",
+            )
+            return order, f"Order {order.request_number} accepted. The farm admin can now mark it Delivered."
         order, _ = complete_order(
             order,
             actor,

@@ -154,3 +154,30 @@ class OrderWorkflowAutomationTests(TestCase):
         self.client.force_login(staff_user)
         res_staff = self.client.get(receipt_url)
         self.assertEqual(res_staff.status_code, 403)
+
+    def test_buyer_accepts_out_for_delivery_then_admin_marks_delivered_and_prints_receipt(self):
+        # Admin: Approve -> Processing -> Out for Delivery
+        self.client.force_login(self.admin)
+        review_url = reverse("sales:order_request_review", args=[self.order.pk])
+        self.client.post(review_url, {"action": "approve"})
+        self.client.post(review_url, {"action": "process"})
+        self.client.post(review_url, {"action": "out_for_delivery"})
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "out_for_delivery")
+
+        # Buyer accepts order while Out for Delivery -> moves to accepted (ready for admin Mark Delivered)
+        self.client.force_login(self.buyer_user)
+        respond_url = reverse("portal:buyer_request_respond", args=[self.order.pk])
+        res = self.client.post(respond_url, {"action": "confirm_received"})
+        self.assertEqual(res.status_code, 302)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "accepted")
+
+        # Admin marks Delivered -> auto-completes & receipt is printable
+        self.client.force_login(self.admin)
+        self.client.post(review_url, {"action": "deliver"})
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "completed")
+        self.assertIsNotNone(self.order.sales_record_id)
+        receipt_res = self.client.get(reverse("sales:order_request_receipt_print", args=[self.order.pk]))
+        self.assertEqual(receipt_res.status_code, 200)

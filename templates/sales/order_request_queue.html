@@ -75,7 +75,7 @@
                                 <button type="submit" class="inline-block bg-amber-600 hover:bg-amber-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow-sm cursor-pointer transition-colors">Out for Delivery</button>
                             </form>
                             <a href="{% url 'sales:order_request_review' order.pk %}" class="text-gray-500 dark:text-gray-400 hover:underline">View</a>
-                            {% elif order.status == 'out_for_delivery' %}
+                            {% elif order.status == 'out_for_delivery' or order.status == 'accepted' %}
                             <form method="post" action="{% url 'sales:order_request_review' order.pk %}" class="inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="deliver">
